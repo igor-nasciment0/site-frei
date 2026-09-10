@@ -1,12 +1,8 @@
-# React + Vite
+# About
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This frontend application was built for **[Instituto Social Nossa Senhora de Fátima](https://acaonsfatima.org.br)**, where I studied in 2023. It served as the live platform for new student admissions between October and November 2025.
 
-Currently, two official plugins are available:
+## Tech Stack & Requirements
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+* **Framework:** React + Vite
+* **Prerequisites:** Requires the Institute's backend REST API and the necessary environment variables/API keys configured to function.
