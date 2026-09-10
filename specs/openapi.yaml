@@ -314,6 +314,23 @@ paths:
         '500':
           description: Erro interno do servidor
 
+  /api/courses/count:
+    get:
+      tags: [Courses]
+      summary: Quantidade de cursos ativos
+      description: >
+        **Anônimo de propósito**: o painel institucional das telas públicas (login, cadastro,
+        recuperação de senha) exibe esse número e ali não há token. Devolve só a contagem —
+        nenhum dado de curso é exposto. `GET /api/courses` continua exigindo JWT.
+      security: []
+      responses:
+        '200':
+          description: Contagem retornada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseCountDto'
+
   /api/courses/{id}:
     get:
       tags: [Courses]
@@ -1704,6 +1721,14 @@ components:
           description: Default "Livre" quando nulo na base.
         code:
           type: integer
+
+    CourseCountDto:
+      type: object
+      properties:
+        total:
+          type: integer
+          format: int64
+          description: Quantidade de cursos com `isActive = true`.
 
     CourseDto:
       type: object

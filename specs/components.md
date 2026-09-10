@@ -21,6 +21,7 @@ Sidebar de navegação principal do layout autenticado (`App`).
 - **`LinkLateral({ para, titulo, icone })`**: item de navegação com `useMatch(para)` para aplicar classe `selecionado`; ícone carregado de `/assets/images/icons/{icone}.svg`.
 - Links fixos: Início (`/`), Inscrição (`/inscricao`), Acompanhamento (`/acompanhamento`), Cursos (`/cursos`), FAQ (`/faq`).
 - Rodapé: horário de atendimento, link de **WhatsApp (11) 96398-6252** (`wa.me/5511963986252`) e "Sair da conta".
+- Exibe o **logo do instituto** (`/assets/images/logo.svg`, 34px) ao lado de "Instituto Social / Nossa Senhora de Fátima" — mesmo tratamento do `PainelInstitucional`. A `AdminSidebar` usa o mesmo logo.
 
 ### `Cabecalho` (`cabecalho/index.jsx`)
 Header do layout autenticado.
@@ -50,10 +51,11 @@ Sistema de modal global.
 Painel de marca (coluna navy) compartilhado pelas telas públicas — Login, Cadastro, Recuperar/Trocar
 Senha e as equivalentes do painel admin.
 - **Props:** `titulo` (default `"Inscrições"`), `destaque` (default `"2026"`), `descricao`, `mostrarStats`.
+- Quando `mostrarStats`, busca a **quantidade de cursos na API** (`GET /api/courses/count`, anônimo — a tela é pública e não há token) e a exibe no bloco de indicadores. Chamada com `toastIt=false`: é número decorativo, então se a API não responder o indicador apenas não aparece, sem toast de erro. O "64 anos de história" segue fixo no código.
 - Exibe o **logo do instituto** (`/assets/images/logo.svg`) ao lado de "Ação Social / Nossa Senhora de Fátima".
   Usa `logo.svg` — a marca em traço branco, feita para fundo escuro. O `logo2.svg` é a versão completa
   em azul **com fundo branco sólido** e viraria um retângulo branco sobre o painel navy.
-- *A sidebar da área autenticada (`BarraLateral`) ainda usa o monograma provisório "A".*
+
 
 ### `Select` / `SelectItem` (`select/index.jsx`)
 Wrapper de campo de seleção usado em todos os formulários do app.

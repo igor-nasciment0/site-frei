@@ -4,7 +4,7 @@ import './index.scss';
 import { Link, useNavigate, useOutletContext } from 'react-router';
 import { useEffect, useState } from 'react';
 import callApi from '../../../../api/callAPI';
-import { getCursos } from '../../../../api/services/cursos';
+import { getTotalCursos } from '../../../../api/services/cursos';
 import Skeleton from 'react-loading-skeleton';
 import { format, addMinutes, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -40,8 +40,8 @@ export default function Inicio() {
 
   useEffect(() => {
     (async () => {
-      const cursos = await callApi(getCursos);
-      setTotalCursos(cursos?.length ?? null);
+      const total = await callApi(getTotalCursos);
+      setTotalCursos(typeof total === 'number' ? total : null);
     })()
   }, [])
 

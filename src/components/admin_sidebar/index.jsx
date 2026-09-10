@@ -39,7 +39,7 @@ export default function AdminSidebar({ admin }) {
         </button>
 
         <div className="marca">
-          <span className="monograma">A</span>
+          <img className="logo" src="/assets/images/logo.svg" alt="Instituto Social Nossa Senhora de Fátima" />
           <div>
             <p className="eyebrow">Painel Administrativo</p>
             <p className="sub">Nossa Senhora de Fátima</p>

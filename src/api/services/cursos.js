@@ -5,6 +5,13 @@ export async function getCursos() {
     return r.data;
 }
 
+// Endpoint anônimo: o painel institucional das telas públicas (login, cadastro, recuperar
+// senha) precisa do número e ali não há token.
+export async function getTotalCursos() {
+    const r = await api().get("/courses/count");
+    return r.data?.total;
+}
+
 export async function getCursoId(idCurso) {
     const r = await api().get("/courses/" + idCurso);
     return r.data;

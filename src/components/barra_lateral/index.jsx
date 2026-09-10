@@ -44,9 +44,9 @@ export default function BarraLateral({ user, inscricao }) {
         </button>
 
         <div className="marca">
-          <span className="monograma">A</span>
+          <img className="logo" src="/assets/images/logo.svg" alt="Instituto Social Nossa Senhora de Fátima" />
           <div>
-            <p className="eyebrow">Ação Social</p>
+            <p className="eyebrow">Instituto Social</p>
             <p className="sub">Nossa Senhora de Fátima</p>
           </div>
         </div>
