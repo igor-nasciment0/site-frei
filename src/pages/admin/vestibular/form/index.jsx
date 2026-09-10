@@ -15,7 +15,8 @@ function paraISODataSimples(valorInputDate) {
   return valorInputDate ? valorInputDate + "T00:00:00.000Z" : null;
 }
 
-const CAMPOS_DATA = ["startDate", "endDate", "extensionDate", "resultPublicationDate", "testDate"];
+const CAMPOS_DATA = ["startDate", "endDate", "extensionDate", "resultPublicationDate",
+  "resultPublicationDateExternal", "roomNoticeEmailDate", "testDate"];
 
 export default function AdminVestibularForm() {
   const { id } = useParams();
@@ -56,7 +57,7 @@ export default function AdminVestibularForm() {
       // nextEnrollmentNumber não é editável via PUT (só no POST de criação).
       delete payload.nextEnrollmentNumber;
     } else {
-      payload.nextEnrollmentNumber = Number(dados.nextEnrollmentNumber) || 1;
+      payload.nextEnrollmentNumber = Number(dados.nextEnrollmentNumber) || 1001;
     }
 
     const r = editando
@@ -130,6 +131,22 @@ export default function AdminVestibularForm() {
             <div className="campo">
               <label htmlFor="resultPublicationDate">Divulgação do resultado</label>
               <input {...register("resultPublicationDate")} type="date" />
+              <span className="ajuda">Data padrão, usada para a maioria dos candidatos.</span>
+            </div>
+
+            <div className="campo">
+              <label htmlFor="resultPublicationDateExternal">Resultado — externo em curso de continuidade</label>
+              <input {...register("resultPublicationDateExternal")} type="date" />
+              <span className="ajuda">
+                Vale para quem escolheu Inglês Avançado, Intermediário, Pré-Intermediário Noturno ou
+                Teens II <strong>sem</strong> já ser aluno do curso anterior. Em branco, usa a data padrão.
+              </span>
+            </div>
+
+            <div className="campo">
+              <label htmlFor="roomNoticeEmailDate">E-mail com horário e sala</label>
+              <input {...register("roomNoticeEmailDate")} type="date" />
+              <span className="ajuda">Data informada ao candidato no acompanhamento.</span>
             </div>
 
             <div className="campo">

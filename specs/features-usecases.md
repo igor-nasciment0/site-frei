@@ -1,6 +1,10 @@
 # Funcionalidades e Casos de Uso — Frei Online
 
-Portal onde candidatos (menores de idade, representados por um responsável cadastrante) fazem toda a jornada de pré-inscrição no vestibular do Instituto Social Nossa Senhora de Fátima: criar conta, preencher ficha completa, escolher curso/horário, agendar e acompanhar a prova presencial, e ver o resultado.
+> **Nota:** este documento cobre o **portal do candidato**. O projeto também tem uma área
+> administrativa em `/admin` (login próprio, dashboard, CRUD de cursos/FAQ/edições do vestibular,
+> consulta de inscrições e **importações de CSV**) que ainda não está documentada em detalhe aqui.
+
+Portal onde candidatos (menores de idade, representados por um responsável cadastrante) fazem toda a jornada de inscrição no vestibular do Instituto Social Nossa Senhora de Fátima: criar conta, preencher ficha completa, escolher curso/horário, agendar e acompanhar a prova presencial, e ver o resultado.
 
 ## 1. Cadastro de conta (`/cadastro`)
 
@@ -36,15 +40,22 @@ Portal onde candidatos (menores de idade, representados por um responsável cada
 **Ator:** usuário autenticado.
 
 - Saudação personalizada com o nome do usuário.
-- **Aviso de agendamento pendente**: se o usuário já concluiu a pré-inscrição (`getInscricao` retorna `firstChoice`) mas ainda não tem agendamento (`getAgendamento` retorna vazio), mostra um banner de aviso com link direto para `/acompanhamento`.
+- **Aviso de agendamento pendente**: se o usuário já concluiu a inscrição (`getInscricao` retorna `firstChoice`) mas ainda não tem agendamento (`getAgendamento` retorna vazio), mostra um banner de aviso com link direto para `/acompanhamento`.
 - **Anúncio do status do vestibular**, dependendo de `statusVestibular.isRegistrationOpen`:
   - Fechado: "As inscrições irão começar em {startDate}".
   - Aberto: "As inscrições estarão abertas até {endDate}".
-  - O botão de ação muda conforme o usuário já esteja inscrito ou não: "Realizar a pré-inscrição" (→ `/inscricao`) ou "Acompanhar minha inscrição" (→ `/acompanhamento`).
+  - O botão de ação muda conforme o usuário já esteja inscrito ou não: "Realizar inscrição" (→ `/inscricao`) ou "Acompanhar minha inscrição" (→ `/acompanhamento`).
+- **Card de vídeo**: quando `statusVestibular.presentationVideoUrl` está preenchido, exibe o vídeo de
+  apresentação num `iframe` 16:9 (a URL passa por `corrigeURLVideo`, que normaliza links do YouTube
+  para o formato `embed`).
+- **Informações gerais**: quatro atalhos que abrem uma pergunta específica do FAQ por `key` —
+  Edital de Bolsa (`edital-bolsa`), Uso de Uniforme (`uso-uniforme`), Material Didático
+  (`material-didatico`) e Resultado da prova (`resultado-prova`). As perguntas são cadastradas pela
+  secretaria no admin; se a `key` não existir, o link apenas não abre nada.
 - **Ações rápidas**: atalhos para Inscrição, Cursos e Contato (abre cliente de e-mail com `mailto:secretaria@acaonsfatima.org.br`).
 - **FAQ resumido**: até 5 perguntas mais frequentes (via `AcordeaoPerguntas max={5}`), com link "Ver todas" para `/faq`.
 
-## 5. Pré-inscrição (`/inscricao`)
+## 5. Inscrição (`/inscricao`)
 
 **Ator:** usuário autenticado, ainda dentro do prazo de inscrição.
 
@@ -55,13 +66,18 @@ Fluxo em duas grandes partes:
 1. Informações Pessoais (nome, telefone, gênero)
 2. Endereço (CEP com autopreenchimento via ViaCEP, rua, bairro, cidade, estado, número, complemento opcional)
 3. Informações de Nascimento (data, cidade, estado, país)
-4. Documento (CPF + dados do RG: número, data de emissão, órgão emissor)
+4. Documento (CPF + dados do RG: número, data de emissão, órgão emissor + **anexo obrigatório da foto do RG**)
 5. Dados da mãe (responsável primário — nome, e-mail, telefone, telefone secundário; parentesco fixo "Mãe")
 6. Responsável Secundário (mesmos campos, parentesco livre)
 7. Escolaridade (escola atual, série atual, tipo de escola)
-8. Informações Gerais (como conheceu o instituto, renda mensal familiar, pessoas em casa, pessoas trabalhando)
+8. Informações Gerais (como conheceu o instituto — Amigos, Família, Cônjuge, Filho/Filha, Ex-Aluno, Redes Sociais, Internet, Outro —, renda mensal familiar, pessoas em casa, pessoas trabalhando)
 
 Regras:
+- **Anexo do RG (passo 4)**: o arquivo sobe em requisição própria (`POST /users/rg-document`) assim que
+  é escolhido — não cabe no `PUT /users/profile`, que é JSON. O passo só avança com o anexo enviado.
+  Limite de 4MB, formatos JPG/PNG/HEIC/PDF, com aviso de "foto legível". Um anexo já enviado é
+  recarregado como prévia para o candidato conferir. O backend também exige o anexo na inscrição, de
+  modo que a regra vale mesmo se a checagem do front for contornada.
 - Formulário é **pré-preenchido** com os dados que o usuário já tem salvos no perfil (`getInfoUsuario`, obtido via `App` e guardado em `local-storage`), convertendo formatos onde necessário (datas para `yyyy-MM-dd`, números para string nos selects).
 - Navegação "Avançar" só troca de passo se os campos daquele passo passarem na validação do `react-hook-form` (`trigger`); "Retornar" sempre disponível a partir do 2º passo.
 - É possível pular diretamente para qualquer passo já visitado clicando na lista lateral de passos (desktop) ou nos indicadores numerados (mobile).
@@ -71,10 +87,15 @@ Regras:
 ### 5.2 Escolha de curso (aba "Escolha do Curso")
 
 - Só fica acessível depois que o wizard de dados pessoais foi preenchido ao menos uma vez (checagem: `generalInfo.howDidYouKnow` não vazio).
+- Traz um link "Conheça os cursos disponíveis" (abre `/cursos` em **nova aba**, para não descartar o
+  estado do wizard).
 - Seleciona 1ª opção de curso (obrigatória) + período/horário daquele curso (obrigatório), e opcionalmente uma 2ª opção de curso + horário.
 - Se o usuário já tiver uma inscrição enviada, o formulário vem pré-preenchido com as escolhas atuais (permitindo alteração, dentro da fase permitida).
 - **Regra de conflito:** 1ª e 2ª opção não podem ser o mesmo par curso+horário — ao detectar, o sistema limpa a opção conflitante e mostra mensagem de erro inline.
 - Ao concluir: `POST /enrollments` com os códigos escolhidos. Sucesso → barra de progresso, toast "Sucesso!", redirecionamento para `/acompanhamento`.
+- **Bloqueio por mensalidades em aberto**: candidato que já é aluno e tem 3 ou mais mensalidades em
+  aberto recebe erro do backend — *"Você possui N mensalidades em aberto. Regularize os pagamentos;
+  após a quitação, aguarde 2 dias para realizar a inscrição."*
 
 ## 6. Cursos (`/cursos` e `/cursos/:id`)
 
@@ -82,6 +103,9 @@ Regras:
 
 - **Listagem** (`/cursos`): grid de cards com imagem (carregada sob demanda como blob autenticado), nome, tipo e carga horária.
   - Filtro por tipo de curso (chips clicáveis, toggle — clicar de novo no filtro ativo o remove), com um filtro adicional especial "Inglês" que busca por nome contendo "inglês" em vez de por `type`.
+  - Cursos com `type === "Técnico"` exibem um selo **"Edital de Bolsas"** que abre
+    `acaonsfatima.org.br/bolsa-educacional` em nova aba (com `stopPropagation`, já que o card inteiro
+    é clicável).
 - **Detalhes** (`/cursos/:id`, renderizado dentro do layout de `Cursos` via outlet aninhado): nome, imagem grande, descrição (HTML), tabela de informações (carga horária, faixa etária mínima/máxima, escolaridade mínima, contribuição mensal, períodos disponíveis ativos) e, se houver, seção "Mercado de Trabalho". Link "Voltar" para a listagem. Usa skeletons durante o carregamento (inclusive um delay artificial de 1s para suavizar a transição).
 
 ## 7. Acompanhamento (`/acompanhamento`)
@@ -89,13 +113,37 @@ Regras:
 **Ator:** usuário autenticado.
 
 - Se o usuário **não tem inscrição** (`getInscricao` → 404): mostra mensagem "Você ainda não possui inscrição." com botão para ir para `/inscricao`.
-- Se tem inscrição: mostra resumo (1ª opção e, se houver, 2ª opção de curso/horário) e a **linha do tempo** do processo seletivo com 5 etapas:
-  1. **Pré-inscrição** — sempre concluída (é pré-requisito para chegar aqui).
-  2. **Agendamento** — se ainda não agendado, botão para agendar; se já agendado, mostra data/horário e (enquanto `status` da inscrição != 2, i.e. ainda não concluída presencialmente) permite reagendar. Ambos abrem o **modal de seleção de data/horário** (calendário com dias habilitados pela API, mais horários fixos gerados no front das 08:00 às 17:30 a cada 30min).
-  3. **Concluir Inscrição** — instruções de comparecimento presencial (endereço, valor R$ 40,00, documentos: RG e CPF); marcado como concluído quando `status == 2`.
-  4. **Vestibular** — instruções da prova (data/horário/sala, quando definidos pela secretaria) ou confirmação, se a data da prova já passou.
-  5. **Resultado** — mostra link do resultado se já divulgado (`resultPublicationDate` no passado) ou data prevista; pode antecipar o link se o backend sinalizar `canShowResultUrl`.
-- Reagendar/agendar dispara `POST /appointments`; em sucesso, a página recarrega (`window.location.reload()`) após 2s para refletir o novo estado em toda a timeline.
+- Se tem inscrição: mostra resumo (1ª opção e, se houver, 2ª opção de curso/horário) e a **linha do tempo** do processo seletivo com 5 etapas.
+
+### 7.1 Linha do tempo
+
+1. **Cadastro criado** — sempre concluída.
+2. **Inscrição preenchida** — sempre concluída (é pré-requisito para chegar aqui).
+3. **Pagamento** — cobrança PIX da taxa de inscrição: QR code (quando o provedor fornece a imagem) +
+   código copia-e-cola com botão "Copiar". Enquanto pendente, consulta
+   `GET /enrollments/my-enrollment/payment` a cada 10s, de modo que a confirmação pelo webhook faz a
+   etapa virar sem recarregar a página. Concluída quando `paymentStatus === 2`.
+4. **Prova presencial** — ramifica por `isInternalStudent`:
+   - **aluno interno**: *"a prova será o nivelamento do próprio curso, portanto não é necessário
+     realizar a prova no dia do vestibular"*, sem endereço nem data.
+   - **externo**: endereço do instituto, data da prova e o aviso de que **horário e sala são enviados
+     por e-mail** em `roomNoticeEmailDate`.
+5. **Resultado e matrícula** — usa `dadosInscricao.resultPublicationDate` (data **do candidato**), com
+   fallback para a data global de `GET /parameters`. Mostra o link quando já divulgado, ou a data
+   prevista; pode antecipar o link se o backend sinalizar `canShowResultUrl`.
+
+### 7.2 Coluna lateral
+
+Só aparece para candidato **externo** — para o aluno interno não há prova a informar.
+
+- **"Informações sobre a prova"** (card azul): Data, Horário, Local e Sala. Horário e sala não são
+  definidos por aqui — enquanto a secretaria não os preenche, exibem *"Por e-mail em {data}"*.
+- **"Documentos obrigatórios"**: RG ou Documento Oficial com Foto · Lápis, Borracha, 2 Canetas ·
+  Água · Chegar 30min com antecedência.
+
+> **Nota:** o agendamento de horário pelo candidato (`POST /appointments`, modal de calendário) não faz
+> mais parte deste fluxo — a convocação é definida pela secretaria. Os endpoints de agendamento
+> continuam existindo na API.
 
 ## 8. FAQ (`/faq`)
 
@@ -106,7 +154,11 @@ Regras:
 ## 9. Sessão e navegação global
 
 - **Header** (todas as páginas do layout `App`): nome do usuário, indicador "Online", menu com opção de logout. Em mobile, botão de menu abre a sidebar como drawer.
-- **Sidebar**: navegação entre Início, Inscrição, Acompanhamento, Cursos, FAQ — visível em toda a área autenticada, colapsa para drawer em telas ≤768px.
+- **Sidebar**: navegação entre Início, Inscrição, Acompanhamento, Cursos, FAQ — visível em toda a área autenticada, colapsa para drawer em telas ≤768px. O rodapé traz o horário de atendimento e o **WhatsApp (11) 96398-6252** (`wa.me/5511963986252`).
+
+> **Telefones em uso hoje:** WhatsApp **(11) 96398-6252** no rodapé da sidebar; **(11) 3798-5037** no
+> card "Falar com a secretaria" da Início. O rodapé da tela de login e a faixa de contato do FAQ ainda
+> exibem **(11) 4362-1000**.
 - **Logout**: disponível no menu do usuário no cabeçalho; limpa sessão local e redireciona para `/login`.
 - **Guarda de sessão**: qualquer acesso às rotas dentro do layout `App` sem sessão válida (token ausente/expirado) redireciona para `/login`.
 - **Bloqueio por fase do processo**: o formulário de inscrição fica travado (somente leitura) quando a fase atual do vestibular avança além da fase de preenchimento de dados (`currentPhase >= 3`), impedindo edição de dados após a fase ter avançado — mas a leitura/acompanhamento continua disponível normalmente.

@@ -10,6 +10,16 @@ import { format, addMinutes, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import useMinhaInscricao from '../../../../util/useMinhaInscricao';
 import { calcularProgresso } from '../../../../util/progresso';
+import { corrigeURLVideo } from '../../../../util/string';
+
+// Cada item aponta para a `key` de uma pergunta cadastrada no FAQ pelo admin. Itens cuja
+// pergunta ainda não existe simplesmente não abrem nada — por isso o link é sempre válido.
+const INFORMACOES_GERAIS = [
+  { key: 'edital-bolsa', titulo: 'Edital de Bolsa', legenda: 'Quem pode concorrer e como solicitar' },
+  { key: 'uso-uniforme', titulo: 'Uso de Uniforme', legenda: 'Regras e onde adquirir' },
+  { key: 'material-didatico', titulo: 'Material Didático', legenda: 'O que está incluso na contribuição' },
+  { key: 'resultado-prova', titulo: 'Resultado da prova', legenda: 'Quando e onde consultar' },
+];
 
 function formatarDataCurta(dataStringUTC) {
   if (!dataStringUTC) return null;
@@ -48,7 +58,7 @@ export default function Inicio() {
           <span className="ponto" />
           <div>
             <p className="titulo">Falta escolher seu curso</p>
-            <p className="texto">Depois de concluir sua pré-inscrição e escolher o curso, a convocação para a prova aparece em Acompanhamento.</p>
+            <p className="texto">Depois de concluir sua inscrição e escolher o curso, a convocação para a prova aparece em Acompanhamento.</p>
           </div>
         </div>
       }
@@ -59,12 +69,12 @@ export default function Inicio() {
 
           {inscricaoConcluida ?
             <>
-              <h2>Sua pré-inscrição está concluída</h2>
-              <p className="etapa">Etapa {progresso.total} de {progresso.total} · Pré-inscrição concluída</p>
+              <h2>Sua inscrição está concluída</h2>
+              <p className="etapa">Etapa {progresso.total} de {progresso.total} · Inscrição concluída</p>
             </>
             :
             <>
-              <h2>Sua pré-inscrição está em andamento</h2>
+              <h2>Sua inscrição está em andamento</h2>
               <p className="etapa">Etapa {progresso.concluidas} de {progresso.total} · {progresso.concluidas === 0 ? "Informações pessoais" : "Escolha do curso"}</p>
             </>
           }
@@ -96,6 +106,34 @@ export default function Inicio() {
         </div>
       </div>
 
+      {statusVestibular?.presentationVideoUrl &&
+        <div className='video-apresentacao'>
+          <h3>Assista à apresentação</h3>
+
+          <div className='moldura'>
+            <iframe
+              src={corrigeURLVideo(statusVestibular.presentationVideoUrl)}
+              title="Vídeo de apresentação do vestibular"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      }
+
+      <div className='informacoes-gerais'>
+        <h3>Informações gerais</h3>
+
+        <div className='container'>
+          {INFORMACOES_GERAIS.map(info =>
+            <Link key={info.key} to={`/faq?q=${info.key}`}>
+              <p className="titulo">{info.titulo}</p>
+              <p className="legenda">{info.legenda}</p>
+            </Link>
+          )}
+        </div>
+      </div>
+
       <div className='acoes'>
         <h3>Ações rápidas</h3>
 
@@ -113,7 +151,7 @@ export default function Inicio() {
           <div onClick={() => window.open("mailto:secretaria@acaonsfatima.org.br")}>
             <span className="numeral">03</span>
             <p className="titulo">Falar com a secretaria</p>
-            <p className="legenda">(11) 4362-1000</p>
+            <p className="legenda">(11) 3798-5037</p>
           </div>
         </div>
       </div>
@@ -125,7 +163,11 @@ export default function Inicio() {
           <Link to="/faq">Ver todas</Link>
         </div>
 
-        <AcordeaoPerguntas max={3} numbered={false} onSelecionar={(_, index) => navigate(`/faq?q=${index}`)} />
+        <AcordeaoPerguntas
+          max={3}
+          numbered={false}
+          onSelecionar={(pergunta, index) => navigate(`/faq?q=${pergunta?.key ?? index}`)}
+        />
       </div>
     </section>
   )

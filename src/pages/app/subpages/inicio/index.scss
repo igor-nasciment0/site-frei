@@ -148,6 +148,76 @@
         }
     }
 
+    .video-apresentacao {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+
+        h3 {
+            @include t.type-h3-section;
+            color: t.$c-navy;
+        }
+
+        .moldura {
+            position: relative;
+            aspect-ratio: 16 / 9;
+            max-width: 100%;
+            background: t.$c-navy;
+            border: 1px solid t.$c-border;
+
+            iframe {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                border: 0;
+            }
+        }
+    }
+
+    .informacoes-gerais {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+
+        h3 {
+            @include t.type-h3-section;
+            color: t.$c-navy;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+
+            > a {
+                background: t.$c-white;
+                border: 1px solid t.$c-border;
+                border-top: 2px solid t.$c-sand;
+                padding: 20px 22px;
+                transition: border-color t.$transition;
+
+                &:hover {
+                    border-color: t.$c-navy;
+                    border-top-color: t.$c-sand;
+                }
+
+                .titulo {
+                    font-size: 15px;
+                    font-weight: 600;
+                    color: t.$c-navy;
+                    margin-bottom: 4px;
+                }
+
+                .legenda {
+                    font-size: 12.5px;
+                    color: t.$c-text-muted;
+                    line-height: 1.5;
+                }
+            }
+        }
+    }
+
     .acoes {
         display: flex;
         flex-direction: column;
@@ -225,6 +295,12 @@
         }
     }
 
+    @include t.bp-1150 {
+        .informacoes-gerais .container {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
     @include t.bp-960 {
         .acoes .container {
             grid-template-columns: 1fr 1fr;
@@ -232,7 +308,8 @@
     }
 
     @include t.bp-640 {
-        .acoes .container {
+        .acoes .container,
+        .informacoes-gerais .container {
             grid-template-columns: 1fr;
         }
     }

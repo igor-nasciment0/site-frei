@@ -5,8 +5,10 @@ export default {
   extensionDate: "",
   allowRegistration: true,
   resultPublicationDate: "",
+  resultPublicationDateExternal: "",
+  roomNoticeEmailDate: "",
   resultUrl: "",
   description: "",
   testDate: "",
-  nextEnrollmentNumber: 1,
+  nextEnrollmentNumber: 1001,
 };

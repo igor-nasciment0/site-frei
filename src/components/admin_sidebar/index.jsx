@@ -9,6 +9,7 @@ const LINKS = [
   { para: '/admin/cursos', titulo: 'Cursos' },
   { para: '/admin/faq', titulo: 'Dúvidas frequentes' },
   { para: '/admin/vestibular', titulo: 'Vestibular' },
+  { para: '/admin/importacoes', titulo: 'Importações' },
   { para: '/admin/administradores', titulo: 'Administradores' },
 ];
 

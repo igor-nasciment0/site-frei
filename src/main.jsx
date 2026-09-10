@@ -30,6 +30,7 @@ import AdminFAQForm from './pages/admin/faq/form';
 import AdminVestibular from './pages/admin/vestibular';
 import AdminVestibularForm from './pages/admin/vestibular/form';
 import AdminUsuarios from './pages/admin/administradores';
+import AdminImportacoes from './pages/admin/importacoes';
 
 createRoot(document.getElementById('root')).render(
   <LoadingBarContainer>
@@ -64,6 +65,7 @@ createRoot(document.getElementById('root')).render(
               <Route path='vestibular' element={<AdminVestibular />} />
               <Route path='vestibular/novo' element={<AdminVestibularForm />} />
               <Route path='vestibular/:id' element={<AdminVestibularForm />} />
+              <Route path='importacoes' element={<AdminImportacoes />} />
               <Route path='administradores' element={<AdminUsuarios />} />
             </Route>
             <Route path='/admin/login' element={<AdminLogin />} />

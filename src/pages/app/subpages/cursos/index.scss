@@ -124,6 +124,22 @@
                 }
             }
 
+            // Chamada para o edital de bolsas — só aparece nos cursos técnicos.
+            .selo-edital {
+                display: inline-block;
+                @include t.type-tag;
+                color: t.$c-clay;
+                border: 1px solid t.$c-alert-border;
+                padding: 4px 9px;
+                margin-bottom: 16px;
+                transition: background .18s, color .18s;
+
+                &:hover {
+                    background: t.$c-clay;
+                    color: #fff;
+                }
+            }
+
             .divisor {
                 height: 1px;
                 background: t.$c-divider-strong;

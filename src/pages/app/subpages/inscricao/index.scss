@@ -117,6 +117,95 @@
         }
     }
 
+    .anexo-rg {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+
+        .previa {
+            width: 132px;
+            height: 88px;
+            object-fit: cover;
+            border: 1px solid t.$c-border;
+            background: t.$c-input-bg;
+            flex-shrink: 0;
+
+            &.vazia {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                padding: 8px;
+                font-size: 11.5px;
+                color: t.$c-text-muted;
+
+                &.com-arquivo {
+                    color: t.$c-slate;
+                    border-color: t.$c-slate;
+                }
+            }
+        }
+
+        .controles {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+            min-width: 200px;
+
+            button {
+                align-self: flex-start;
+                font-size: 13px;
+                font-weight: 600;
+                color: t.$c-navy;
+                background: transparent;
+                border: 1px solid t.$c-navy;
+                padding: 9px 16px;
+                cursor: pointer;
+                transition: background t.$transition, color t.$transition;
+
+                &:hover:not(:disabled) {
+                    background: t.$c-navy;
+                    color: t.$c-white;
+                }
+
+                &:disabled {
+                    opacity: .6;
+                    cursor: default;
+                }
+            }
+
+            .aviso {
+                font-size: 12.5px;
+                line-height: 1.55;
+                color: t.$c-text-muted;
+
+                strong {
+                    color: t.$c-clay;
+                }
+            }
+        }
+    }
+
+    .ajuda-cursos {
+        font-size: 13.5px;
+        line-height: 1.6;
+        color: t.$c-text-muted;
+        margin-bottom: 18px;
+
+        a {
+            color: t.$c-slate;
+            font-weight: 600;
+            border-bottom: 1px solid t.$c-sand;
+            transition: color .18s;
+
+            &:hover {
+                color: t.$c-navy;
+            }
+        }
+    }
+
     .cursos-erro {
         background-color: rgba(184, 92, 79, 0.12);
         color: t.$c-clay;

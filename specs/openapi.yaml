@@ -4,7 +4,7 @@ info:
   description: >
     API REST do Instituto Social N.S.Fátima para gestão de usuários, cursos,
     inscrições (matrículas) e agendamentos do vestibular.
-    Gerado a partir do código-fonte real (`src/NsfApi/Controllers`) em 2026-08-10.
+    Gerado a partir do código-fonte real (`src/NsfApi/Controllers`); atualizado em 2026-09-10.
     Ver também `specs/architecture.md`, `specs/features-usecases.md` e `specs/modeling.md`
     para detalhes de arquitetura, regras de negócio e modelagem de dados.
   version: "3.0.0"
@@ -27,6 +27,8 @@ tags:
     description: Agendamento de prova/entrevista
   - name: FAQs
     description: Perguntas frequentes
+  - name: Payments
+    description: Cobrança PIX da taxa de inscrição e webhook do provedor
   - name: Parameters
     description: Status/parâmetros do vestibular vigente
   - name: Admin
@@ -223,6 +225,57 @@ paths:
                 $ref: '#/components/schemas/PasswordRecoveryResponseDto'
         '400':
           description: Dados inválidos, código inválido ou expirado
+
+  /api/users/rg-document:
+    post:
+      tags: [Users]
+      summary: Envia (ou substitui) o anexo do RG do candidato
+      description: >
+        Obrigatório para concluir a inscrição. O arquivo é gravado no storage da API
+        (volume Docker), não no MongoDB. Formatos aceitos: JPG, PNG, HEIC e PDF;
+        tamanho máximo em `Storage:MaxUploadBytes` (4MB por padrão).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Anexo salvo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RgDocumentDto'
+        '400':
+          description: Arquivo ausente, grande demais ou em formato não aceito
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token inválido ou ausente
+    get:
+      tags: [Users]
+      summary: Baixa o anexo do RG do próprio candidato
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Arquivo do documento
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Nenhum anexo enviado
 
   /api/users/{id}:
     delete:
@@ -520,6 +573,58 @@ paths:
           description: Protocolo não encontrado / falha ao alterar
         '401':
           description: Senha inválida
+
+  /api/enrollments/my-enrollment/payment:
+    get:
+      tags: [Payments]
+      summary: Cobrança PIX vigente da taxa de inscrição
+      description: >
+        Emite a cobrança na primeira chamada e devolve a mesma nas seguintes.
+        Só reemite quando não há cobrança ou quando a atual venceu; depois de paga,
+        nunca reemite.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cobrança vigente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentPaymentDto'
+        '404':
+          description: Sem vestibular ativo ou sem inscrição
+
+  /api/payments/webhook:
+    post:
+      tags: [Payments]
+      summary: Notificação de pagamento do provedor
+      description: >
+        Endpoint público que altera estado financeiro — exige assinatura válida no header
+        `X-Signature`. É idempotente: uma inscrição já paga responde 200 sem regravar.
+        **Atenção:** enquanto o provedor não for definido, o `StubPaymentGateway` recusa
+        toda assinatura.
+      parameters:
+        - name: X-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Corpo definido pelo provedor de pagamento.
+      responses:
+        '200':
+          description: Notificação processada
+        '400':
+          description: Notificação sem identificador de cobrança
+        '401':
+          description: Assinatura inválida
+        '404':
+          description: Cobrança sem inscrição correspondente
 
   /api/enrollments/count-by-course-period:
     get:
@@ -1173,6 +1278,104 @@ paths:
         '403':
           description: Token sem Role="Admin"
 
+  # ===================== ADMIN — IMPORTAÇÕES =====================
+  /api/admin/imports/enrolled-students:
+    post:
+      tags: [AdminPanel]
+      summary: Importa alunos matriculados (CSV)
+      description: >
+        Colunas: `nr_ano, id_aluno, ds_cpf, ds_rg, id_curso`. Substitui os anos presentes
+        no arquivo; anos ausentes permanecem intactos. O separador é detectado
+        automaticamente e as colunas são lidas pelo nome no cabeçalho.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Resultado da importação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResultDto'
+        '400':
+          description: Arquivo ausente ou colunas obrigatórias faltando
+
+  /api/admin/imports/tuition-payments:
+    post:
+      tags: [AdminPanel]
+      summary: Importa pagamentos de mensalidade (CSV)
+      description: >
+        Colunas: `nr_ano, id_aluno, ds_cpf, ds_rg, dt_referencia, bt_pago`.
+        **Substitui a coleção inteira** a cada envio, via coleção temporária + swap.
+        Arquivo vazio ou sem nenhuma linha válida é recusado antes de tocar na base.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Resultado da importação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResultDto'
+        '400':
+          description: Arquivo vazio, inválido ou com colunas faltando
+
+  /api/admin/imports/status:
+    get:
+      tags: [AdminPanel]
+      summary: Situação das coleções importadas
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Total de registros e data do último lote
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportStatusDto'
+
+  /api/admin/users/{userId}/rg-document:
+    get:
+      tags: [AdminPanel]
+      summary: Baixa o anexo do RG de um candidato (conferência da secretaria)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Arquivo do documento
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Anexo não encontrado
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1419,6 +1622,26 @@ components:
           format: date-time
         issuingAuthority:
           type: string
+        hasDocument:
+          type: boolean
+          description: Indica se o candidato já anexou a foto do RG (obrigatória para inscrever).
+        documentUploadedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    RgDocumentDto:
+      type: object
+      properties:
+        hasDocument:
+          type: boolean
+        contentType:
+          type: string
+          nullable: true
+        uploadedAt:
+          type: string
+          format: date-time
+          nullable: true
 
     ResponsibleDto:
       type: object
@@ -1576,7 +1799,8 @@ components:
           type: string
         protocol:
           type: string
-          example: "20260001"
+          description: "Formato {ano}{sequencial:D4}; o contador começa em 1001."
+          example: "20261001"
         userId:
           type: string
         vestibularParametersId:
@@ -1596,12 +1820,108 @@ components:
           nullable: true
         status:
           $ref: '#/components/schemas/EnrollmentStatus'
+        isInternalStudent:
+          type: boolean
+          description: >
+            Candidato que já é aluno da casa e escolheu a continuidade do próprio curso de
+            inglês — faz nivelamento na turma em vez da prova do vestibular.
+        resultPublicationDate:
+          type: string
+          format: date-time
+          description: >
+            Data de divulgação do resultado **deste candidato**. Candidato externo em curso de
+            continuidade recebe a data alternativa da edição. Prefira este campo à data global
+            de `GET /api/parameters`.
+        roomNoticeEmailDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Data em que horário e sala da prova são enviados por e-mail.
+        paymentStatus:
+          $ref: '#/components/schemas/PaymentStatus'
+        paymentPaidAt:
+          type: string
+          format: date-time
+          nullable: true
         createdAt:
           type: string
           format: date-time
         modifiedAt:
           type: string
           format: date-time
+
+    PaymentStatus:
+      type: integer
+      enum: [1, 2, 3, 4]
+      description: "1=Pending, 2=Paid, 3=Expired, 4=Failed"
+
+    EnrollmentPaymentDto:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        amount:
+          type: number
+          format: double
+        copyPasteCode:
+          type: string
+          nullable: true
+          description: Código PIX copia-e-cola.
+        qrCodeBase64:
+          type: string
+          nullable: true
+          description: PNG em base64, sem o prefixo `data:`. Vazio quando o provedor não fornece imagem.
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ImportResultDto:
+      type: object
+      properties:
+        totalRows:
+          type: integer
+          description: Linhas de dados no arquivo (sem o cabeçalho).
+        imported:
+          type: integer
+        skipped:
+          type: integer
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportRowErrorDto'
+
+    ImportRowErrorDto:
+      type: object
+      properties:
+        line:
+          type: integer
+          description: Número da linha no arquivo, contando o cabeçalho como linha 1.
+        reason:
+          type: string
+
+    ImportStatusDto:
+      type: object
+      properties:
+        enrolledStudents:
+          $ref: '#/components/schemas/ImportCollectionStatusDto'
+        tuitionPayments:
+          $ref: '#/components/schemas/ImportCollectionStatusDto'
+
+    ImportCollectionStatusDto:
+      type: object
+      properties:
+        totalRecords:
+          type: integer
+          format: int64
+        lastImportAt:
+          type: string
+          format: date-time
+          nullable: true
 
     CourseChoiceDto:
       type: object
@@ -1800,6 +2120,12 @@ components:
       properties:
         id:
           type: string
+        key:
+          type: string
+          nullable: true
+          description: >
+            Slug estável para link direto (`/faq?q=<key>`), ex.: `edital-bolsa`.
+            Preferível ao índice (muda ao reordenar) e ao id (difere entre ambientes).
         question:
           type: string
         answer:
@@ -2077,6 +2403,19 @@ components:
         resultPublicationDate:
           type: string
           format: date-time
+        resultPublicationDateExternal:
+          type: string
+          format: date-time
+          nullable: true
+          description: >
+            Resultado do candidato **externo** em curso de continuidade de inglês
+            (Avançado, Intermediário, Pré-Intermediário Noturno, Teens II).
+            Nulo cai na `resultPublicationDate`.
+        roomNoticeEmailDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Data do e-mail com horário e sala da prova.
         resultUrl:
           type: string
         nextEnrollmentNumber:
@@ -2116,6 +2455,19 @@ components:
         resultPublicationDate:
           type: string
           format: date-time
+        resultPublicationDateExternal:
+          type: string
+          format: date-time
+          nullable: true
+          description: >
+            Resultado do candidato **externo** em curso de continuidade de inglês
+            (Avançado, Intermediário, Pré-Intermediário Noturno, Teens II).
+            Nulo cai na `resultPublicationDate`.
+        roomNoticeEmailDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Data do e-mail com horário e sala da prova.
         resultUrl:
           type: string
         description:
@@ -2125,7 +2477,7 @@ components:
           format: date-time
         nextEnrollmentNumber:
           type: integer
-          default: 1
+          default: 1001
           description: Ponto de partida do contador de protocolo (útil para alinhar com sistema legado).
 
     AdminUpdateVestibularParametersDto:
@@ -2149,6 +2501,19 @@ components:
         resultPublicationDate:
           type: string
           format: date-time
+        resultPublicationDateExternal:
+          type: string
+          format: date-time
+          nullable: true
+          description: >
+            Resultado do candidato **externo** em curso de continuidade de inglês
+            (Avançado, Intermediário, Pré-Intermediário Noturno, Teens II).
+            Nulo cai na `resultPublicationDate`.
+        roomNoticeEmailDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Data do e-mail com horário e sala da prova.
         resultUrl:
           type: string
         description:

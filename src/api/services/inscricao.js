@@ -12,3 +12,10 @@ export async function getInscricao() {
   
   return r;
 }
+export async function getPagamentoInscricao() {
+  const r = await api().get("/enrollments/my-enrollment/payment", {
+    validateStatus: status => (status >= 200 && status < 300) || status === 404
+  });
+
+  return r;
+}

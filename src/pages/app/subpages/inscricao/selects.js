@@ -18,6 +18,11 @@ export const parentesco = [
 
 export const comoConheceu = [
   "Amigos",
+  "Família",
+  "Cônjuge",
+  "Filho/Filha",
+  "Ex-Aluno",
+  "Feira das Profissões",
   "Redes Sociais",
   "Internet",
   "Outro"

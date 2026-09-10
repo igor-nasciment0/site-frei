@@ -39,7 +39,8 @@
         }
 
         &.status-concluido .marcador,
-        &.status-confirmado .marcador {
+        &.status-confirmado .marcador,
+        &.status-dispensado .marcador {
             background: t.$c-navy;
         }
 
@@ -90,6 +91,66 @@
 
                 &.realizado p {
                     color: t.$c-text;
+                }
+
+                .aviso {
+                    margin-top: 8px;
+                    color: t.$c-clay;
+                }
+
+                &.pagamento {
+                    .qrcode {
+                        display: block;
+                        width: 168px;
+                        height: 168px;
+                        margin: 14px 0;
+                        border: 1px solid t.$c-border;
+                        background: t.$c-white;
+                    }
+
+                    .codigo-pix {
+                        display: flex;
+                        align-items: stretch;
+                        gap: 8px;
+                        margin-top: 12px;
+                        max-width: 60ch;
+                        flex-wrap: wrap;
+
+                        code {
+                            flex: 1;
+                            min-width: 200px;
+                            font-family: t.$font-mono;
+                            font-size: 11px;
+                            line-height: 1.5;
+                            color: t.$c-text;
+                            background: t.$c-input-bg;
+                            border: 1px solid t.$c-border;
+                            padding: 10px 12px;
+                            word-break: break-all;
+                            user-select: all;
+                        }
+
+                        button {
+                            flex-shrink: 0;
+                            font-size: 13px;
+                            font-weight: 600;
+                            color: t.$c-white;
+                            background: t.$c-navy;
+                            border: 0;
+                            padding: 10px 16px;
+                            cursor: pointer;
+                            transition: background t.$transition;
+
+                            &:hover {
+                                background: t.$c-navy-hover;
+                            }
+                        }
+                    }
+
+                    .expiracao {
+                        margin-top: 8px;
+                        font-size: 12.5px;
+                    }
                 }
             }
         }

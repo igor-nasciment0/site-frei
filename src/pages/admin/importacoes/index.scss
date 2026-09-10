@@ -1,0 +1,130 @@
+@use '../../../styles/tokens' as t;
+@use '../../../styles/admin' as admin;
+
+.admin-importacoes {
+    @include admin.admin-lista-page;
+
+    > .aviso {
+        font-size: 13px;
+        color: t.$c-text-muted;
+        line-height: 1.6;
+        margin-top: -14px;
+
+        code {
+            font-family: t.$font-mono;
+            font-size: 11.5px;
+        }
+    }
+
+    .cartoes {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+    .cartao-importacao {
+        background: t.$c-white;
+        border: 1px solid t.$c-border;
+        padding: 26px 28px;
+
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+
+        .topo {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+
+            h2 {
+                font-size: 19px;
+                font-weight: 700;
+                color: t.$c-navy;
+            }
+
+            .colunas {
+                font-family: t.$font-mono;
+                font-size: 11.5px;
+                line-height: 1.5;
+                color: t.$c-slate;
+                background: t.$c-input-bg;
+                border: 1px solid t.$c-border;
+                padding: 8px 10px;
+                word-break: break-word;
+            }
+        }
+
+        .descricao,
+        .efeito {
+            font-size: 13.5px;
+            line-height: 1.65;
+            color: t.$c-text-muted;
+        }
+
+        .efeito.destrutivo {
+            color: t.$c-clay;
+            font-weight: 600;
+        }
+
+        .situacao {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            border-top: 1px solid t.$c-divider-soft;
+            border-bottom: 1px solid t.$c-divider-soft;
+            padding: 14px 0;
+
+            > div {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .rotulo {
+                font-size: 11.5px;
+                color: t.$c-text-muted;
+            }
+
+            .valor {
+                font-size: 14px;
+                font-weight: 600;
+                color: t.$c-navy;
+            }
+        }
+
+        > .btn-primario {
+            align-self: flex-start;
+        }
+
+        .resultado {
+            font-size: 13px;
+            line-height: 1.6;
+            color: t.$c-text-muted;
+
+            strong {
+                color: t.$c-navy;
+            }
+
+            .erros {
+                margin-top: 8px;
+                padding-left: 18px;
+                color: t.$c-clay;
+                max-height: 220px;
+                overflow-y: auto;
+
+                li {
+                    list-style: disc;
+                    font-size: 12.5px;
+                    line-height: 1.6;
+                }
+            }
+        }
+    }
+
+    @include t.bp-960 {
+        .cartoes {
+            grid-template-columns: 1fr;
+        }
+    }
+}

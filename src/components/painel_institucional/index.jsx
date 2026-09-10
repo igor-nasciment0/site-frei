@@ -6,7 +6,7 @@ import './index.scss';
 // decisão de produto. Props opcionais permitem reaproveitar o mesmo painel no contexto
 // administrativo sem duplicar o layout.
 export default function PainelInstitucional({
-  titulo = "Pré-inscrições",
+  titulo = "Inscrições",
   destaque = "2026",
   descricao = "Preencha sua ficha, escolha o curso e acompanhe todo o processo seletivo em um só lugar.",
   mostrarStats = true,
@@ -14,7 +14,7 @@ export default function PainelInstitucional({
   return (
     <div className="painel-institucional">
       <div className="topo">
-        <span className="monograma">A</span>
+        <img className="logo" src="/assets/images/logo.svg" alt="Instituto Social Nossa Senhora de Fátima" />
         <div>
           <p className="eyebrow">Ação Social</p>
           <p className="sub">Nossa Senhora de Fátima</p>

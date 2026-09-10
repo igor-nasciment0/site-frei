@@ -11,6 +11,14 @@ import { converterDataUTCParaLocalSemMudarDia } from "../../../../util/date";
 
 const ENDERECO_INSTITUTO = "Av. Coronel Octaviano de Freitas Costa, 463 - Veleiros, São Paulo - SP, 04773-000";
 
+// Horário e sala não são definidos aqui: a secretaria envia por e-mail numa data configurada
+// na edição do vestibular. Sem essa data, mantém o texto genérico.
+function avisoPorEmail(dadosInscricao) {
+  return dadosInscricao?.roomNoticeEmailDate
+    ? `Por e-mail em ${converterDataUTCParaLocalSemMudarDia(dadosInscricao.roomNoticeEmailDate)}`
+    : "Enviado por e-mail";
+}
+
 export default function Acompanhamento() {
 
   const navigate = useNavigate();
@@ -44,7 +52,7 @@ export default function Acompanhamento() {
       <section className="sem-inscricao">
         <p className="eyebrow">Acompanhamento</p>
         <h1>Você ainda não possui inscrição.</h1>
-        <button onClick={() => navigate("/inscricao")}>Realizar pré-inscrição</button>
+        <button onClick={() => navigate("/inscricao")}>Realizar inscrição</button>
       </section>
     )
 
@@ -95,34 +103,40 @@ export default function Acompanhamento() {
           </section>
 
           <div className="coluna-lateral">
-            <div className="card-convocacao">
-              <p className="eyebrow">Convocação para a prova</p>
-              <p className="nota">Local, data e sala definidos pela secretaria. Chegue com 30 minutos de antecedência.</p>
+            {/* Aluno interno faz nivelamento na própria turma — não há prova a informar. */}
+            {!dadosInscricao?.isInternalStudent &&
+              <>
+                <div className="card-convocacao">
+                  <p className="eyebrow">Informações sobre a prova</p>
+                  <p className="nota">Local, data e sala definidos pela secretaria. Chegue com 30 minutos de antecedência.</p>
 
-              <div className="linha">
-                <span>Data</span>
-                <strong>{dadosInscricao?.testDate ? converterDataUTCParaLocalSemMudarDia(dadosInscricao.testDate) : "A definir"}</strong>
-              </div>
-              <div className="linha">
-                <span>Horário</span>
-                <strong>{dadosInscricao?.testTime || "A definir"}</strong>
-              </div>
-              <div className="linha">
-                <span>Local</span>
-                <strong>{ENDERECO_INSTITUTO}</strong>
-              </div>
-              <div className="linha">
-                <span>Sala</span>
-                <strong>{dadosInscricao?.testRoom || "A definir"}</strong>
-              </div>
-            </div>
+                  <div className="linha">
+                    <span>Data</span>
+                    <strong>{dadosInscricao?.testDate ? converterDataUTCParaLocalSemMudarDia(dadosInscricao.testDate) : "A definir"}</strong>
+                  </div>
+                  <div className="linha">
+                    <span>Horário</span>
+                    <strong>{dadosInscricao?.testTime || avisoPorEmail(dadosInscricao)}</strong>
+                  </div>
+                  <div className="linha">
+                    <span>Local</span>
+                    <strong>{ENDERECO_INSTITUTO}</strong>
+                  </div>
+                  <div className="linha">
+                    <span>Sala</span>
+                    <strong>{dadosInscricao?.testRoom || avisoPorEmail(dadosInscricao)}</strong>
+                  </div>
+                </div>
 
-            <div className="card-levar">
-              <p className="titulo-card">Levar no dia</p>
-              <div className="item">RG e CPF do candidato</div>
-              <div className="item">Comprovante de escolaridade</div>
-              <div className="item">Comprovante de residência</div>
-            </div>
+                <div className="card-levar">
+                  <p className="titulo-card">Documentos obrigatórios</p>
+                  <div className="item">RG ou Documento Oficial com Foto</div>
+                  <div className="item">Lápis, Borracha, 2 Canetas</div>
+                  <div className="item">Água</div>
+                  <div className="item">Chegar 30min com antecedência</div>
+                </div>
+              </>
+            }
           </div>
         </div>
       }

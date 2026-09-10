@@ -5,8 +5,9 @@ import { useSearchParams } from 'react-router';
 
 export default function FAQ() {
   const [searchParams] = useSearchParams();
+  // `q` aceita a key da pergunta (ex.: ?q=edital-bolsa) ou o índice, para links antigos.
   const qParam = searchParams.get('q');
-  const aberta = qParam !== null ? Number(qParam) : undefined;
+  const aberta = qParam !== null ? qParam : undefined;
 
   return (
     <section className='faq'>

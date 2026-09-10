@@ -1,5 +1,5 @@
 import './linhaTempo.scss';
-import { CadastroCriado, ConvocacaoEmitida, PreInscricaoPreenchida, ProvaPresencial, ResultadoMatricula } from './dadosLinha';
+import { CadastroCriado, Pagamento, InscricaoPreenchida, ProvaPresencial, ResultadoMatricula } from './dadosLinha';
 import { useOutletContext } from 'react-router';
 
 export default function Timeline({ dadosInscricao }) {
@@ -7,19 +7,27 @@ export default function Timeline({ dadosInscricao }) {
   const statusVestibular = useOutletContext();
 
   const provaRealizada = !!dadosInscricao?.testDate && new Date(dadosInscricao.testDate) <= new Date();
-  const resultadoDisponivel = !!statusVestibular?.resultPublicationDate && new Date(statusVestibular.resultPublicationDate) <= new Date();
+
+  // A data de resultado é por candidato (externo em curso de continuidade sai mais tarde).
+  // A data global de /parameters só entra como fallback.
+  const dataResultado = dadosInscricao?.resultPublicationDate ?? statusVestibular?.resultPublicationDate;
+  const resultadoDisponivel = !!dataResultado && new Date(dataResultado) <= new Date();
+
+  const pagamentoConfirmado = dadosInscricao?.paymentStatus === 2;
+  const alunoInterno = !!dadosInscricao?.isInternalStudent;
 
   const etapas = [
     { titulo: "Cadastro criado", status: "concluído", conteudo: <CadastroCriado /> },
-    { titulo: "Pré-inscrição preenchida", status: "concluído", conteudo: <PreInscricaoPreenchida /> },
+    { titulo: "Inscrição preenchida", status: "concluído", conteudo: <InscricaoPreenchida /> },
     {
-      titulo: "Convocação emitida",
-      status: dadosInscricao?.testDate ? "confirmado" : "aguardando",
-      conteudo: <ConvocacaoEmitida dadosInscricao={dadosInscricao} />,
+      titulo: "Pagamento",
+      status: pagamentoConfirmado ? "concluído" : "aguardando",
+      conteudo: <Pagamento pago={pagamentoConfirmado} />,
     },
     {
       titulo: "Prova presencial",
-      status: provaRealizada ? "concluído" : "aguardando",
+      // Para o aluno interno não há prova a aguardar: o nivelamento é na própria turma.
+      status: alunoInterno ? "dispensado" : provaRealizada ? "concluído" : "aguardando",
       conteudo: <ProvaPresencial realizado={provaRealizada} dadosInscricao={dadosInscricao} />,
     },
     {
@@ -28,7 +36,7 @@ export default function Timeline({ dadosInscricao }) {
       conteudo: (
         <ResultadoMatricula
           realizado={resultadoDisponivel}
-          dataPublicacao={statusVestibular?.resultPublicationDate}
+          dataPublicacao={dataResultado}
           mostrarUrl={statusVestibular?.canShowResultUrl}
           urlResultado={statusVestibular?.resultUrl}
         />

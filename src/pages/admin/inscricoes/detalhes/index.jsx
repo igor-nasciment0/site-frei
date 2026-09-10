@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import toast from "react-hot-toast";
 import callApi from "../../../../api/callAPI";
-import { getInscricao, resetarSenha } from "../../../../api/services/admin/inscricoes";
+import { getDocumentoRGCandidato, getInscricao, resetarSenha } from "../../../../api/services/admin/inscricoes";
 import { converterDataUTCParaLocalSemMudarDia } from "../../../../util/date";
 import Carregamento from "../../../../components/carregamento";
 import "./index.scss";
@@ -100,7 +100,15 @@ export default function AdminInscricaoDetalhes() {
           <Info rotulo="Número" valor={student.rgInfo?.number} />
           <Info rotulo="Data de emissão" valor={student.rgInfo?.issueDate ? converterDataUTCParaLocalSemMudarDia(student.rgInfo.issueDate) : "—"} />
           <Info rotulo="Órgão emissor" valor={student.rgInfo?.issuingAuthority} />
+          <Info
+            rotulo="Anexo"
+            valor={student.rgInfo?.hasDocument
+              ? converterDataUTCParaLocalSemMudarDia(student.rgInfo.documentUploadedAt)
+              : "Não enviado"}
+          />
         </div>
+
+        {student.rgInfo?.hasDocument && <AnexoRGCandidato userId={student.id} />}
       </div>
 
       <div className="secao-inscricao">
@@ -144,6 +152,29 @@ export default function AdminInscricaoDetalhes() {
         </div>
       </div>
     </div>
+  );
+}
+
+function AnexoRGCandidato({ userId }) {
+  const [abrindo, setAbrindo] = useState(false);
+
+  async function abrir() {
+    setAbrindo(true);
+    const blob = await callApi(getDocumentoRGCandidato, true, userId);
+    setAbrindo(false);
+
+    if (!blob) return;
+
+    // A URL de objeto é revogada só depois que a aba teve tempo de carregar o arquivo.
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener");
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+
+  return (
+    <button type="button" className="btn-fantasma" disabled={abrindo} onClick={abrir}>
+      {abrindo ? "Abrindo…" : "Ver anexo do RG"}
+    </button>
   );
 }
 

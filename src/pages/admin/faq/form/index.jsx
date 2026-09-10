@@ -38,7 +38,11 @@ export default function AdminFAQForm() {
   }, [id]);
 
   async function submit(dados) {
-    const payload = { ...dados, order: Number(dados.order) || 0 };
+    const payload = {
+      ...dados,
+      order: Number(dados.order) || 0,
+      key: dados.key?.trim() || null,
+    };
 
     const r = editando
       ? await callApi(atualizarFAQ, true, id, payload)
@@ -68,6 +72,26 @@ export default function AdminFAQForm() {
             <label htmlFor="question">Pergunta</label>
             <input {...register("question", { required: "Campo obrigatório" })} type="text" />
             {errors.question && <span className="mensagem-erro">{errors.question.message}</span>}
+          </div>
+
+          <div className="campo largo">
+            <label htmlFor="key">Identificador para link direto (opcional)</label>
+            <input
+              {...register("key", {
+                pattern: {
+                  value: /^[a-z0-9-]*$/,
+                  message: "Use apenas letras minúsculas, números e hífen",
+                },
+              })}
+              type="text"
+              placeholder="ex.: edital-bolsa"
+            />
+            <span className="ajuda">
+              Permite abrir esta pergunta por link (<code>/faq?q=identificador</code>). O quadro
+              &quot;Informações gerais&quot; da tela inicial usa: <code>edital-bolsa</code>,{" "}
+              <code>uso-uniforme</code>, <code>material-didatico</code> e <code>resultado-prova</code>.
+            </span>
+            {errors.key && <span className="mensagem-erro">{errors.key.message}</span>}
           </div>
 
           <div className="campo largo">

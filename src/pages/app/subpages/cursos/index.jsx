@@ -6,6 +6,13 @@ import { getCursoImagem, getCursos } from "../../../../api/services/cursos";
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 
+const URL_EDITAL_BOLSAS = 'https://www.acaonsfatima.org.br/bolsa-educacional';
+
+// Só os cursos técnicos concorrem a bolsa educacional.
+function ehTecnico(curso) {
+  return curso?.type?.trim().toLowerCase() === 'técnico';
+}
+
 async function carregarImagem(imageId) {
   if (!imageId) return null;
 
@@ -128,6 +135,18 @@ function CardCurso({ infoCurso, imageUrl }) {
           <span className="tag categoria">{infoCurso.type}</span>
           <span className="tag">{infoCurso.workload}</span>
         </div>
+
+        {ehTecnico(infoCurso) &&
+          <a
+            className="selo-edital"
+            href={URL_EDITAL_BOLSAS}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+          >
+            Edital de Bolsas
+          </a>
+        }
 
         <div className="divisor" />
 

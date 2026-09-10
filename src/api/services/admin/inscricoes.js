@@ -25,3 +25,10 @@ export async function resetarSenha(id, novaSenha) {
     });
     return r.data;
 }
+
+// O endpoint exige o Bearer de admin, então não dá para usar um <a href> direto —
+// o arquivo vem como blob e é aberto a partir de uma URL de objeto.
+export async function getDocumentoRGCandidato(userId) {
+    const r = await adminApi().get(`/admin/users/${userId}/rg-document`, { responseType: 'blob' });
+    return r.data;
+}

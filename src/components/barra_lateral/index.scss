@@ -139,7 +139,20 @@
             font-size: 12px;
             line-height: 1.6;
             color: t.$c-on-navy-caption;
+            margin-bottom: 10px;
+        }
+
+        .whatsapp {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: t.$c-sand;
             margin-bottom: 14px;
+            transition: opacity .18s;
+
+            &:hover {
+                opacity: .8;
+            }
         }
 
         .sair {

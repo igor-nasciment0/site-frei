@@ -1,6 +1,6 @@
 # Arquitetura do Projeto — Frei Online
 
-Portal de pré-inscrição do vestibular do **Instituto Social Nossa Senhora de Fátima**. SPA em React que permite a um candidato (ou responsável) se cadastrar, preencher a ficha de inscrição, escolher curso/horário, agendar a prova presencial e acompanhar o andamento do processo até a divulgação do resultado.
+Portal de inscrição do vestibular do **Instituto Social Nossa Senhora de Fátima**. SPA em React que permite a um candidato (ou responsável) se cadastrar, preencher a ficha de inscrição, escolher curso/horário, agendar a prova presencial e acompanhar o andamento do processo até a divulgação do resultado.
 
 ## Stack
 
@@ -43,6 +43,18 @@ LoadingBarContainer (react-top-loading-bar)
 /login                  → Login (página standalone)
 /recuperar-senha        → RecuperarSenha (página standalone)
 /trocar-senha           → TrocarSenha (página standalone; exige navegação com state.email)
+
+/admin                  → AdminApp (layout administrativo, sessão própria)
+  ""  (index)           → AdminDashboard
+  inscricoes            → AdminInscricoes
+    :id                 → AdminInscricaoDetalhes
+  cursos                → AdminCursos  (novo | :id → AdminCursoForm)
+  faq                   → AdminFAQs    (novo | :id → AdminFAQForm)
+  vestibular            → AdminVestibular (novo | :id → AdminVestibularForm)
+  importacoes           → AdminImportacoes  (upload dos CSVs)
+  administradores       → AdminUsuarios
+/admin/login            → AdminLogin (página standalone)
+/admin/bootstrap        → AdminBootstrap (criação do primeiro admin)
 ```
 
 `App` (`src/pages/app/index.jsx`) é o layout raiz de tudo que exige sessão ativa: busca `getInfoUsuario()`; se falhar, redireciona para `/login`. Ao obter o usuário, salva em `local-storage` (`user`) e busca `getStatusVestibular()` (parâmetros do processo seletivo: datas de inscrição, data de divulgação de resultado, fase atual). Enquanto isso não resolve, mostra `<Carregamento />` em tela cheia. O status do vestibular é repassado às subrotas via `useOutletContext()`.
@@ -56,12 +68,13 @@ LoadingBarContainer (react-top-loading-bar)
   - em erro, se `toastIt` for `false` ou o status for `401` (sessão expirada — tratado silenciosamente, sem toast, deixando os fluxos de redirecionamento de auth agirem), não mostra nada;
   - caso contrário, extrai a mensagem de erro de `error.response.data.Message[0]` (array, formato de validação da API) ou `error.response.data.message` (string) e mostra via `react-hot-toast`; fallback é `error.message`.
 - **`services/`** — um arquivo por domínio, todos funções `async` finas que só chamam `api()` e retornam `r.data` (padrão consistente):
-  - `user.js` — `cadastro`, `login`, `atualizaUsuario` (PUT profile — usado pelo formulário de inscrição para submeter dados pessoais completos), `recuperacaoSenha`, `trocaSenha`, `getInfoUsuario`.
+  - `user.js` — `cadastro`, `login`, `atualizaUsuario` (PUT profile — usado pelo formulário de inscrição para submeter dados pessoais completos), `recuperacaoSenha`, `trocaSenha`, `getInfoUsuario`, `enviaDocumentoRG`/`getDocumentoRG` (anexo do RG, em `multipart` — não cabe no JSON do perfil).
   - `vestibular.js` — `getStatusVestibular` → `GET /parameters` (datas de abertura/fechamento de inscrição, fase atual, data/URL de resultado).
   - `cursos.js` — `getCursos`, `getCursoId`, `getCursoImagem` (blob), `getCursoHorarios` (períodos/turnos de um curso).
-  - `inscricao.js` — `criaInscricao` (POST enrollment com 1ª/2ª opção de curso+horário), `getInscricao` (GET, aceita 404 como resposta válida via `validateStatus` — usado para saber se o usuário ainda não se inscreveu).
+  - `inscricao.js` — `criaInscricao` (POST enrollment com 1ª/2ª opção de curso+horário), `getInscricao` (GET, aceita 404 como resposta válida via `validateStatus` — usado para saber se o usuário ainda não se inscreveu), `getPagamentoInscricao` (cobrança PIX da taxa).
   - `agendamento.js` — `getDatasAgendamento` (datas disponíveis para a prova), `getAgendamento` (agendamento do usuário logado), `criaAgendamento` (agenda/reagenda a prova).
-  - `faq.js` — `getFAQ`.
+  - `faq.js` — `getFAQ` (cada pergunta traz `key`, o slug estável usado nos links diretos `/faq?q=<key>`).
+  - `services/admin/` — serviços da área administrativa, sobre `adminBase.js` (token em `adminToken`, separado do candidato): `auth`, `cursos`, `faq`, `inscricoes`, `vestibular` e `importacoes` (upload de CSV em `multipart`).
   - `enderecos.js` — não usa `api()`/backend próprio: chama diretamente a API pública ViaCEP (`https://viacep.com.br/ws/{cep}/json/`) para autocompletar endereço a partir do CEP.
 
 Convenção: nenhuma tela chama `axios`/`api()` diretamente — sempre `callApi(service, toastIt, ...args)`, o que centraliza tratamento de erro/toast.
@@ -81,14 +94,16 @@ Convenção: nenhuma tela chama `axios`/`api()` diretamente — sempre `callApi(
 
 - **Usuário/Candidato** (`GET/PUT /users/profile`): dados pessoais (`name`, `phone`, `gender`, `cpf`), `address {cep, street, neighborhood, city, state, number, complement}`, `birthInfo {date, city, state, country}`, `rgInfo {number, issueDate, issuingAuthority}`, `primaryResponsible`/`secondaryResponsible` (`name, email, phone, phoneSecondary, relationship`), `schoolInfo {currentSchool, currentGrade, schoolType}`, `generalInfo {howDidYouKnow, income, peopleAtHome, peopleWorking}`. Estrutura completa e valores-padrão em `src/pages/app/subpages/inscricao/padroes.js`.
 - **Curso** (`GET /courses`): `id`, `code`, `name`, `type`, `workload`, `minAge`/`maxAge` (strings com formato "X anos ..."), `minSchoolLevel`, `contribution`, `imageId`, `description` (HTML), `jobMarket` (HTML opcional), `availablePeriods[]` (`name`, `entryTime`, `exitTime`, `isActive`).
-- **Inscrição/Enrollment** (`POST /enrollments`, `GET /enrollments/my-enrollment`): `firstChoice`/`secondChoice` (`courseCode`, `periodCode`, `courseName`, `periodName`), `status` (numérico — `2` = inscrição concluída), `testDate`, `testTime`, `testRoom`. `GET` retorna 404 (tratado como sucesso via `validateStatus`) quando o usuário não tem inscrição.
+- **Inscrição/Enrollment** (`POST /enrollments`, `GET /enrollments/my-enrollment`): `firstChoice`/`secondChoice` (`courseCode`, `periodCode`, `courseName`, `periodName`), `status` (numérico — `2` = inscrição concluída), `testDate`, `testTime`, `testRoom`, `isInternalStudent` (bool), `resultPublicationDate` (**data do candidato**, preferir à global de `/parameters`), `roomNoticeEmailDate`, `paymentStatus` (`2` = pago) e `paymentPaidAt`. `GET` retorna 404 (tratado como sucesso via `validateStatus`) quando o usuário não tem inscrição.
+- **Pagamento** (`GET /enrollments/my-enrollment/payment`): `status`, `amount`, `copyPasteCode`, `qrCodeBase64`, `expiresAt`, `paidAt`. Emitido pelo backend e reaproveitado enquanto válido.
 - **Agendamento** (`POST/GET /appointments`, `GET /appointments/available-dates`): `appointmentDateTime` no POST; resposta com `appointmentDate`, `startTime`; disponibilidade vem como lista de datas (`availableDates`), e o front gera os horários fixos de 08:00–17:30 (intervalos de 30min) para cada dia disponível (`gerarHorariosParaDiasDisponiveis`, `src/util/date.js`) — os horários em si não vêm da API.
 - **Parâmetros do vestibular** (`GET /parameters`): `isRegistrationOpen`, `startDate`, `endDate`, `currentPhase` (usado para travar edição do formulário de inscrição quando `currentPhase >= 3`), `resultPublicationDate`, `canShowResultUrl`, `resultUrl`.
-- **FAQ** (`GET /faqs`): `question`, `answer` (HTML), `order`, `isActive`.
+- **FAQ** (`GET /faqs`): `key` (slug opcional para link direto), `question`, `answer` (HTML), `order`, `isActive`.
 
 ## Convenções e padrões observados
 
 - **Idioma:** nomes de arquivos, componentes, variáveis e rotas em **português**; chaves de payload/API em **inglês** (contrato do backend).
+- **Uploads:** arquivos vão em `FormData` sem `Content-Type` definido à mão — o axios monta o header com o boundary a partir do próprio `FormData`. Os dois casos hoje são o anexo do RG (candidato) e os CSVs de importação (admin).
 - **Estrutura por feature:** cada página/subpágina fica em sua própria pasta com `index.jsx` + `index.scss` colocados juntos; subcomponentes específicos de uma página moram em `componentes/` ou `components/` dentro da própria pasta da página (ex.: `inscricao/componentes`, `acompanhamento/components`), diferente de `src/components`, reservado a componentes verdadeiramente compartilhados entre páginas.
 - **Formatação de datas/UTC:** o backend manda datas em UTC (`Z`); `src/util/date.js` concentra as conversões para não haver "salto de dia" por fuso horário (`converterDataUTCParaLocalSemMudarDia`, `formatarParaInputDate`, `formatarAgendamentoParaISO`).
 - **HTML dinâmico:** campos de texto ricos vindos da API (descrição de curso, resposta de FAQ) são renderizados via `formatarComoHTML` (`src/util/string.jsx`), que faz parse com `DOMParser` e usa `dangerouslySetInnerHTML` — não há sanitização adicional, confia-se no conteúdo vindo do backend administrado internamente.

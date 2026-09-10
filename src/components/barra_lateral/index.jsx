@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { remove } from 'local-storage';
 import { calcularProgresso } from '../../util/progresso';
 
+const WHATSAPP_NUMERO = '5511963986252';
+const WHATSAPP_EXIBICAO = '(11) 96398-6252';
+
 const LINKS = [
   { para: '/', titulo: 'Início' },
   { para: '/inscricao', titulo: 'Minha inscrição', badge: true },
@@ -60,6 +63,16 @@ export default function BarraLateral({ user, inscricao }) {
       <div className="rodape">
         <div className="divisor" />
         <p className="atendimento">Atendimento<br />Seg a sex · 8h–11h30 · 13h30–17h</p>
+
+        <a
+          className="whatsapp"
+          href={`https://wa.me/${WHATSAPP_NUMERO}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {WHATSAPP_EXIBICAO}
+        </a>
+
         <button className="sair" onClick={sair}>Sair da conta</button>
       </div>
     </aside>

@@ -30,3 +30,18 @@ export async function getInfoUsuario() {
 
     return r.data;
 }
+
+// O anexo do RG não cabe no PUT /users/profile (JSON) — sobe em requisição própria,
+// multipart, assim que o candidato escolhe o arquivo.
+export async function enviaDocumentoRG(arquivo) {
+    const form = new FormData();
+    form.append('file', arquivo);
+
+    const r = await api().post('/users/rg-document', form);
+    return r.data;
+}
+
+export async function getDocumentoRG() {
+    const r = await api().get('/users/rg-document', { responseType: 'blob' });
+    return r.data;
+}

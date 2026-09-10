@@ -161,6 +161,12 @@ export default function FormularioCursos() {
 
   return (
     <form>
+      {/* Abre em nova aba de propósito: sair da página descartaria o wizard preenchido. */}
+      <p className="ajuda-cursos">
+        Ainda em dúvida sobre qual escolher?{' '}
+        <a href="/cursos" target="_blank" rel="noopener noreferrer">Conheça os cursos disponíveis</a>.
+      </p>
+
       <table className="tabela-form">
         <tbody>
           {erro &&

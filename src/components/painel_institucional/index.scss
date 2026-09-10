@@ -15,18 +15,12 @@
         align-items: center;
         gap: 14px;
 
-        .monograma {
-            width: 38px;
-            height: 38px;
+        // logo.svg é a marca em traço branco, desenhada para fundo escuro — o logo2.svg
+        // tem fundo branco sólido e viraria um retângulo sobre o painel navy.
+        .logo {
+            width: 42px;
+            height: auto;
             flex-shrink: 0;
-            border-radius: 50%;
-            border: 1px solid rgba(194, 164, 106, 0.55);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: t.$c-sand;
-            font-size: 20px;
-            font-weight: 300;
         }
 
         .eyebrow {

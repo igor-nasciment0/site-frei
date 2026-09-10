@@ -7,10 +7,13 @@ import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 
 // `onSelecionar`, quando informado, transforma o componente numa lista de atalhos (ex.: preview
-// de FAQ na Início): o clique não expande a resposta ali mesmo, só notifica o índice escolhido
-// (usado para navegar até /faq?q=N com a pergunta já aberta).
+// de FAQ na Início): o clique não expande a resposta ali mesmo, só notifica a pergunta escolhida
+// (usado para navegar até /faq?q=<key> com a pergunta já aberta).
+//
+// `aberta` aceita a `key` da pergunta (slug estável vindo da API) ou, por compatibilidade com
+// links antigos, o índice numérico. A key é preferível: o índice muda a cada reordenação.
 export default function AcordeaoPerguntas({ max, numbered = true, aberta, onSelecionar }) {
-  const [selecionada, setSelecionada] = useState(aberta ?? -1);
+  const [selecionada, setSelecionada] = useState(-1);
 
   const [perguntas, setPerguntas] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -28,6 +31,20 @@ export default function AcordeaoPerguntas({ max, numbered = true, aberta, onSele
       setCarregando(false);
     })();
   }, [])
+
+  // Só dá para resolver a key depois que as perguntas chegam da API.
+  useEffect(() => {
+    if (aberta === undefined || aberta === null || perguntas.length === 0) return;
+
+    const porKey = perguntas.findIndex(p => p.key && p.key === String(aberta));
+    if (porKey >= 0) {
+      setSelecionada(porKey);
+      return;
+    }
+
+    const indice = Number(aberta);
+    setSelecionada(Number.isInteger(indice) && indice >= 0 && indice < perguntas.length ? indice : -1);
+  }, [aberta, perguntas])
 
   function clicar(index) {
     if (onSelecionar)

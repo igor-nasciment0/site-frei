@@ -6,7 +6,8 @@ Catálogo de todos os componentes React do projeto, organizados por onde vivem: 
 
 ### `AcordeaoPerguntas` (`acordeao_perguntas/index.jsx`)
 Lista de perguntas frequentes em formato acordeão (um item aberto por vez, controlado por índice `selecionada`).
-- **Props:** `max` (número opcional) — limita quantas perguntas são exibidas (usado na Home com `max={5}`; na página FAQ é usado sem limite).
+- **Props:** `max` (número opcional) — limita quantas perguntas são exibidas (usado na Home com `max={5}`; na página FAQ é usado sem limite); `aberta` — qual pergunta abrir de saída; `numbered`; `onSelecionar`.
+- **`aberta` aceita a `key` da pergunta** (slug estável vindo da API, ex.: `edital-bolsa`) ou, por compatibilidade com links antigos, o índice numérico. A resolução acontece num `useEffect` separado, porque só é possível casar a key depois que as perguntas chegam da API. A key é preferível: o índice muda a cada reordenação e o ObjectId difere entre ambientes.
 - Busca as perguntas via `callApi(getFAQ)` em `useEffect`; filtra só as `isActive` e ordena por `order`.
 - Cada pergunta renderiza `p.order`. Pergunta e `formatarComoHTML(p.answer)` (resposta pode conter HTML).
 - Clique no cabeçalho da pergunta expande/recolhe (classe `selecionada`).
@@ -19,6 +20,7 @@ Sidebar de navegação principal do layout autenticado (`App`).
 - **`BarraPadrao`**: renderiza o logo, (no mobile) botão de fechar, e a lista de links via `LinkLateral`.
 - **`LinkLateral({ para, titulo, icone })`**: item de navegação com `useMatch(para)` para aplicar classe `selecionado`; ícone carregado de `/assets/images/icons/{icone}.svg`.
 - Links fixos: Início (`/`), Inscrição (`/inscricao`), Acompanhamento (`/acompanhamento`), Cursos (`/cursos`), FAQ (`/faq`).
+- Rodapé: horário de atendimento, link de **WhatsApp (11) 96398-6252** (`wa.me/5511963986252`) e "Sair da conta".
 
 ### `Cabecalho` (`cabecalho/index.jsx`)
 Header do layout autenticado.
@@ -43,6 +45,15 @@ Sistema de modal global.
   - Expõe `{ openModal, isOpen }` via `ModalContext.Provider`.
 - **`useModal()`** (`src/util/useModal.js`): hook de conveniência (`useContext(ModalContext)`), usado hoje só pelo `SeletorDeAgendamento` (fluxo de agendamento da prova).
 - Único consumidor no app hoje: `Agendamento` (dentro da timeline de acompanhamento) abre o modal com `SeletorDeAgendamento`.
+
+### `PainelInstitucional` (`painel_institucional/index.jsx`)
+Painel de marca (coluna navy) compartilhado pelas telas públicas — Login, Cadastro, Recuperar/Trocar
+Senha e as equivalentes do painel admin.
+- **Props:** `titulo` (default `"Inscrições"`), `destaque` (default `"2026"`), `descricao`, `mostrarStats`.
+- Exibe o **logo do instituto** (`/assets/images/logo.svg`) ao lado de "Ação Social / Nossa Senhora de Fátima".
+  Usa `logo.svg` — a marca em traço branco, feita para fundo escuro. O `logo2.svg` é a versão completa
+  em azul **com fundo branco sólido** e viraria um retângulo branco sobre o painel navy.
+- *A sidebar da área autenticada (`BarraLateral`) ainda usa o monograma provisório "A".*
 
 ### `Select` / `SelectItem` (`select/index.jsx`)
 Wrapper de campo de seleção usado em todos os formulários do app.
@@ -76,16 +87,30 @@ Wrapper de `react-hot-toast`'s `<Toaster />`, instanciado localmente em cada pá
   - Inclui correção para o bug de autofill do navegador: escuta `onAnimationStart` de uma animação chamada `onAutoFillStart` (definida no CSS) e força `onChange` com o valor atual — necessário porque o Chrome não dispara eventos normais de input em autofill.
   - `encontraErro(errors, name)` — resolve erro de campo aninhado a partir de um `name` com notação de ponto (`"address.cep"` → `errors.address.cep`).
 
+- **`anexoRG.jsx`** (`AnexoRG`) — campo de anexo da foto do RG, usado no passo 4 do wizard.
+Campo de anexo da foto do RG, usado no passo 4 do wizard de inscrição.
+- **Props:** `onMudanca(temAnexo)` — avisa o passo se já existe anexo, para liberar o "Salvar e avançar".
+- O arquivo **sobe assim que é escolhido** (`POST /users/rg-document`), em requisição própria: o passo
+  do wizard é enviado como JSON no `PUT /users/profile` e não comporta um arquivo.
+- Valida o tamanho (4MB) no cliente antes de subir; o formato é validado pelo backend.
+- Mostra prévia da imagem — do arquivo recém-escolhido ou, na primeira carga, baixando o anexo já
+  enviado (`GET /users/rg-document`). PDF não gera prévia, só o rótulo "Documento anexado".
+- Atualiza `user.rgInfo.hasDocument` no `local-storage` para que o passo continue liberado após um F5.
+- Exibe o aviso de **"foto legível"**.
+
+
 - **`formCursos.jsx`** (`FormularioCursos`) — último "passo" do fluxo de inscrição (fora do wizard de dados pessoais): seleção de 1ª e 2ª opção de curso + horário.
   - Carrega lista de cursos (`getCursos`) e, se o usuário já tiver inscrição (`getInscricao`), pré-popula os `Select`s com os cursos/horários já escolhidos e busca os horários correspondentes.
   - Regra de negócio: não permite que 1ª e 2ª opção sejam exatamente o mesmo par curso+horário — ao detectar conflito, limpa a opção conflitante e mostra erro inline (`erro`, exibido em linha própria da tabela). Há um bloco de regra comentado (exigência de 2ª opção fora de cursos "Teens") que está desativado no momento.
+  - Traz um link "Conheça os cursos disponíveis" para `/cursos`, aberto em **nova aba** — navegar para fora descartaria o estado do wizard.
   - Ao confirmar (`criaInscricao`), dispara barra de progresso (`react-top-loading-bar`), toast de sucesso e navega para `/acompanhamento` após 1s.
+  - Erros de negócio do backend (bloqueio por mensalidades em aberto, RG não anexado) chegam por toast via `callApi`.
 
 - **`formDados.jsx`** — oito componentes de formulário, um por "passo" do wizard de inscrição, todos consumindo o mesmo `useFormContext()` compartilhado (via `FormProvider` em `Inscricao`) e recebendo `{ avancar, retornar }`:
   - `FormularioDadosPessoais` — nome, telefone (máscara `+55 (00) 00000-0000`), gênero (`Select` com opções de `selects.js`).
   - `FormularioEndereco` — CEP (máscara, com `onBlur` disparando `getEnderecoCompleto` para autopreencher rua/bairro/cidade/UF via ViaCEP), rua, bairro, cidade, estado (máscara 2 letras maiúsculas), número, complemento (opcional).
   - `FormularioNascimento` — data, cidade, estado (máscara UF), país.
-  - `FormularioRG` — CPF (máscara `000.000.000-00`), número do RG, data de emissão (validação `min` de `01/01/1900`), órgão emissor.
+  - `FormularioRG` — CPF (máscara `000.000.000-00`), número do RG, data de emissão (validação `min` de `01/01/1900`), órgão emissor e o **anexo obrigatório** (`AnexoRG`). Como o anexo não é campo do `react-hook-form`, o passo mantém um estado próprio (`temAnexo`) e o botão "Salvar e avançar" checa esse estado antes de chamar `avancar([...])`.
   - `FormularioResponsavelPrimario` — dados da mãe (nome, e-mail, telefone, telefone secundário); campo `relationship` fixado/desabilitado como "Mãe" (`Select disabled`).
   - `FormularioResponsavelSecundario` — mesmos campos do responsável primário, mas `relationship` livre (lista `parentesco`).
   - `FormularioEscolar` — escola atual, série atual (`Select` com `escolaridades`), tipo de escola (`Select` com `tipoEscola`).
@@ -93,24 +118,35 @@ Wrapper de `react-hot-toast`'s `<Toaster />`, instanciado localmente em cada pá
   - Cada formulário é uma `<table className="tabela-form">`; footer com botão "Retornar" (exceto no primeiro passo) e "Avançar", que chama `avancar([...nomes dos campos])` — o componente pai decide se valida (`methods.trigger`) e avança de passo ou submete.
 
 - **`padroes.js`** — objeto com a "forma"/valores-padrão (todos strings vazias) de todo o formulário de inscrição; usado como base para `mergeObjects` (preenche com dados já existentes do usuário) e como "modelo" para `testState` (validação de obrigatoriedade antes do submit final).
-- **`selects.js`** — arrays de opções estáticas usados pelos `Select`s do formulário: `genero`, `parentesco`, `comoConheceu`, `estadosBrasileiros` (não usado atualmente nos formulários, que preferem input mascarado de UF), `escolaridades`, `tipoEscola`.
+- **`selects.js`** — arrays de opções estáticas usados pelos `Select`s do formulário: `genero`, `parentesco`, `comoConheceu` (Amigos, Família, Cônjuge, Filho/Filha, Ex-Aluno, Redes Sociais, Internet, Outro), `estadosBrasileiros` (não usado atualmente nos formulários, que preferem input mascarado de UF), `escolaridades`, `tipoEscola`.
 
 ### `src/pages/app/subpages/acompanhamento/components/`
 
-- **`linhaTempo/linhaTempo.jsx`** (`Timeline`, exportado como default; arquivo/pasta chamados de "linhaTempo") — monta a timeline de 5 etapas do processo seletivo do candidato: Pré-inscrição → Agendamento → Concluir Inscrição → Vestibular → Resultado. Busca o agendamento do usuário (`getAgendamento`) e recebe `statusVestibular` via `useOutletContext()`. `TimelineItem` é o item visual de cada etapa (aplica classe `agendamento-pendente` quando a etapa "Agendamento" ainda não tem data marcada).
-- **`linhaTempo/dadosLinha.jsx`** — conteúdo textual/interativo de cada etapa da timeline (todos exportados nomeados):
-  - `PreInscricao` — mensagem estática de sucesso (a etapa em si só existe se o usuário chegou até a timeline).
-  - `Agendamento({ dataAgendada, alteravel })` — se já há data agendada, mostra data/hora e (se `alteravel`) botão "Alterar agendamento"; senão, botão "Realizar agendamento". Ambos abrem o modal global com `SeletorDeAgendamento`, passando `agendar` (chama `criaAgendamento`, toast de sucesso e `window.location.reload()` após 2s) como callback de confirmação.
-  - `ConcluirInscricao({ dataAgendada, realizado })` — instruções para comparecimento presencial (endereço fixo do instituto, valor da inscrição R$ 40,00, documentos necessários) ou confirmação se `realizado`.
-  - `ProvaVestibular({ realizado, dadosInscricao })` — instruções da prova (data/horário/sala quando disponíveis) ou confirmação de aplicação.
-  - `Resultado({ realizado, dataPublicacao, urlResultado, mostrarUrl })` — mostra link do resultado quando disponível, ou data prevista de divulgação (e link antecipado se `mostrarUrl` estiver habilitado pelo backend).
+- **`linhaTempo/linhaTempo.jsx`** (`Timeline`, exportado como default; arquivo/pasta chamados de "linhaTempo") — monta a timeline de 5 etapas do processo seletivo: **Cadastro criado → Inscrição preenchida → Pagamento → Prova presencial → Resultado e matrícula**. Recebe `dadosInscricao` por prop e `statusVestibular` via `useOutletContext()`.
+  - A data de resultado vem de `dadosInscricao.resultPublicationDate` (**por candidato**), com fallback para a global de `/parameters` — quem não tem inscrição continua vendo a data geral.
+  - A etapa "Prova presencial" recebe o status `dispensado` quando `isInternalStudent` é verdadeiro.
+  - `TimelineItem` é o item visual de cada etapa; a classe vem do status normalizado sem acento (`status-concluido`, `status-aguardando`, `status-dispensado`).
+
+- **`linhaTempo/dadosLinha.jsx`** — conteúdo de cada etapa (todos exportados nomeados):
+  - `CadastroCriado` / `InscricaoPreenchida` — mensagens estáticas de sucesso.
+  - `Pagamento({ pago })` — cobrança PIX da taxa de inscrição: imagem do QR code (quando o provedor fornece) e código copia-e-cola com botão "Copiar" (`navigator.clipboard`, com fallback por toast pedindo cópia manual em contextos sem permissão). Enquanto pendente, consulta `getPagamentoInscricao` a cada 10s para que a confirmação pelo webhook faça a etapa virar sem recarregar a página; o intervalo é limpo no unmount.
+  - `ProvaPresencial({ realizado, dadosInscricao })` — ramifica por `isInternalStudent`: aluno interno vê a mensagem de nivelamento no próprio curso; externo vê endereço, data e o aviso de que horário e sala chegam por e-mail em `roomNoticeEmailDate`.
+  - `ResultadoMatricula({ realizado, dataPublicacao, urlResultado, mostrarUrl })` — mostra link do resultado quando disponível, ou data prevista de divulgação (e link antecipado se `mostrarUrl` estiver habilitado pelo backend).
   - Todas usam `converterDataUTCParaLocalSemMudarDia` para exibir datas.
 
-- **`selecionaDatas/index.jsx`** (`SeletorDeAgendamento`) — conteúdo do modal de agendamento/reagendamento da prova.
+- **`selecionaDatas/index.jsx`** (`SeletorDeAgendamento`) — modal de agendamento da prova. **Não é mais usado pela timeline** (a convocação passou a ser definida pela secretaria), mas segue no repositório junto do serviço `agendamento.js` e dos endpoints correspondentes da API.
   - **Props:** `datasDisponiveis` (array de datas ISO vindas da API), `confirmar(dataISO)` (callback).
   - Usa `react-day-picker` (`DayPicker`, locale `ptBR`) para seleção de dia, restringindo dias selecionáveis aos presentes em `datasDisponiveis` (via `disabled`) e destacando-os visualmente (`modifiers`/`modifiersStyles`).
   - Ao selecionar um dia, gera a lista de horários fixos daquele dia (`gerarHorariosParaDiasDisponiveis`) e exibe um `Select` de horários.
-  - Ao escolher horário, mostra botão "Confirmar Agendamento" que chama `confirmar(formatarAgendamentoParaISO(dia, horario))`.
+
+### `src/pages/admin/`
+
+Área administrativa, com sessão própria (`adminToken`/`admin` no `local-storage`) e layout `AdminApp` + `AdminSidebar`. Páginas: `login`, `bootstrap`, `dashboard`, `inscricoes` (+ `detalhes`), `cursos` (+ `form`), `faq` (+ `form`), `vestibular` (+ `form`), `importacoes` e `administradores`.
+
+- **`importacoes/index.jsx`** (`AdminImportacoes`) — envio dos dois CSVs. Cada bloco (`CartaoImportacao`) mostra as colunas esperadas, o efeito da importação, o total de registros na base e a data do último lote, e exibe o resultado com as linhas recusadas e o motivo (limitado a 20 na tela). O cartão de pagamentos é marcado como **destrutivo** e pede confirmação antes de enviar, porque substitui a base inteira.
+- **`inscricoes/detalhes/index.jsx`** — inclui `AnexoRGCandidato`, que baixa o anexo do RG como blob (o endpoint exige o Bearer de admin, então um `<a href>` direto não funcionaria) e o abre em nova aba, revogando a URL de objeto depois.
+- **`faq/form/index.jsx`** — além de pergunta/resposta/ordem, edita a **`key`** (slug validado por `^[a-z0-9-]*$`) usada nos links diretos e no quadro "Informações gerais" da Início.
+- **`vestibular/form/index.jsx`** — edita as datas da edição, incluindo as duas novas: **resultado do candidato externo** em curso de continuidade e **data do e-mail com horário e sala**.
 
 ## Componentes de página (top-level, um por rota)
 

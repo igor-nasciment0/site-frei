@@ -4,8 +4,10 @@ import Input, { encontraErro } from "./input";
 import { Select, SelectItem } from "../../../../../components/select";
 import { comoConheceu, escolaridades, genero, parentesco, tipoEscola } from "../selects";
 import { getEnderecoCompleto } from "../../../../../api/services/enderecos";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import callApi from "../../../../../api/callAPI";
+import AnexoRG from "./anexoRG";
+import toast from "react-hot-toast";
 
 export function FormularioDadosPessoais({ avancar }) {
   const { register, control, formState: { errors } } = useFormContext();
@@ -252,6 +254,24 @@ export function FormularioNascimento({ avancar, retornar }) {
 export function FormularioRG({ avancar, retornar }) {
   const { register, control } = useFormContext();
 
+  // O anexo vive fora do react-hook-form (é upload, não campo do JSON do perfil),
+  // então o "avançar" precisa checá-lo separadamente.
+  const [temAnexo, setTemAnexo] = useState(false);
+  const aoMudarAnexo = useCallback(valor => setTemAnexo(valor), []);
+
+  function avancarComAnexo() {
+    if (!temAnexo) {
+      toast.error("Anexe uma foto do seu RG para continuar.");
+      return;
+    }
+
+    avancar([
+      "rgInfo.number",
+      "rgInfo.issueDate",
+      "rgInfo.issuingAuthority"
+    ]);
+  }
+
   return (
     <table className="tabela-form">
       <tbody>
@@ -316,15 +336,17 @@ export function FormularioRG({ avancar, retornar }) {
           <td className="label obrigatorio">Órgão emissor</td>
           <Input name="rgInfo.issuingAuthority" type="text" placeholder="Informe o órgão emissor" {...register("rgInfo.issuingAuthority", { required: "Campo obrigatório" })} />
         </tr>
+        <tr>
+          <td className="label obrigatorio">Foto do RG</td>
+          <td className="input">
+            <AnexoRG onMudanca={aoMudarAnexo} />
+          </td>
+        </tr>
       </tbody>
       <tfoot>
         <tr className="submit"><td>
           <button onClick={retornar} type="button" className="retornar">← Voltar</button>
-          <button type="button" onClick={() => avancar([
-            "rgInfo.number",
-            "rgInfo.issueDate",
-            "rgInfo.issuingAuthority"
-          ])}>
+          <button type="button" onClick={avancarComAnexo}>
             Salvar e avançar
           </button>
         </td></tr>
