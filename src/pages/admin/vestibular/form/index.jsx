@@ -44,7 +44,12 @@ export default function AdminVestibularForm() {
 
       const camposConvertidos = Object.fromEntries(CAMPOS_DATA.map(campo => [campo, formatarParaInputDate(edicao[campo])]));
       setEdicaoAtual(edicao);
-      reset({ ...padroesEdicao, ...edicao, ...camposConvertidos });
+      reset({
+        ...padroesEdicao, ...edicao, ...camposConvertidos,
+        // Edições criadas antes destes campos vêm com 0: mostra vazio para o admin preencher.
+        year: edicao.year || "",
+        enrollmentFee: edicao.enrollmentFee || "",
+      });
       setCarregando(false);
     })();
   }, [id]);
@@ -52,6 +57,8 @@ export default function AdminVestibularForm() {
   async function submit(dados) {
     const payload = { ...dados };
     CAMPOS_DATA.forEach(campo => { payload[campo] = paraISODataSimples(dados[campo]); });
+    payload.year = Number(dados.year);
+    payload.enrollmentFee = Number(dados.enrollmentFee);
 
     if (editando) {
       // nextEnrollmentNumber não é editável via PUT (só no POST de criação).
@@ -106,6 +113,37 @@ export default function AdminVestibularForm() {
       <div className="admin-form-card">
         <form onSubmit={handleSubmit(submit)}>
           <div className="grade">
+            <div className={"campo " + (errors.year ? "erro" : "")}>
+              <label htmlFor="year">Ano da edição</label>
+              <input
+                {...register("year", {
+                  required: "Campo obrigatório",
+                  min: { value: 2000, message: "Informe um ano válido" },
+                  max: { value: 2100, message: "Informe um ano válido" },
+                })}
+                type="number"
+                placeholder="2026"
+              />
+              {errors.year && <span className="mensagem-erro">{errors.year.message}</span>}
+              <span className="ajuda">Compõe o código da cobrança PIX: insfvest_ + ano + protocolo.</span>
+            </div>
+
+            <div className={"campo " + (errors.enrollmentFee ? "erro" : "")}>
+              <label htmlFor="enrollmentFee">Taxa de inscrição (R$)</label>
+              <input
+                {...register("enrollmentFee", {
+                  required: "Campo obrigatório",
+                  min: { value: 0.01, message: "Informe um valor maior que zero" },
+                })}
+                type="number"
+                step="0.01"
+                min="0.01"
+                placeholder="40,00"
+              />
+              {errors.enrollmentFee && <span className="mensagem-erro">{errors.enrollmentFee.message}</span>}
+              <span className="ajuda">Vale para as cobranças emitidas daqui em diante.</span>
+            </div>
+
             <div className={"campo " + (errors.startDate ? "erro" : "")}>
               <label htmlFor="startDate">Início das inscrições</label>
               <input {...register("startDate", { required: "Campo obrigatório" })} type="date" />

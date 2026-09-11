@@ -4,7 +4,7 @@ info:
   description: >
     API REST do Instituto Social N.S.Fátima para gestão de usuários, cursos,
     inscrições (matrículas) e agendamentos do vestibular.
-    Gerado a partir do código-fonte real (`src/NsfApi/Controllers`); atualizado em 2026-09-10.
+    Gerado a partir do código-fonte real (`src/NsfApi/Controllers`); atualizado em 2026-09-11.
     Ver também `specs/architecture.md`, `specs/features-usecases.md` e `specs/modeling.md`
     para detalhes de arquitetura, regras de negócio e modelagem de dados.
   version: "3.0.0"
@@ -28,7 +28,7 @@ tags:
   - name: FAQs
     description: Perguntas frequentes
   - name: Payments
-    description: Cobrança PIX da taxa de inscrição e webhook do provedor
+    description: Cobrança PIX da taxa de inscrição (EduTech PIX API) e consulta do pagamento
   - name: Parameters
     description: Status/parâmetros do vestibular vigente
   - name: Admin
@@ -592,13 +592,14 @@ paths:
           description: Senha inválida
 
   /api/enrollments/my-enrollment/payment:
-    get:
+    post:
       tags: [Payments]
-      summary: Cobrança PIX vigente da taxa de inscrição
+      summary: Gera a cobrança PIX da taxa de inscrição
       description: >
-        Emite a cobrança na primeira chamada e devolve a mesma nas seguintes.
-        Só reemite quando não há cobrança ou quando a atual venceu; depois de paga,
-        nunca reemite.
+        Emite a cobrança na EduTech com correlationID `insfvest_{ano}{protocolo}` e o valor
+        configurado na edição ativa. Enquanto a cobrança estiver pendente e válida, devolve a
+        mesma; reemite (com sufixo `_2`, `_3`…) só quando ela venceu ou foi cancelada — e,
+        antes disso, confirma no provedor que ela não foi paga. Depois de paga, nunca reemite.
       security:
         - bearerAuth: []
       responses:
@@ -608,40 +609,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EnrollmentPaymentDto'
+        '400':
+          description: Ano ou taxa de inscrição não configurados na edição ativa
         '404':
           description: Sem vestibular ativo ou sem inscrição
+        '502':
+          description: Provedor de pagamento indisponível ou sem configuração
 
-  /api/payments/webhook:
-    post:
+  /api/enrollments/my-enrollment/payment/status:
+    get:
       tags: [Payments]
-      summary: Notificação de pagamento do provedor
+      summary: Consulta no provedor se a cobrança já foi paga
       description: >
-        Endpoint público que altera estado financeiro — exige assinatura válida no header
-        `X-Signature`. É idempotente: uma inscrição já paga responde 200 sem regravar.
-        **Atenção:** enquanto o provedor não for definido, o `StubPaymentGateway` recusa
-        toda assinatura.
-      parameters:
-        - name: X-Signature
-          in: header
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Corpo definido pelo provedor de pagamento.
+        Consulta a cobrança vigente na EduTech pelo correlationID e grava a situação na
+        inscrição. É o mecanismo de confirmação — a EduTech não tem webhook. Sem cobrança
+        emitida, ou já paga, devolve o que está gravado sem consultar o provedor.
+      security:
+        - bearerAuth: []
       responses:
         '200':
-          description: Notificação processada
-        '400':
-          description: Notificação sem identificador de cobrança
-        '401':
-          description: Assinatura inválida
+          description: Situação atual da cobrança
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentPaymentDto'
         '404':
-          description: Cobrança sem inscrição correspondente
+          description: Sem vestibular ativo ou sem inscrição
+        '502':
+          description: Provedor de pagamento indisponível ou sem configuração
 
   /api/enrollments/count-by-course-period:
     get:
@@ -1877,12 +1872,17 @@ components:
 
     PaymentStatus:
       type: integer
-      enum: [1, 2, 3, 4]
-      description: "1=Pending, 2=Paid, 3=Expired, 4=Failed"
+      enum: [1, 2, 3, 4, 5]
+      description: "1=Pending, 2=Paid, 3=Expired, 4=Failed, 5=Canceled"
 
     EnrollmentPaymentDto:
       type: object
       properties:
+        correlationId:
+          type: string
+          nullable: true
+          description: Identificador da cobrança no provedor. Nulo antes da emissão.
+          example: insfvest_202620261001
         status:
           $ref: '#/components/schemas/PaymentStatus'
         amount:
@@ -1892,10 +1892,10 @@ components:
           type: string
           nullable: true
           description: Código PIX copia-e-cola.
-        qrCodeBase64:
+        qrCodeImageUrl:
           type: string
           nullable: true
-          description: PNG em base64, sem o prefixo `data:`. Vazio quando o provedor não fornece imagem.
+          description: URL da imagem do QR code, servida pelo provedor.
         expiresAt:
           type: string
           format: date-time
@@ -2409,6 +2409,15 @@ components:
       properties:
         id:
           type: string
+        year:
+          type: integer
+          description: Ano da edição — compõe o correlationID da cobrança PIX.
+          example: 2026
+        enrollmentFee:
+          type: number
+          format: double
+          description: Taxa de inscrição, em reais.
+          example: 40.0
         presentationVideoUrl:
           type: string
         startDate:
@@ -2460,8 +2469,17 @@ components:
 
     AdminCreateVestibularParametersDto:
       type: object
-      required: [startDate, endDate]
+      required: [year, enrollmentFee, startDate, endDate]
       properties:
+        year:
+          type: integer
+          minimum: 2000
+          maximum: 2100
+          description: Ano da edição — compõe o correlationID da cobrança PIX.
+        enrollmentFee:
+          type: number
+          format: double
+          description: Taxa de inscrição, em reais. Deve ser maior que zero.
         presentationVideoUrl:
           type: string
         startDate:
@@ -2507,8 +2525,17 @@ components:
 
     AdminUpdateVestibularParametersDto:
       type: object
-      required: [startDate, endDate]
+      required: [year, enrollmentFee, startDate, endDate]
       properties:
+        year:
+          type: integer
+          minimum: 2000
+          maximum: 2100
+          description: Ano da edição — compõe o correlationID da cobrança PIX.
+        enrollmentFee:
+          type: number
+          format: double
+          description: Taxa de inscrição, em reais. Vale para as cobranças emitidas daqui em diante.
         presentationVideoUrl:
           type: string
         startDate:

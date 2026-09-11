@@ -13,10 +13,11 @@ export default async function callApi(callback, toastIt=false, ...params) {
     if (!toastIt || error.status == 401)
       return;
 
-    if (error.response && error.response.data.Message?.[0])
+    if (error.response?.data?.Message?.[0])
       toast.error(error.response.data.Message[0], { duration: 4000 });
 
-    else if (error.response.data.message) {
+    // Sem error.response (rede caída, timeout) o acesso direto lançava dentro do catch.
+    else if (error.response?.data?.message) {
       console.log(error);
       
       toast.error(error.response.data.message, { duration: 4000 });

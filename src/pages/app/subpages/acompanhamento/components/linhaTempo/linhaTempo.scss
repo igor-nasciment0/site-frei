@@ -44,6 +44,11 @@
             background: t.$c-navy;
         }
 
+        // Etapa que só é liberada depois do pagamento confirmado.
+        &.status-bloqueado .timeline-item-content .cabecalho h3 {
+            color: t.$c-text-muted;
+        }
+
         .timeline-item-content {
             .cabecalho {
                 display: flex;
@@ -144,6 +149,46 @@
                             &:hover {
                                 background: t.$c-navy-hover;
                             }
+                        }
+                    }
+
+                    .verificacao {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        flex-wrap: wrap;
+                        margin-top: 16px;
+
+                        span {
+                            font-size: 12.5px;
+                            color: t.$c-slate;
+                        }
+                    }
+
+                    .btn-verificar {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: t.$c-navy;
+                        background: transparent;
+                        border: 1px solid t.$c-navy;
+                        padding: 10px 16px;
+                        min-height: 44px;
+                        cursor: pointer;
+                        transition: background t.$transition, color t.$transition;
+
+                        &:hover:not(:disabled) {
+                            background: t.$c-navy;
+                            color: t.$c-white;
+                        }
+
+                        &:focus-visible {
+                            outline: 2px solid t.$c-navy;
+                            outline-offset: 2px;
+                        }
+
+                        &:disabled {
+                            opacity: .6;
+                            cursor: wait;
                         }
                     }
 

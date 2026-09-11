@@ -17,7 +17,7 @@ import { corrigeURLVideo } from '../../../../util/string';
 const INFORMACOES_GERAIS = [
   { key: 'edital-bolsa', titulo: 'Edital de Bolsa', legenda: 'Quem pode concorrer e como solicitar' },
   { key: 'uso-uniforme', titulo: 'Uso de Uniforme', legenda: 'Regras e onde adquirir' },
-  { key: 'material-didatico', titulo: 'Material Didático', legenda: 'O que está incluso na contribuição' },
+  { key: 'material-didatico', titulo: 'Material Didático', legenda: 'O que está incluso na mensalidade' },
   { key: 'resultado-prova', titulo: 'Resultado da prova', legenda: 'Quando e onde consultar' },
 ];
 

@@ -125,7 +125,7 @@ export default function AdminCursoForm() {
             </div>
 
             <div className="campo">
-              <label htmlFor="contribution">Contribuição mensal</label>
+              <label htmlFor="contribution">Mensalidade</label>
               <input {...register("contribution")} type="text" placeholder="Ex.: R$ 40,00" />
             </div>
 

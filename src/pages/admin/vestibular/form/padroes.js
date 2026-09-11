@@ -1,4 +1,6 @@
 export default {
+  year: "",
+  enrollmentFee: "",
   presentationVideoUrl: "",
   startDate: "",
   endDate: "",

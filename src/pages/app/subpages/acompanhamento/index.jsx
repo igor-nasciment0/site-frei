@@ -28,6 +28,10 @@ export default function Acompanhamento() {
   const [naoPossui, setNaoPossui] = useState(false);
   const [carregando, setCarregando] = useState(true);
 
+  // Confirmado pela consulta da etapa de pagamento enquanto a página está aberta.
+  const [pagoNestaVisita, setPagoNestaVisita] = useState(false);
+  const pagamentoConfirmado = dadosInscricao?.paymentStatus === 2 || pagoNestaVisita;
+
   useEffect(() => {
     (async () => {
       const r = await callApi(getInscricao);
@@ -99,12 +103,17 @@ export default function Acompanhamento() {
         <div className="grid-principal">
           <section className="proximos-passos">
             <p className="titulo-secao">Próximos passos</p>
-            <LinhaTempo dadosInscricao={dadosInscricao} />
+            <LinhaTempo
+              dadosInscricao={dadosInscricao}
+              pagamentoConfirmado={pagamentoConfirmado}
+              onPagamentoConfirmado={setPagoNestaVisita}
+            />
           </section>
 
           <div className="coluna-lateral">
-            {/* Aluno interno faz nivelamento na própria turma — não há prova a informar. */}
-            {!dadosInscricao?.isInternalStudent &&
+            {/* A prova é a etapa seguinte ao pagamento: só aparece depois dele. Aluno interno faz
+                nivelamento na própria turma — não há prova a informar. */}
+            {pagamentoConfirmado && !dadosInscricao?.isInternalStudent &&
               <>
                 <div className="card-convocacao">
                   <p className="eyebrow">Informações sobre a prova</p>

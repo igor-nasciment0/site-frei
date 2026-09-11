@@ -106,7 +106,7 @@ Regras:
   - Cursos com `type === "Técnico"` exibem um selo **"Edital de Bolsas"** que abre
     `acaonsfatima.org.br/bolsa-educacional` em nova aba (com `stopPropagation`, já que o card inteiro
     é clicável).
-- **Detalhes** (`/cursos/:id`, renderizado dentro do layout de `Cursos` via outlet aninhado): nome, imagem grande, descrição (HTML), tabela de informações (carga horária, faixa etária mínima/máxima, escolaridade mínima, contribuição mensal, períodos disponíveis ativos) e, se houver, seção "Mercado de Trabalho". Link "Voltar" para a listagem. Usa skeletons durante o carregamento (inclusive um delay artificial de 1s para suavizar a transição).
+- **Detalhes** (`/cursos/:id`, renderizado dentro do layout de `Cursos` via outlet aninhado): nome, imagem grande, descrição (HTML), tabela de informações (carga horária, faixa etária mínima/máxima, escolaridade mínima, mensalidade, períodos disponíveis ativos) e, se houver, seção "Mercado de Trabalho". Link "Voltar" para a listagem. Usa skeletons durante o carregamento (inclusive um delay artificial de 1s para suavizar a transição).
 
 ## 7. Acompanhamento (`/acompanhamento`)
 
@@ -119,10 +119,13 @@ Regras:
 
 1. **Cadastro criado** — sempre concluída.
 2. **Inscrição preenchida** — sempre concluída (é pré-requisito para chegar aqui).
-3. **Pagamento** — cobrança PIX da taxa de inscrição: QR code (quando o provedor fornece a imagem) +
-   código copia-e-cola com botão "Copiar". Enquanto pendente, consulta
-   `GET /enrollments/my-enrollment/payment` a cada 10s, de modo que a confirmação pelo webhook faz a
-   etapa virar sem recarregar a página. Concluída quando `paymentStatus === 2`.
+3. **Pagamento** — cobrança PIX da taxa de inscrição, gerada ao abrir a tela
+   (`POST /enrollments/my-enrollment/payment`): QR code + código copia-e-cola com botão "Copiar".
+   Enquanto pendente, consulta `GET /enrollments/my-enrollment/payment/status` ao abrir e a cada 10s (e na hora,
+   pelo botão "Já paguei — verificar pagamento"); a API consulta o provedor, que não tem webhook. A
+   etapa vira sem recarregar a página. Cobrança vencida ou cancelada é reemitida automaticamente.
+   Concluída quando `paymentStatus === 2`. **As etapas 4 e 5 ficam bloqueadas até o pagamento ser
+   confirmado.**
 4. **Prova presencial** — ramifica por `isInternalStudent`:
    - **aluno interno**: *"a prova será o nivelamento do próprio curso, portanto não é necessário
      realizar a prova no dia do vestibular"*, sem endereço nem data.
@@ -134,7 +137,8 @@ Regras:
 
 ### 7.2 Coluna lateral
 
-Só aparece para candidato **externo** — para o aluno interno não há prova a informar.
+Só aparece para candidato **externo** e **depois do pagamento confirmado** — para o aluno interno não
+há prova a informar, e antes do pagamento a prova ainda não é a etapa atual.
 
 - **"Informações sobre a prova"** (card azul): Data, Horário, Local e Sala. Horário e sala não são
   definidos por aqui — enquanto a secretaria não os preenche, exibem *"Por e-mail em {data}"*.

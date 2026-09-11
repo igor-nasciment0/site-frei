@@ -1,15 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import callApi from "../../../../../../api/callAPI";
-import { getPagamentoInscricao } from "../../../../../../api/services/inscricao";
+import { geraCobrancaInscricao, getStatusPagamentoInscricao } from "../../../../../../api/services/inscricao";
 import { converterDataUTCParaLocalSemMudarDia } from "../../../../../../util/date";
 
 const ENDERECO_INSTITUTO = "Av. Coronel Octaviano de Freitas Costa, 463 - Veleiros, São Paulo - SP, 04773-000";
 
+const PAGAMENTO_PENDENTE = 1;
 const PAGAMENTO_PAGO = 2;
+// Vencida, recusada ou cancelada: pede outra cobrança ao backend, que reemite.
+const PAGAMENTO_ENCERRADO = [3, 4, 5];
 
-// Enquanto a cobrança está pendente, o webhook do provedor pode confirmar a qualquer
-// momento — recarrega de tempos em tempos para a etapa virar sozinha.
+// O provedor PIX não avisa quando o pagamento cai: enquanto a cobrança está pendente,
+// consulta a situação de tempos em tempos para a etapa virar sozinha.
 const INTERVALO_CONSULTA_PAGAMENTO = 10000;
 
 export function CadastroCriado() {
@@ -28,37 +31,85 @@ export function InscricaoPreenchida() {
   );
 }
 
-export function Pagamento({ pago }) {
+export function Pagamento({ pago, onConfirmado }) {
   const [cobranca, setCobranca] = useState(null);
   const [carregando, setCarregando] = useState(!pago);
+  const [falhou, setFalhou] = useState(false);
+  const [verificando, setVerificando] = useState(false);
+  const [qrIndisponivel, setQrIndisponivel] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const timeoutCopia = useRef(null);
+  const montado = useRef(true);
 
   useEffect(() => {
-    if (pago) return;
-
-    let ativo = true;
-
-    async function consultar() {
-      const r = await callApi(getPagamentoInscricao, false);
-      if (!ativo) return;
-
-      if (r?.status !== 404) setCobranca(r?.data);
-      setCarregando(false);
-    }
-
-    consultar();
-    const intervalo = setInterval(consultar, INTERVALO_CONSULTA_PAGAMENTO);
-
+    montado.current = true;
     return () => {
-      ativo = false;
-      clearInterval(intervalo);
+      montado.current = false;
+      clearTimeout(timeoutCopia.current);
     };
-  }, [pago]);
+  }, []);
 
-  useEffect(() => () => clearTimeout(timeoutCopia.current), []);
+  const gerar = useCallback(async () => {
+    setCarregando(true);
+    setFalhou(false);
 
-  // A cobrança confirmada pelo polling vale tanto quanto a que veio na inscrição.
+    // Com toast: taxa não configurada ou provedor fora do ar chegam como mensagem da API.
+    const r = await callApi(geraCobrancaInscricao, true);
+    if (!montado.current) return;
+
+    if (r?.correlationId) {
+      setCobranca(r);
+      setQrIndisponivel(false);
+    } else {
+      setFalhou(true);
+    }
+    setCarregando(false);
+  }, []);
+
+  const verificar = useCallback(async () => {
+    const r = await callApi(getStatusPagamentoInscricao, false);
+    if (!montado.current || !r?.correlationId) return r;
+
+    // Gravar antes de reemitir tira a cobrança de "pendente" e para a consulta periódica —
+    // se a reemissão falhar, a tela mostra "Tentar novamente" em vez de repetir a cada 10s.
+    setCobranca(r);
+    if (PAGAMENTO_ENCERRADO.includes(r.status)) gerar();
+    return r;
+  }, [gerar]);
+
+  useEffect(() => {
+    if (!pago) gerar();
+  }, [pago, gerar]);
+
+  const pendente = cobranca?.status === PAGAMENTO_PENDENTE;
+
+  useEffect(() => {
+    if (pago || !pendente) return;
+
+    // Confere já ao abrir — o pagamento pode ter caído com a tela fechada — e depois a cada 10s.
+    verificar();
+    const intervalo = setInterval(verificar, INTERVALO_CONSULTA_PAGAMENTO);
+    return () => clearInterval(intervalo);
+  }, [pago, pendente, verificar]);
+
+  // A confirmação vista aqui vira a etapa inteira da linha do tempo, sem recarregar a página.
+  useEffect(() => {
+    if (cobranca?.status === PAGAMENTO_PAGO) onConfirmado?.(true);
+  }, [cobranca?.status, onConfirmado]);
+
+  async function verificarAgora() {
+    setVerificando(true);
+    const r = await verificar();
+    if (!montado.current) return;
+    setVerificando(false);
+
+    if (!r)
+      toast.error("Não foi possível verificar o pagamento agora. Tente novamente em instantes.");
+    else if (r.status === PAGAMENTO_PENDENTE)
+      toast("Ainda não recebemos a confirmação do pagamento. Ela pode levar alguns minutos.");
+  }
+
+  // A cobrança confirmada pela consulta vale tanto quanto a que veio na inscrição.
   const confirmado = pago || cobranca?.status === PAGAMENTO_PAGO;
 
   async function copiar() {
@@ -78,7 +129,10 @@ export function Pagamento({ pago }) {
   if (confirmado) {
     return (
       <div className="conteudo realizado">
-        <p>Pagamento da taxa de inscrição confirmado.</p>
+        <p>
+          Pagamento da taxa de inscrição confirmado
+          {cobranca?.paidAt && ` em ${converterDataUTCParaLocalSemMudarDia(cobranca.paidAt)}`}.
+        </p>
       </div>
     );
   }
@@ -91,10 +145,13 @@ export function Pagamento({ pago }) {
     );
   }
 
-  if (!cobranca?.copyPasteCode) {
+  if (falhou || !cobranca?.copyPasteCode) {
     return (
-      <div className="conteudo">
-        <p>A cobrança da taxa de inscrição aparecerá aqui em instantes. Se demorar, recarregue a página.</p>
+      <div className="conteudo pagamento">
+        <p>Não foi possível gerar a cobrança da taxa de inscrição agora.</p>
+        <div className="verificacao">
+          <button type="button" className="btn-verificar" onClick={gerar}>Tentar novamente</button>
+        </div>
       </div>
     );
   }
@@ -104,14 +161,16 @@ export function Pagamento({ pago }) {
       <p>
         Pague a taxa de inscrição
         {cobranca.amount > 0 && ` de ${cobranca.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}
-        {' '}via PIX. A confirmação é automática e pode levar alguns minutos.
+        {' '}via PIX, lendo o QR Code ou usando o código copia e cola. Assim que o pagamento for
+        confirmado, esta etapa é concluída automaticamente.
       </p>
 
-      {cobranca.qrCodeBase64 &&
+      {cobranca.qrCodeImageUrl && !qrIndisponivel &&
         <img
           className="qrcode"
-          src={`data:image/png;base64,${cobranca.qrCodeBase64}`}
+          src={cobranca.qrCodeImageUrl}
           alt="QR Code para pagamento via PIX"
+          onError={() => setQrIndisponivel(true)}
         />
       }
 
@@ -123,6 +182,21 @@ export function Pagamento({ pago }) {
       {cobranca.expiresAt &&
         <p className="expiracao">Cobrança válida até {converterDataUTCParaLocalSemMudarDia(cobranca.expiresAt)}.</p>
       }
+
+      <div className="verificacao">
+        <button type="button" className="btn-verificar" onClick={verificarAgora} disabled={verificando}>
+          {verificando ? "Verificando…" : "Já paguei — verificar pagamento"}
+        </button>
+        <span>A situação também é verificada automaticamente a cada 10 segundos.</span>
+      </div>
+    </div>
+  );
+}
+
+export function EtapaBloqueada() {
+  return (
+    <div className="conteudo">
+      <p>Esta etapa é liberada depois da confirmação do pagamento da taxa de inscrição.</p>
     </div>
   );
 }

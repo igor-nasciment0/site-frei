@@ -124,14 +124,18 @@ Campo de anexo da foto do RG, usado no passo 4 do wizard de inscrição.
 
 ### `src/pages/app/subpages/acompanhamento/components/`
 
-- **`linhaTempo/linhaTempo.jsx`** (`Timeline`, exportado como default; arquivo/pasta chamados de "linhaTempo") — monta a timeline de 5 etapas do processo seletivo: **Cadastro criado → Inscrição preenchida → Pagamento → Prova presencial → Resultado e matrícula**. Recebe `dadosInscricao` por prop e `statusVestibular` via `useOutletContext()`.
+- **`linhaTempo/linhaTempo.jsx`** (`Timeline`, exportado como default; arquivo/pasta chamados de "linhaTempo") — monta a timeline de 5 etapas do processo seletivo: **Cadastro criado → Inscrição preenchida → Pagamento → Prova presencial → Resultado e matrícula**. Recebe `dadosInscricao`, `pagamentoConfirmado` e `onPagamentoConfirmado` por prop e `statusVestibular` via `useOutletContext()`.
+  - **Prova presencial** e **Resultado e matrícula** ficam com status `bloqueado` (conteúdo `EtapaBloqueada`) até o pagamento ser confirmado. O estado de confirmação vive no `Acompanhamento`, que também esconde a coluna lateral da prova enquanto não há pagamento.
   - A data de resultado vem de `dadosInscricao.resultPublicationDate` (**por candidato**), com fallback para a global de `/parameters` — quem não tem inscrição continua vendo a data geral.
   - A etapa "Prova presencial" recebe o status `dispensado` quando `isInternalStudent` é verdadeiro.
   - `TimelineItem` é o item visual de cada etapa; a classe vem do status normalizado sem acento (`status-concluido`, `status-aguardando`, `status-dispensado`).
 
 - **`linhaTempo/dadosLinha.jsx`** — conteúdo de cada etapa (todos exportados nomeados):
   - `CadastroCriado` / `InscricaoPreenchida` — mensagens estáticas de sucesso.
-  - `Pagamento({ pago })` — cobrança PIX da taxa de inscrição: imagem do QR code (quando o provedor fornece) e código copia-e-cola com botão "Copiar" (`navigator.clipboard`, com fallback por toast pedindo cópia manual em contextos sem permissão). Enquanto pendente, consulta `getPagamentoInscricao` a cada 10s para que a confirmação pelo webhook faça a etapa virar sem recarregar a página; o intervalo é limpo no unmount.
+  - `Pagamento({ pago, onConfirmado })` — cobrança PIX da taxa de inscrição. Ao montar, chama `geraCobrancaInscricao` (com toast: taxa não configurada ou provedor fora do ar chegam como mensagem da API, e a tela oferece "Tentar novamente"). Mostra a imagem do QR code (`qrCodeImageUrl`, escondida se não carregar) e o código copia-e-cola com botão "Copiar" (`navigator.clipboard`, com fallback por toast pedindo cópia manual em contextos sem permissão).
+    - Enquanto pendente, chama `getStatusPagamentoInscricao` logo ao carregar e depois a cada 10s — o provedor não tem webhook, então é essa consulta que confirma o pagamento. Também há o botão "Já paguei — verificar pagamento" para consultar na hora.
+    - Cobrança vencida, recusada ou cancelada na consulta → pede outra ao backend automaticamente.
+    - Confirmado, chama `onConfirmado(true)`: a etapa é concluída e as seguintes são liberadas sem recarregar a página.
   - `ProvaPresencial({ realizado, dadosInscricao })` — ramifica por `isInternalStudent`: aluno interno vê a mensagem de nivelamento no próprio curso; externo vê endereço, data e o aviso de que horário e sala chegam por e-mail em `roomNoticeEmailDate`.
   - `ResultadoMatricula({ realizado, dataPublicacao, urlResultado, mostrarUrl })` — mostra link do resultado quando disponível, ou data prevista de divulgação (e link antecipado se `mostrarUrl` estiver habilitado pelo backend).
   - Todas usam `converterDataUTCParaLocalSemMudarDia` para exibir datas.
@@ -148,7 +152,7 @@ Campo de anexo da foto do RG, usado no passo 4 do wizard de inscrição.
 - **`importacoes/index.jsx`** (`AdminImportacoes`) — envio dos dois CSVs. Cada bloco (`CartaoImportacao`) mostra as colunas esperadas, o efeito da importação, o total de registros na base e a data do último lote, e exibe o resultado com as linhas recusadas e o motivo (limitado a 20 na tela). O cartão de pagamentos é marcado como **destrutivo** e pede confirmação antes de enviar, porque substitui a base inteira.
 - **`inscricoes/detalhes/index.jsx`** — inclui `AnexoRGCandidato`, que baixa o anexo do RG como blob (o endpoint exige o Bearer de admin, então um `<a href>` direto não funcionaria) e o abre em nova aba, revogando a URL de objeto depois.
 - **`faq/form/index.jsx`** — além de pergunta/resposta/ordem, edita a **`key`** (slug validado por `^[a-z0-9-]*$`) usada nos links diretos e no quadro "Informações gerais" da Início.
-- **`vestibular/form/index.jsx`** — edita as datas da edição, incluindo as duas novas: **resultado do candidato externo** em curso de continuidade e **data do e-mail com horário e sala**.
+- **`vestibular/form/index.jsx`** — edita as datas da edição, incluindo **resultado do candidato externo** em curso de continuidade e **data do e-mail com horário e sala**, e os dados da cobrança PIX: **ano da edição** (compõe o correlationID `insfvest_{ano}{protocolo}`) e **taxa de inscrição**, ambos obrigatórios.
 
 ## Componentes de página (top-level, um por rota)
 

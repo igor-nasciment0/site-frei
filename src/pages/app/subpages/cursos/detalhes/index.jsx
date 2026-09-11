@@ -136,7 +136,7 @@ export default function DetalhesCurso() {
                 <p className="valor">{infoCurso?.minSchoolLevel}</p>
               </div>
               <div className="item">
-                <p className="rotulo">Contribuição mensal</p>
+                <p className="rotulo">Mensalidade</p>
                 <p className="valor">{infoCurso?.contribution}</p>
               </div>
               <div className="item">
