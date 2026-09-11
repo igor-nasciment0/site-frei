@@ -23,6 +23,7 @@ import AdminBootstrap from './pages/admin/bootstrap';
 import AdminDashboard from './pages/admin/dashboard';
 import AdminInscricoes from './pages/admin/inscricoes';
 import AdminInscricaoDetalhes from './pages/admin/inscricoes/detalhes';
+import AdminContas from './pages/admin/contas';
 import AdminCursos from './pages/admin/cursos';
 import AdminCursoForm from './pages/admin/cursos/form';
 import AdminFAQs from './pages/admin/faq';
@@ -56,6 +57,7 @@ createRoot(document.getElementById('root')).render(
               <Route index element={<AdminDashboard />} />
               <Route path='inscricoes' element={<AdminInscricoes />} />
               <Route path='inscricoes/:id' element={<AdminInscricaoDetalhes />} />
+              <Route path='contas' element={<AdminContas />} />
               <Route path='cursos' element={<AdminCursos />} />
               <Route path='cursos/novo' element={<AdminCursoForm />} />
               <Route path='cursos/:id' element={<AdminCursoForm />} />

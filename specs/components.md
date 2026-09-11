@@ -45,7 +45,7 @@ Sistema de modal global.
   - Enquanto o modal está aberto, adiciona `Overflow__Hidden` no `<body>` para travar o scroll da página.
   - Expõe `{ openModal, isOpen }` via `ModalContext.Provider`.
 - **`useModal()`** (`src/util/useModal.js`): hook de conveniência (`useContext(ModalContext)`), usado hoje só pelo `SeletorDeAgendamento` (fluxo de agendamento da prova).
-- Único consumidor no app hoje: `Agendamento` (dentro da timeline de acompanhamento) abre o modal com `SeletorDeAgendamento`.
+- Consumidor hoje: a lista de contas do admin, que abre `ModalConta`. O conteúdo do modal é renderizado pelo `ModalProvider`, **fora do `BrowserRouter`** — `<Link>`/`useNavigate` não funcionam lá dentro; a navegação é passada por callback da página. O `SeletorDeAgendamento` também usa o modal, mas não está mais em uso.
 
 ### `PainelInstitucional` (`painel_institucional/index.jsx`)
 Painel de marca (coluna navy) compartilhado pelas telas públicas — Login, Cadastro, Recuperar/Trocar
@@ -117,7 +117,7 @@ Campo de anexo da foto do RG, usado no passo 4 do wizard de inscrição.
   - `FormularioResponsavelSecundario` — mesmos campos do responsável primário, mas `relationship` livre (lista `parentesco`).
   - `FormularioEscolar` — escola atual, série atual (`Select` com `escolaridades`), tipo de escola (`Select` com `tipoEscola`).
   - `FormularioInformacoesGerais` — como conheceu o instituto (`Select`), renda mensal familiar (campo mascarado como moeda BRL via `IMaskInput` com `mask={Number}`), pessoas em casa, pessoas trabalhando.
-  - Cada formulário é uma `<table className="tabela-form">`; footer com botão "Retornar" (exceto no primeiro passo) e "Avançar", que chama `avancar([...nomes dos campos])` — o componente pai decide se valida (`methods.trigger`) e avança de passo ou submete.
+  - Cada formulário é uma `<table className="tabela-form">`; footer com botão "Retornar" (exceto no primeiro passo) e "Avançar", que chama `avancar([...nomes dos campos])` — o componente pai valida (`methods.trigger`), grava o bloco do passo (`PUT /users/profile` parcial) e avança; no último passo, submete o perfil inteiro.
 
 - **`padroes.js`** — objeto com a "forma"/valores-padrão (todos strings vazias) de todo o formulário de inscrição; usado como base para `mergeObjects` (preenche com dados já existentes do usuário) e como "modelo" para `testState` (validação de obrigatoriedade antes do submit final).
 - **`selects.js`** — arrays de opções estáticas usados pelos `Select`s do formulário: `genero`, `parentesco`, `comoConheceu` (Amigos, Família, Cônjuge, Filho/Filha, Ex-Aluno, Redes Sociais, Internet, Outro), `estadosBrasileiros` (não usado atualmente nos formulários, que preferem input mascarado de UF), `escolaridades`, `tipoEscola`.
@@ -147,10 +147,13 @@ Campo de anexo da foto do RG, usado no passo 4 do wizard de inscrição.
 
 ### `src/pages/admin/`
 
-Área administrativa, com sessão própria (`adminToken`/`admin` no `local-storage`) e layout `AdminApp` + `AdminSidebar`. Páginas: `login`, `bootstrap`, `dashboard`, `inscricoes` (+ `detalhes`), `cursos` (+ `form`), `faq` (+ `form`), `vestibular` (+ `form`), `importacoes` e `administradores`.
+Área administrativa, com sessão própria (`adminToken`/`admin` no `local-storage`) e layout `AdminApp` + `AdminSidebar`. Páginas: `login`, `bootstrap`, `dashboard`, `inscricoes` (+ `detalhes`), `contas`, `cursos` (+ `form`), `faq` (+ `form`), `vestibular` (+ `form`), `importacoes` e `administradores`.
+
+- **`contas/index.jsx`** (`AdminContas`) — lista paginada das contas de candidatos (coleção `users`), com busca por nome, e-mail ou CPF, situação (ativa/inativa) e protocolo da inscrição mais recente. "Ver dados" abre o **`ModalConta`** (`contas/modalConta.jsx`): somente leitura, com situação da conta, lista de inscrições (cada uma com "Ver inscrição") e todos os dados cadastrais. Fecha com Esc, clique fora ou o botão ×.
+- **`componentes/dadosCandidato.jsx`** (`DadosCandidato`, `Info`) — seções só leitura com os dados da conta (pessoais, endereço, nascimento, RG, responsáveis, escolaridade, informações gerais), usadas pelo detalhe da inscrição e pelo modal de contas. Os estilos base de `.secao-inscricao`, `.grade-info` e `.info` moram aqui.
 
 - **`importacoes/index.jsx`** (`AdminImportacoes`) — envio dos dois CSVs. Cada bloco (`CartaoImportacao`) mostra as colunas esperadas, o efeito da importação, o total de registros na base e a data do último lote, e exibe o resultado com as linhas recusadas e o motivo (limitado a 20 na tela). O cartão de pagamentos é marcado como **destrutivo** e pede confirmação antes de enviar, porque substitui a base inteira.
-- **`inscricoes/detalhes/index.jsx`** — inclui `AnexoRGCandidato`, que baixa o anexo do RG como blob (o endpoint exige o Bearer de admin, então um `<a href>` direto não funcionaria) e o abre em nova aba, revogando a URL de objeto depois.
+- **`inscricoes/detalhes/index.jsx`** — dados da inscrição, reset de senha e `DadosCandidato`. O `AnexoRGCandidato` (dentro de `DadosCandidato`) baixa o anexo do RG como blob (o endpoint exige o Bearer de admin, então um `<a href>` direto não funcionaria) e o abre em nova aba, revogando a URL de objeto depois.
 - **`faq/form/index.jsx`** — além de pergunta/resposta/ordem, edita a **`key`** (slug validado por `^[a-z0-9-]*$`) usada nos links diretos e no quadro "Informações gerais" da Início.
 - **`vestibular/form/index.jsx`** — edita as datas da edição, incluindo **resultado do candidato externo** em curso de continuidade e **data do e-mail com horário e sala**, e os dados da cobrança PIX: **ano da edição** (compõe o correlationID `insfvest_{ano}{protocolo}`) e **taxa de inscrição**, ambos obrigatórios.
 

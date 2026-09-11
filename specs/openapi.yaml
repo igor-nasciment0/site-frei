@@ -1388,6 +1388,71 @@ paths:
         '404':
           description: Anexo não encontrado
 
+  # ===================== ADMIN — CONTAS DE CANDIDATOS =====================
+  /api/admin/accounts:
+    get:
+      tags: [AdminPanel]
+      summary: Lista as contas de candidatos (coleção users), com busca e paginação
+      description: >
+        Somente leitura. O termo em `search` casa com nome, e-mail ou CPF — o CPF é gravado
+        com máscara, mas a busca só por dígitos também encontra. Ordenado pela criação da
+        conta, da mais recente para a mais antiga.
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            maximum: 200
+      responses:
+        '200':
+          description: Lista retornada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAccountListResultDto'
+        '401':
+          description: Token inválido ou ausente
+        '403':
+          description: Token sem Role="Admin"
+
+  /api/admin/accounts/{id}:
+    get:
+      tags: [AdminPanel]
+      summary: Dados completos de uma conta de candidato e as inscrições dela
+      description: Somente leitura — o painel não edita contas.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Conta encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAccountDetailDto'
+        '404':
+          description: Conta não encontrada
+        '401':
+          description: Token inválido ou ausente
+        '403':
+          description: Token sem Role="Admin"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2705,3 +2770,73 @@ components:
         newPassword:
           type: string
           description: Senha em texto plano (gerada ou informada) — exibir uma única vez ao admin.
+
+    AdminAccountListItemDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        cpf:
+          type: string
+        phone:
+          type: string
+        birthDate:
+          type: string
+          format: date-time
+          nullable: true
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        latestEnrollmentProtocol:
+          type: string
+          nullable: true
+          description: Protocolo da inscrição mais recente; nulo quando a conta nunca se inscreveu.
+
+    AdminAccountListResultDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminAccountListItemDto'
+        total:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+
+    AdminAccountEnrollmentDto:
+      type: object
+      properties:
+        id:
+          type: string
+        protocol:
+          type: string
+        status:
+          type: string
+          enum: [Open, Validated, Canceled]
+        firstChoiceCourseName:
+          type: string
+        firstChoicePeriodName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    AdminAccountDetailDto:
+      type: object
+      properties:
+        account:
+          $ref: '#/components/schemas/UserDto'
+        enrollments:
+          type: array
+          description: Inscrições da conta, da mais recente para a mais antiga.
+          items:
+            $ref: '#/components/schemas/AdminAccountEnrollmentDto'

@@ -81,7 +81,10 @@ Regras:
 - Formulário é **pré-preenchido** com os dados que o usuário já tem salvos no perfil (`getInfoUsuario`, obtido via `App` e guardado em `local-storage`), convertendo formatos onde necessário (datas para `yyyy-MM-dd`, números para string nos selects).
 - Navegação "Avançar" só troca de passo se os campos daquele passo passarem na validação do `react-hook-form` (`trigger`); "Retornar" sempre disponível a partir do 2º passo.
 - É possível pular diretamente para qualquer passo já visitado clicando na lista lateral de passos (desktop) ou nos indicadores numerados (mobile).
-- No último passo, "Avançar" dispara a submissão real: valida preenchimento completo do objeto contra o modelo `padroes.js` (permitindo `complement` do endereço vazio), formata a renda mensal para número puro e chama `PUT /users/profile`. Em sucesso, atualiza o usuário salvo localmente e libera a aba "Escolha do Curso".
+- **Cada passo é salvo ao avançar**: nos passos 1–7, "Salvar e avançar" grava só o bloco daquele
+  passo com `PUT /users/profile` (o endpoint é parcial), então o candidato não perde o que já
+  preencheu se sair no meio. Se a gravação falha, o passo não avança.
+- No último passo, "Avançar" envia o formulário inteiro: valida preenchimento completo do objeto contra o modelo `padroes.js` (permitindo `complement` do endereço vazio), formata a renda mensal para número puro e chama `PUT /users/profile`. Em sucesso, atualiza o usuário salvo localmente e libera a aba "Escolha do Curso".
 - **Se o processo já avançou de fase** (`statusVestibular.currentPhase >= 3`), todos os campos do formulário ficam desabilitados (somente leitura) — o candidato não pode mais editar dados pessoais.
 
 ### 5.2 Escolha de curso (aba "Escolha do Curso")
@@ -161,8 +164,9 @@ há prova a informar, e antes do pagamento a prova ainda não é a etapa atual.
 - **Sidebar**: navegação entre Início, Inscrição, Acompanhamento, Cursos, FAQ — visível em toda a área autenticada, colapsa para drawer em telas ≤768px. O rodapé traz o horário de atendimento e o **WhatsApp (11) 96398-6252** (`wa.me/5511963986252`).
 
 > **Telefones em uso hoje:** WhatsApp **(11) 96398-6252** no rodapé da sidebar; **(11) 3798-5037** no
-> card "Falar com a secretaria" da Início. O rodapé da tela de login e a faixa de contato do FAQ ainda
-> exibem **(11) 4362-1000**.
+> card "Falar com a secretaria" da Início. A faixa de contato do FAQ ("Não encontrou sua dúvida?")
+> usa o WhatsApp **(11) 96398-6252**, no texto e no botão "Falar no WhatsApp". O rodapé da tela de
+> login ainda exibe **(11) 4362-1000**.
 - **Logout**: disponível no menu do usuário no cabeçalho; limpa sessão local e redireciona para `/login`.
 - **Guarda de sessão**: qualquer acesso às rotas dentro do layout `App` sem sessão válida (token ausente/expirado) redireciona para `/login`.
 - **Bloqueio por fase do processo**: o formulário de inscrição fica travado (somente leitura) quando a fase atual do vestibular avança além da fase de preenchimento de dados (`currentPhase >= 3`), impedindo edição de dados após a fase ter avançado — mas a leitura/acompanhamento continua disponível normalmente.

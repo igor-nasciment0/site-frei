@@ -6,6 +6,7 @@ import { remove } from 'local-storage';
 const LINKS = [
   { para: '/admin', titulo: 'Painel' },
   { para: '/admin/inscricoes', titulo: 'Inscrições' },
+  { para: '/admin/contas', titulo: 'Contas' },
   { para: '/admin/cursos', titulo: 'Cursos' },
   { para: '/admin/faq', titulo: 'Dúvidas frequentes' },
   { para: '/admin/vestibular', titulo: 'Vestibular' },

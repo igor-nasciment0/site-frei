@@ -1,0 +1,136 @@
+@use '../../../styles/tokens' as t;
+@use '../../../styles/admin' as admin;
+
+.modal-conta {
+    width: min(920px, calc(100vw - 40px));
+    max-height: calc(100dvh - 40px);
+    display: flex;
+    flex-direction: column;
+    background: t.$c-bg;
+    border: 1px solid t.$c-border;
+
+    .topo {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 22px 28px;
+        background: t.$c-white;
+        border-bottom: 1px solid t.$c-border;
+
+        .eyebrow {
+            @include t.type-eyebrow;
+            color: t.$c-text-muted;
+        }
+
+        h2 {
+            @include t.type-h3-section;
+            color: t.$c-navy;
+            margin-top: 6px;
+        }
+
+        .fechar {
+            flex-shrink: 0;
+            width: 44px;
+            height: 44px;
+            font-size: 22px;
+            line-height: 1;
+            color: t.$c-navy;
+            background: transparent;
+            border: 1px solid t.$c-border;
+            cursor: pointer;
+            transition: border-color t.$transition;
+
+            &:hover {
+                border-color: t.$c-navy;
+            }
+
+            &:focus-visible {
+                outline: 2px solid t.$c-navy;
+                outline-offset: 2px;
+            }
+        }
+    }
+
+    .corpo {
+        overflow-y: auto;
+        padding: 22px 28px 28px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+
+        @include t.bp-640 {
+            padding: 16px;
+        }
+    }
+
+    .mensagem {
+        font-size: 14px;
+        color: t.$c-text-muted;
+    }
+
+    .admin-badge {
+        @include admin.admin-badge;
+
+        &.ativo,
+        &.status-open,
+        &.status-validated {
+            color: t.$c-navy;
+            border-color: t.$c-navy;
+        }
+
+        &.status-validated {
+            border-color: t.$c-sand;
+        }
+
+        &.inativo,
+        &.status-canceled {
+            color: t.$c-clay;
+            border-color: t.$c-alert-border;
+        }
+    }
+
+    .lista-inscricoes {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+
+        li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 12px 0;
+            border-top: 1px solid t.$c-divider-soft;
+
+            &:first-child {
+                border-top: 0;
+                padding-top: 0;
+            }
+        }
+
+        .protocolo {
+            display: block;
+            font-family: t.$font-mono;
+            font-weight: 500;
+            color: t.$c-navy;
+        }
+
+        .detalhe {
+            display: block;
+            font-size: 13px;
+            color: t.$c-text-muted;
+        }
+
+        .acoes-inscricao {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-fantasma {
+            @include admin.admin-btn-fantasma;
+        }
+    }
+}

@@ -48,6 +48,7 @@ LoadingBarContainer (react-top-loading-bar)
   ""  (index)           → AdminDashboard
   inscricoes            → AdminInscricoes
     :id                 → AdminInscricaoDetalhes
+  contas                → AdminContas  (lista de contas; dados em modal só leitura)
   cursos                → AdminCursos  (novo | :id → AdminCursoForm)
   faq                   → AdminFAQs    (novo | :id → AdminFAQForm)
   vestibular            → AdminVestibular (novo | :id → AdminVestibularForm)
@@ -74,7 +75,7 @@ LoadingBarContainer (react-top-loading-bar)
   - `inscricao.js` — `criaInscricao` (POST enrollment com 1ª/2ª opção de curso+horário), `getInscricao` (GET, aceita 404 como resposta válida via `validateStatus` — usado para saber se o usuário ainda não se inscreveu), `geraCobrancaInscricao` (`POST /enrollments/my-enrollment/payment` — gera ou devolve a cobrança PIX vigente) e `getStatusPagamentoInscricao` (`GET /enrollments/my-enrollment/payment/status` — a API consulta o provedor e devolve a situação atualizada).
   - `agendamento.js` — `getDatasAgendamento` (datas disponíveis para a prova), `getAgendamento` (agendamento do usuário logado), `criaAgendamento` (agenda/reagenda a prova).
   - `faq.js` — `getFAQ` (cada pergunta traz `key`, o slug estável usado nos links diretos `/faq?q=<key>`).
-  - `services/admin/` — serviços da área administrativa, sobre `adminBase.js` (token em `adminToken`, separado do candidato): `auth`, `cursos`, `faq`, `inscricoes`, `vestibular` e `importacoes` (upload de CSV em `multipart`).
+  - `services/admin/` — serviços da área administrativa, sobre `adminBase.js` (token em `adminToken`, separado do candidato): `auth`, `cursos`, `faq`, `inscricoes`, `contas` (contas de candidatos, só leitura), `vestibular` e `importacoes` (upload de CSV em `multipart`).
   - `enderecos.js` — não usa `api()`/backend próprio: chama diretamente a API pública ViaCEP (`https://viacep.com.br/ws/{cep}/json/`) para autocompletar endereço a partir do CEP.
 
 Convenção: nenhuma tela chama `axios`/`api()` diretamente — sempre `callApi(service, toastIt, ...args)`, o que centraliza tratamento de erro/toast.
@@ -108,7 +109,7 @@ Convenção: nenhuma tela chama `axios`/`api()` diretamente — sempre `callApi(
 - **Formatação de datas/UTC:** o backend manda datas em UTC (`Z`); `src/util/date.js` concentra as conversões para não haver "salto de dia" por fuso horário (`converterDataUTCParaLocalSemMudarDia`, `formatarParaInputDate`, `formatarAgendamentoParaISO`).
 - **HTML dinâmico:** campos de texto ricos vindos da API (descrição de curso, resposta de FAQ) são renderizados via `formatarComoHTML` (`src/util/string.jsx`), que faz parse com `DOMParser` e usa `dangerouslySetInnerHTML` — não há sanitização adicional, confia-se no conteúdo vindo do backend administrado internamente.
 - **Merge/validação de formulário sem schema lib:** em vez de `yup`/`zod`, o projeto usa utilitários próprios em `src/util/general.js`: `mergeObjects` (mescla defaults com dados existentes do usuário, respeitando tipos) e `testState` (valida recursivamente se um objeto de estado preenche um "modelo", com campos opcionais informáveis).
-- **Multi-step form:** `Inscricao` implementa um wizard controlado por índice (`passoAtual`) sobre um único `react-hook-form` compartilhado via `FormProvider`; cada passo é um componente de tabela (`FormularioX`) que só dispara `methods.trigger([...campos do passo])` antes de avançar. O último passo do wizard chama `atualizaUsuario` (PUT profile) e, só então, libera a aba de "Escolha do Curso" (`FormularioCursos`, que já fala com o endpoint de `enrollments`).
+- **Multi-step form:** `Inscricao` implementa um wizard controlado por índice (`passoAtual`) sobre um único `react-hook-form` compartilhado via `FormProvider`; cada passo é um componente de tabela (`FormularioX`) que dispara `methods.trigger([...campos do passo])` antes de avançar. Os passos 1–7 gravam só o próprio bloco (`atualizaUsuario` parcial, mapa `secoesPorPasso`); o último envia o perfil inteiro e, só então, libera a aba de "Escolha do Curso" (`FormularioCursos`, que já fala com o endpoint de `enrollments`).
 - **Bloqueio de edição por fase:** quando `statusVestibular.currentPhase >= 3`, o formulário de inscrição inteiro é desabilitado via manipulação direta do DOM (`Array.from(form.elements).forEach(el => el.disabled = true)`).
 - **Responsividade:** hook `useMediaQuery` (`matchMedia`) usado para alternar entre versões desktop/mobile de `BarraLateral` (sidebar vira drawer) e `Cabecalho` (botão hambúrguer). O drawer mobile é aberto de forma desacoplada — `Cabecalho` dispara um clique programático em um `<button id="Button___openSideBar">` escondido dentro de `BarraLateral`, evitando estado compartilhado entre os dois componentes.
 - **Modal global:** `ModalProvider`/`ModalContext`/`useModal` implementam um sistema único de modal para o app inteiro (usado hoje só pelo seletor de agendamento). `openModal({ customUI, onCloseCallback })` recebe uma função que constrói a UI já injetando o callback de fechar.

@@ -19,10 +19,10 @@ export default function FAQ() {
       <div className="faixa-contato">
         <div>
           <p className="titulo">Não encontrou sua dúvida?</p>
-          <p className="texto">Seg a sex · 8h–11h30 e 13h30–17h · (11) 4362-1000</p>
+          <p className="texto">Seg a sex · 8h–11h30 e 13h30–17h · (11) 96398-6252</p>
         </div>
 
-        <a className="btn-fantasma" href="https://wa.me/551143621000" target="_blank" rel="noopener noreferrer">
+        <a className="btn-fantasma" href="https://wa.me/5511963986252" target="_blank" rel="noopener noreferrer">
           Falar no WhatsApp
         </a>
       </div>

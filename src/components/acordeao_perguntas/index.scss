@@ -11,6 +11,14 @@
         cursor: pointer;
         transition: background t.$transition;
 
+        // ao rolar até uma pergunta aberta por link, desconta o cabeçalho sticky (~77px; quebra
+        // em duas linhas no mobile) para ela não ficar escondida atrás dele
+        scroll-margin-top: 96px;
+
+        @include t.bp-640 {
+            scroll-margin-top: 128px;
+        }
+
         &:not(:last-child) {
             border-bottom: 1px solid t.$c-divider-strong;
         }

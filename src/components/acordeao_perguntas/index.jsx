@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './index.scss';
 import callApi from '../../api/callAPI';
 import { getFAQ } from '../../api/services/faq';
@@ -17,6 +17,7 @@ export default function AcordeaoPerguntas({ max, numbered = true, aberta, onSele
 
   const [perguntas, setPerguntas] = useState([]);
   const [carregando, setCarregando] = useState(true);
+  const itens = useRef([]);
 
   useEffect(() => {
     (async () => {
@@ -37,13 +38,16 @@ export default function AcordeaoPerguntas({ max, numbered = true, aberta, onSele
     if (aberta === undefined || aberta === null || perguntas.length === 0) return;
 
     const porKey = perguntas.findIndex(p => p.key && p.key === String(aberta));
-    if (porKey >= 0) {
-      setSelecionada(porKey);
-      return;
-    }
+    const porIndice = Number(aberta);
+    const indice = porKey >= 0
+      ? porKey
+      : (Number.isInteger(porIndice) && porIndice >= 0 && porIndice < perguntas.length ? porIndice : -1);
 
-    const indice = Number(aberta);
-    setSelecionada(Number.isInteger(indice) && indice >= 0 && indice < perguntas.length ? indice : -1);
+    setSelecionada(indice);
+
+    // Quem chega por link (ex.: atalhos da Início) precisa ver a pergunta, que pode estar bem abaixo.
+    if (indice >= 0)
+      itens.current[indice]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [aberta, perguntas])
 
   function clicar(index) {
@@ -73,6 +77,7 @@ export default function AcordeaoPerguntas({ max, numbered = true, aberta, onSele
       {perguntas.map((p, index) =>
         <div
           key={p.id ?? index}
+          ref={el => { itens.current[index] = el; }}
           className={'pergunta ' + (index == selecionada ? 'selecionada' : '')}
           onClick={() => clicar(index)}
         >

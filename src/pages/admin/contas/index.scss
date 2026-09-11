@@ -1,0 +1,90 @@
+@use '../../../styles/tokens' as t;
+@use '../../../styles/admin' as admin;
+
+.admin-contas {
+    @include admin.admin-lista-page;
+
+    .filtros {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+
+        input {
+            flex: 1;
+            min-width: 240px;
+            font-size: 14px;
+            color: t.$c-text;
+            background: t.$c-input-bg;
+            border: 1px solid t.$c-input-border;
+            padding: 10px 12px;
+            font-family: t.$font-sans;
+
+            &:focus {
+                border-color: t.$c-navy;
+            }
+        }
+    }
+
+    .admin-table {
+        td .nome {
+            display: block;
+            font-weight: 600;
+        }
+
+        td .email {
+            display: block;
+            font-size: 12px;
+            color: t.$c-text-muted;
+        }
+
+        .admin-badge {
+            &.ativo {
+                color: t.$c-navy;
+                border-color: t.$c-navy;
+            }
+
+            &.inativo {
+                color: t.$c-clay;
+                border-color: t.$c-alert-border;
+            }
+        }
+
+        .acoes button {
+            font: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            color: t.$c-navy;
+            background: none;
+            border: 0;
+            border-bottom: 1px solid t.$c-sand;
+            padding: 0 0 1px;
+            cursor: pointer;
+
+            &:focus-visible {
+                outline: 2px solid t.$c-navy;
+                outline-offset: 2px;
+            }
+        }
+    }
+
+    .paginacao {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+
+        span {
+            font-size: 13px;
+            color: t.$c-text-muted;
+        }
+
+        button {
+            @include admin.admin-btn-fantasma;
+
+            &:disabled {
+                opacity: 0.5;
+                cursor: default;
+            }
+        }
+    }
+}

@@ -266,6 +266,7 @@ export function FormularioRG({ avancar, retornar }) {
     }
 
     avancar([
+      "cpf",
       "rgInfo.number",
       "rgInfo.issueDate",
       "rgInfo.issuingAuthority"

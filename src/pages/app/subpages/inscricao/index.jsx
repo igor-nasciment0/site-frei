@@ -17,6 +17,19 @@ const formularios = [FormularioDadosPessoais, FormularioEndereco, FormularioNasc
 const titulos = ["Informações Pessoais", "Endereço", "Informações de Nascimento", "Documento", "Dados da Mãe", "Responsável Secundário", "Escolaridade", "Informações Gerais"]
 const TOTAL_ETAPAS = titulos.length + 1; // 8 passos de dados pessoais + escolha do curso
 
+// O que cada passo de 1 a 7 grava ao avançar. O PUT /users/profile é parcial (só altera o que vem
+// no corpo), então dá para salvar passo a passo e o candidato não perde o que preencheu se sair no
+// meio. O passo 8 envia o formulário inteiro (submitInfoUsuario).
+const secoesPorPasso = [
+  ["name", "phone", "gender"],
+  ["address"],
+  ["birthInfo"],
+  ["cpf", "rgInfo"],
+  ["primaryResponsible"],
+  ["secondaryResponsible"],
+  ["schoolInfo"],
+]
+
 export default function Inscricao() {
 
   const statusVestibular = useOutletContext();
@@ -69,6 +82,7 @@ export default function Inscricao() {
     novosDados.generalInfo.income = Number(novosDados.generalInfo.income.toString().replaceAll("R$ ", "").replaceAll(".", "").replaceAll(",", "."));
 
     const r = await callApi(atualizaUsuario, true, novosDados);
+    if (!r) return; // falhou — callApi já mostrou o erro
 
     if (r.statusCode == 400 && r.Message) {
       toast.error(r.Message[0], { duration: 8000 })
@@ -77,6 +91,21 @@ export default function Inscricao() {
       set("user", r.data);
       setMostraFormCursos(true);
     }
+  }
+
+  // Grava só os blocos do passo; devolve false se falhar, para o passo não avançar.
+  async function salvarPasso(passo) {
+    const valores = methods.getValues();
+    const parcial = Object.fromEntries(secoesPorPasso[passo].map(secao => [secao, valores[secao]]));
+
+    if (parcial.primaryResponsible)
+      parcial.primaryResponsible = { ...parcial.primaryResponsible, relationship: "Mãe" };
+
+    const r = await callApi(atualizaUsuario, true, parcial);
+    if (!r) return false; // callApi já mostrou o erro
+
+    set("user", r.data);
+    return true;
   }
 
   const FormAtual = formularios[passoAtual];
@@ -143,7 +172,7 @@ export default function Inscricao() {
                   if (valido) {
                     if (passoAtual === formularios.length - 1) {
                       await methods.handleSubmit(submitInfoUsuario)();
-                    } else {
+                    } else if (await salvarPasso(passoAtual)) {
                       setPassoAtual(passoAtual + 1);
                     }
                   }
