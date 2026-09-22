@@ -61,6 +61,8 @@ export default function AdminCursoForm() {
       minBirthDate: paraISODataSimples(dados.minBirthDate),
       availablePeriods: dados.availablePeriods.map(p => ({ ...p, code: Number(p.code) })),
       subjects: dados.subjects.map(s => ({ ...s, code: Number(s.code) })),
+      installmentsCount: Number(dados.installmentsCount) || 0,
+      installmentValue: Number(dados.installmentValue) || 0,
     };
 
     const r = editando
@@ -139,6 +141,16 @@ export default function AdminCursoForm() {
             </div>
 
             <div className="campo">
+              <label htmlFor="installmentsCount">Número de parcelas</label>
+              <input {...register("installmentsCount")} type="number" min="0" placeholder="Ex.: 12" />
+            </div>
+
+            <div className="campo">
+              <label htmlFor="installmentValue">Valor da parcela (R$)</label>
+              <input {...register("installmentValue")} type="number" min="0" step="0.01" placeholder="Ex.: 160.00" />
+            </div>
+
+            <div className="campo">
               <label htmlFor="minBirthDate">Data de nascimento mínima permitida</label>
               <input {...register("maxBirtDate")} type="date" />
             </div>
@@ -180,6 +192,36 @@ export default function AdminCursoForm() {
           <div className="campo largo">
             <label htmlFor="jobMarket">Mercado de trabalho (aceita HTML, opcional)</label>
             <textarea {...register("jobMarket")} rows={4} />
+          </div>
+
+          <div className="divisor" />
+
+          <div className="subsecao">
+            <div className="titulo-subsecao">
+              <h3>E-mail de confirmação de inscrição</h3>
+            </div>
+            <p className="aviso">
+              Usados no e-mail automático enviado quando o pagamento da taxa de inscrição é confirmado
+              (um texto por curso, já que matrícula e início das aulas variam entre eles).
+            </p>
+
+            <div className="campo largo">
+              <label htmlFor="enrollmentPeriodDescription">Período de matrícula (aceita HTML)</label>
+              <textarea
+                {...register("enrollmentPeriodDescription")}
+                rows={2}
+                placeholder="Ex.: entre 07 a 11/12/2026, de segunda a sexta-feira"
+              />
+            </div>
+
+            <div className="campo largo">
+              <label htmlFor="classesStartDescription">Reunião de pais e início das aulas (aceita HTML)</label>
+              <textarea
+                {...register("classesStartDescription")}
+                rows={3}
+                placeholder="Ex.: Reunião de Pais: 16/01/2027 (sábado)... Início das aulas: 26/01/2027 (terça-feira)."
+              />
+            </div>
           </div>
 
           <div className="divisor" />

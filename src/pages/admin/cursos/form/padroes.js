@@ -19,4 +19,10 @@ export default {
   maxBirtDate: "",
   availablePeriods: [],
   subjects: [],
+  // Usados no e-mail de confirmação de inscrição (disparado quando o pagamento da taxa é
+  // confirmado) — ver src/NsfApi/templates/confirmacao-inscricao/README.md no backend.
+  enrollmentPeriodDescription: "",
+  classesStartDescription: "",
+  installmentsCount: "",
+  installmentValue: "",
 };
