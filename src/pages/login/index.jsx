@@ -82,7 +82,7 @@ export default function Login() {
             <div className="divisor" />
 
             <p className="nota">
-              Dúvidas sobre o processo? Consulte nosso <Link to="/faq">FAQ</Link> ou ligue para (11) 4362-1000.
+              Dúvidas sobre o processo? Consulte nosso <Link to="/faq">FAQ</Link> ou ligue para (11) 96398-6252.
             </p>
           </form>
         </div>

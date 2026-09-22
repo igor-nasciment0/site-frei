@@ -5,10 +5,11 @@ import callApi from "../../../api/callAPI";
 import {
   getStatusImportacoes,
   importarMatriculados,
-  importarPagamentos,
+  importarInadimplentes,
 } from "../../../api/services/admin/importacoes";
 import Carregamento from "../../../components/carregamento";
 import ToasterContainer from "../../../components/toaster_container";
+import RegistrosImportados from "./registros";
 import "./index.scss";
 
 const IMPORTACOES = [
@@ -22,14 +23,13 @@ const IMPORTACOES = [
     efeito: "Substitui apenas os anos presentes no arquivo. Anos anteriores são preservados.",
   },
   {
-    chave: "tuitionPayments",
-    titulo: "Pagamentos de mensalidade",
-    colunas: "nr_ano, id_aluno, ds_cpf, ds_rg, dt_referencia, bt_pago",
-    servico: importarPagamentos,
+    chave: "delinquentStudents",
+    titulo: "Alunos inadimplentes",
+    colunas: "nr_ano, id_aluno, ds_cpf, ds_rg, id_curso, nm_curso, qtd_pendentes",
+    servico: importarInadimplentes,
     descricao:
-      "Bloqueia a inscrição de quem tem 3 ou mais mensalidades em aberto.",
-    efeito: "Substitui a base inteira a cada envio. Um arquivo vazio ou inválido é recusado.",
-    destrutivo: true,
+      "Bloqueia a inscrição de quem tem 2 ou mais mensalidades pendentes no ano de referência (ano da edição ativa do vestibular menos 1).",
+    efeito: "Substitui apenas os anos presentes no arquivo. Anos anteriores são preservados.",
   },
 ];
 
@@ -78,6 +78,8 @@ export default function AdminImportacoes() {
           )}
         </div>
       }
+
+      <RegistrosImportados />
     </div>
   );
 }

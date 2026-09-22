@@ -14,8 +14,8 @@ export async function importarMatriculados(arquivo) {
   return enviarCsv('/admin/imports/enrolled-students', arquivo);
 }
 
-export async function importarPagamentos(arquivo) {
-  return enviarCsv('/admin/imports/tuition-payments', arquivo);
+export async function importarInadimplentes(arquivo) {
+  return enviarCsv('/admin/imports/delinquent-students', arquivo);
 }
 
 export async function getStatusImportacoes() {
