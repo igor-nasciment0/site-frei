@@ -24,3 +24,10 @@ export async function desativarCurso(id) {
     const r = await adminApi().delete('/admin/courses/' + id);
     return r.data;
 }
+
+export async function enviarImagemCurso(id, arquivo) {
+    const formData = new FormData();
+    formData.append('file', arquivo);
+    const r = await adminApi().post('/admin/courses/' + id + '/image', formData);
+    return r.data;
+}

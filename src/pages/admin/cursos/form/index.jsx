@@ -8,6 +8,7 @@ import { criarCurso, atualizarCurso, getCurso } from "../../../../api/services/a
 import Carregamento from "../../../../components/carregamento";
 import { formatarParaInputDate } from "../../../../util/date";
 import padroesCurso from "./padroes";
+import CapaCurso from "./capaCurso";
 import "./index.scss";
 
 // Os inputs <type="date"> exigem "AAAA-MM-DD"; a API trabalha com data-time
@@ -24,7 +25,7 @@ export default function AdminCursoForm() {
   const navigate = useNavigate();
   const { start, complete } = useLoadingBar({ color: "#C2A46A", height: 3 });
 
-  const { register, control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
+  const { register, control, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm({
     defaultValues: padroesCurso,
   });
 
@@ -68,9 +69,17 @@ export default function AdminCursoForm() {
 
     if (r?.id) {
       start("continuous", 0, 100);
-      toast.success(editando ? "Curso atualizado!" : "Curso criado!");
       setTimeout(complete, 750);
-      setTimeout(() => navigate("/admin/cursos"), 1000);
+
+      if (editando) {
+        toast.success("Curso atualizado!");
+        setTimeout(() => navigate("/admin/cursos"), 1000);
+      } else {
+        // Fica na edição do curso recém-criado: o envio da capa só é possível
+        // depois que o curso existe (precisa do id).
+        toast.success("Curso criado! Agora você já pode enviar a capa.");
+        setTimeout(() => navigate("/admin/cursos/" + r.id, { replace: true }), 1000);
+      }
     }
   }
 
@@ -144,10 +153,7 @@ export default function AdminCursoForm() {
               <input {...register("apresentationVideoUrl")} type="text" placeholder="Link do YouTube" />
             </div>
 
-            <div className="campo">
-              <label htmlFor="image">Identificador da imagem</label>
-              <input {...register("image")} type="text" />
-            </div>
+            <input type="hidden" {...register("image")} />
 
             <div className="campo checkbox">
               <input {...register("isActive")} type="checkbox" id="isActive" />
@@ -159,6 +165,12 @@ export default function AdminCursoForm() {
             ⚠️ Os rótulos acima já corrigem uma inversão de nomes existente na API — ver <code>specs/modeling.md</code>:
             o campo <code>maxBirtDate</code> guarda a data mínima e <code>minBirthDate</code> guarda a data máxima permitida.
           </p>
+
+          <CapaCurso
+            cursoId={editando ? id : null}
+            imagem={watch("image")}
+            onAlterado={(novaImagem) => setValue("image", novaImagem, { shouldDirty: true })}
+          />
 
           <div className="campo largo">
             <label htmlFor="description">Descrição (aceita HTML)</label>

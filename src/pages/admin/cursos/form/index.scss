@@ -3,4 +3,43 @@
 
 .admin-form-page {
     @include admin.admin-form-page;
+
+    .capa-curso-corpo {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+
+        .previa {
+            width: 220px;
+            height: 138px;
+            flex-shrink: 0;
+            object-fit: cover;
+            border: 1px solid t.$c-border;
+
+            &.vazia {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-image: repeating-linear-gradient(45deg, #e7e5da, #e7e5da 10px, #f2f1ea 10px, #f2f1ea 20px);
+
+                span {
+                    font-family: t.$font-mono;
+                    font-size: 10px;
+                    letter-spacing: 0.04em;
+                    color: t.$c-text-muted;
+                    background: rgba(255, 255, 255, 0.8);
+                    padding: 4px 10px;
+                }
+            }
+        }
+
+        .controles {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+            padding-top: 4px;
+        }
+    }
 }
