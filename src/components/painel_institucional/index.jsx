@@ -11,7 +11,7 @@ import { getTotalCursos } from '../../api/services/cursos';
 
 export default function PainelInstitucional({
   titulo = "Inscrições",
-  destaque = "2026",
+  destaque = "2027",
   descricao = "Preencha sua ficha, escolha o curso e acompanhe todo o processo seletivo em um só lugar.",
   mostrarStats = true,
 }) {
@@ -65,7 +65,7 @@ export default function PainelInstitucional({
             </div>
           }
           <div>
-            <span className="numero">64</span>
+            <span className="numero">55</span>
             <span className="rotulo">Anos de história</span>
           </div>
         </div>

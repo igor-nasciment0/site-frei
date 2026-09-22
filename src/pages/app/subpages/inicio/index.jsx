@@ -151,7 +151,7 @@ export default function Inicio() {
           <div onClick={() => window.open("mailto:secretaria@acaonsfatima.org.br")}>
             <span className="numeral">03</span>
             <p className="titulo">Falar com a secretaria</p>
-            <p className="legenda">(11) 3798-5037</p>
+            <p className="legenda">(11) 96398-6252</p>
           </div>
         </div>
       </div>

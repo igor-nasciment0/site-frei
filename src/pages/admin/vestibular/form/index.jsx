@@ -122,7 +122,7 @@ export default function AdminVestibularForm() {
                   max: { value: 2100, message: "Informe um ano válido" },
                 })}
                 type="number"
-                placeholder="2026"
+                placeholder="2027"
               />
               {errors.year && <span className="mensagem-erro">{errors.year.message}</span>}
               <span className="ajuda">Compõe o código da cobrança PIX: insfvest_ + ano + protocolo.</span>

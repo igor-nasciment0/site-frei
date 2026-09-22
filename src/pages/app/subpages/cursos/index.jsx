@@ -41,7 +41,7 @@ export default function Cursos() {
   const [cursosFiltrados, setCursosFiltrados] = useState([]);
   const [carregando, setCarregando] = useState(true);
 
-  const tiposCurso = ["Todos", ...new Set(cursos.map(c => c.type.trim())), "Inglês"];
+  const tiposCurso = [...new Set(["Todos", ...cursos.map(c => c.type.trim()), "Inglês"])];
 
   useEffect(() => {
     (async () => {
@@ -78,7 +78,7 @@ export default function Cursos() {
     <section className="cursos">
       <div className="cabecalho">
         <div>
-          <p className="eyebrow">Turmas 2026</p>
+          <p className="eyebrow">Turmas 2027</p>
           <h1>Nossos cursos</h1>
         </div>
 

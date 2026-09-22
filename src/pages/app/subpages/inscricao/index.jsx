@@ -117,7 +117,7 @@ export default function Inscricao() {
 
   return (
     <section className='inscricao'>
-      <p className="eyebrow">Vestibular 2026 · Etapa {etapasConcluidas + 1} de {TOTAL_ETAPAS}</p>
+      <p className="eyebrow">Vestibular 2027 · Etapa {etapasConcluidas + 1} de {TOTAL_ETAPAS}</p>
       <h1>Minha inscrição</h1>
 
       <ToasterContainer />
