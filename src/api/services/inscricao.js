@@ -5,6 +5,14 @@ export async function criaInscricao(dadosInscricao) {
   return r.data;
 }
 
+// Roda no backend a mesma validação de POST /enrollments, sem persistir nada — usado pra avisar
+// o candidato de incompatibilidade entre 1ª/2ª opção (ou outro requisito da inscrição) antes de
+// ele clicar em "Concluir Inscrição". Fonte única de verdade: nenhuma regra duplicada em JS.
+export async function validaEscolhasCurso(dadosEscolhas) {
+  const r = await api().post("/enrollments/validate-choices", dadosEscolhas);
+  return r.data;
+}
+
 export async function getInscricao() {
   const r = await api().get("/enrollments/my-enrollment", {
     validateStatus: status => (status >= 200 && status < 300) || status === 404

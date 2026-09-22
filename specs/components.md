@@ -64,10 +64,19 @@ Wrapper de campo de seleção usado em todos os formulários do app.
 - `SelectItem({ disabled, onClick, value, children, className })` hoje só repassa para `<option>` (props `disabled`/`className` do wrapper Radix ficariam órfãs na versão nativa).
 
 ### `ToasterContainer` (`toaster_container/index.jsx`)
-Wrapper de `react-hot-toast`'s `<Toaster />`, instanciado localmente em cada página que precisa de toasts (não é global em `main.jsx`).
+Wrapper de `react-hot-toast`'s `<Toaster />`. Não é global em `main.jsx` — cada área precisa montá-lo
+pelo menos uma vez na própria árvore, senão `toast.error`/`toast.success` (inclusive os disparados
+por `callApi`) são chamados normalmente mas **não aparecem na tela**, já que não existe `<Toaster/>`
+nenhum pra renderizá-los (bug real já visto: reset de senha do candidato no admin "não avisava" erro
+de validação — a mensagem certa chegava do backend, só não tinha onde aparecer).
 - **Props:** `props` (objeto opcional repassado ao `Toaster`; default `position: 'bottom-center'`, `reverseOrder`, `toastOptions: { duration: 3000 }`, `containerClassName: 'cont-toaster'`).
 - Em `useEffect` reagindo a `location.pathname`, chama `toast.remove()` — limpa toasts pendentes ao trocar de rota.
-- Usado em: `Inscricao`, `Acompanhamento`, `Login`, `Cadastro`, `RecuperarSenha`, `TrocarSenha`.
+- **App do candidato** (instanciado por página, sem layout compartilhado): `Inscricao`, `Acompanhamento`,
+  `Login`, `Cadastro`, `RecuperarSenha`, `TrocarSenha`, `TrocarSenhaObrigatoria`.
+- **Painel admin**: uma única instância no layout `AdminApp` (`pages/admin/index.jsx`), cobrindo todas
+  as subpáginas autenticadas (`Outlet`) de uma vez — dashboard, inscrições (+ detalhes, onde fica o
+  reset de senha), contas, cursos, FAQ, vestibular, importações, administradores. `AdminLogin` e
+  `AdminBootstrap` são rotas standalone fora desse layout, então mantêm a própria instância cada um.
 
 ## Hooks e utilitários (`src/util`)
 
@@ -104,9 +113,10 @@ Campo de anexo da foto do RG, usado no passo 4 do wizard de inscrição.
 - **`formCursos.jsx`** (`FormularioCursos`) — último "passo" do fluxo de inscrição (fora do wizard de dados pessoais): seleção de 1ª e 2ª opção de curso + horário.
   - Carrega lista de cursos (`getCursos`) e, se o usuário já tiver inscrição (`getInscricao`), pré-popula os `Select`s com os cursos/horários já escolhidos e busca os horários correspondentes.
   - Regra de negócio: não permite que 1ª e 2ª opção sejam exatamente o mesmo par curso+horário — ao detectar conflito, limpa a opção conflitante e mostra erro inline (`erro`, exibido em linha própria da tabela). Há um bloco de regra comentado (exigência de 2ª opção fora de cursos "Teens") que está desativado no momento.
+  - **Aviso antecipado de incompatibilidade** (`avisoCompatibilidade`): a cada mudança de curso/horário (1ª ou 2ª opção), com debounce de 400ms, chama `validaEscolhasCurso` (`POST /enrollments/validate-choices`) — o backend roda a mesma validação de `POST /enrollments` sem persistir nada, então não há regra de compatibilidade duplicada em JS (existiu uma versão espelhada em `compatibilidadeCursos.js`, removida em favor deste endpoint). O aviso aparece como texto inline (mesma linha/estilo do `erro` de conflito, classe `.cursos-erro`) e desabilita "Concluir Inscrição" enquanto durar — cobre não só incompatibilidade de curso, mas qualquer outro motivo de rejeição do backend (RG não anexado, mensalidades em aberto, idade, etc.), já que roda o validador inteiro.
   - Traz um link "Conheça os cursos disponíveis" para `/cursos`, aberto em **nova aba** — navegar para fora descartaria o estado do wizard.
   - Ao confirmar (`criaInscricao`), dispara barra de progresso (`react-top-loading-bar`), toast de sucesso e navega para `/acompanhamento` após 1s.
-  - Erros de negócio do backend (bloqueio por mensalidades em aberto, RG não anexado) chegam por toast via `callApi`.
+  - Erros de negócio do backend (bloqueio por mensalidades em aberto, RG não anexado) chegam por toast via `callApi`, além do aviso inline antecipado acima.
 
 - **`formDados.jsx`** — oito componentes de formulário, um por "passo" do wizard de inscrição, todos consumindo o mesmo `useFormContext()` compartilhado (via `FormProvider` em `Inscricao`) e recebendo `{ avancar, retornar }`:
   - `FormularioDadosPessoais` — nome, telefone (máscara `+55 (00) 00000-0000`), gênero (`Select` com opções de `selects.js`).

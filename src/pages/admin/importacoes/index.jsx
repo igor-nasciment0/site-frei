@@ -8,7 +8,6 @@ import {
   importarInadimplentes,
 } from "../../../api/services/admin/importacoes";
 import Carregamento from "../../../components/carregamento";
-import ToasterContainer from "../../../components/toaster_container";
 import RegistrosImportados from "./registros";
 import "./index.scss";
 
@@ -52,8 +51,6 @@ export default function AdminImportacoes() {
 
   return (
     <div className="admin-lista admin-importacoes">
-      <ToasterContainer />
-
       <div className="cabecalho-pagina">
         <p className="eyebrow">Painel administrativo</p>
         <h1>Importações</h1>

@@ -5,6 +5,7 @@ import get from 'local-storage';
 import { useEffect, useState } from 'react';
 import AdminSidebar from '../../components/admin_sidebar';
 import Carregamento from '../../components/carregamento';
+import ToasterContainer from '../../components/toaster_container';
 
 // Layout raiz das telas autenticadas do painel administrativo — paralelo a
 // src/pages/app/index.jsx, mas com sessão própria (chave "adminToken",
@@ -41,6 +42,10 @@ export default function AdminApp() {
           <Outlet context={admin} />
         </div>
       </main>
+
+      {/* Uma única vez aqui pro painel inteiro — sem isso, toast.error/success
+          disparado por qualquer subpágina (via callApi) não aparece na tela. */}
+      <ToasterContainer />
     </div>
   )
 }

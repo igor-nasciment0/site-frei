@@ -2,7 +2,7 @@ import { Select, SelectItem } from '../../../../../components/select';
 import { useEffect, useState } from 'react';
 import { getCursoHorarios, getCursos } from '../../../../../api/services/cursos';
 import callApi from '../../../../../api/callAPI';
-import { criaInscricao, getInscricao } from '../../../../../api/services/inscricao';
+import { criaInscricao, getInscricao, validaEscolhasCurso } from '../../../../../api/services/inscricao';
 import toast from 'react-hot-toast';
 import { useLoadingBar } from 'react-top-loading-bar';
 import { useNavigate } from 'react-router';
@@ -23,9 +23,47 @@ export default function FormularioCursos() {
   const [opcoesHorario2, setOpcoesHorario2] = useState([]);
 
   const [erro, setErro] = useState("");
+  const [avisoCompatibilidade, setAvisoCompatibilidade] = useState("");
 
   const primeiraOpcaoCurso = opcoesCurso?.find(opcao => opcao.code == codigoPrimeiroCurso);
   const segundaOpcaoCurso = opcoesCurso?.find(opcao => opcao.code == codigoSegundoCurso);
+
+  // Aviso antecipado de incompatibilidade entre 1ª e 2ª opção (ou qualquer outro requisito da
+  // inscrição) — roda no backend a mesma validação de POST /enrollments, com debounce, sem
+  // persistir nada. Não substitui a validação real do submit, só evita que o candidato descubra
+  // o problema só depois de clicar em "Concluir Inscrição".
+  useEffect(() => {
+    if (!codigoPrimeiroCurso || !codigoPrimeiroHorario) {
+      setAvisoCompatibilidade("");
+      return;
+    }
+
+    // 2ª opção só entra na checagem quando curso e horário dela já foram escolhidos —
+    // enquanto só o curso está selecionado, ainda falta período pra ela fazer sentido.
+    if (codigoSegundoCurso && !codigoSegundoHorario) {
+      setAvisoCompatibilidade("");
+      return;
+    }
+
+    let cancelado = false;
+
+    const timer = setTimeout(async () => {
+      const r = await callApi(validaEscolhasCurso, false, {
+        firstChoiceCourseCode: codigoPrimeiroCurso,
+        firstChoicePeriodCode: codigoPrimeiroHorario,
+        secondChoiceCourseCode: codigoSegundoCurso,
+        secondChoicePeriodCode: codigoSegundoHorario
+      });
+
+      if (!cancelado)
+        setAvisoCompatibilidade(r && !r.compativel ? r.mensagem : "");
+    }, 400);
+
+    return () => {
+      cancelado = true;
+      clearTimeout(timer);
+    };
+  }, [codigoPrimeiroCurso, codigoPrimeiroHorario, codigoSegundoCurso, codigoSegundoHorario]);
 
   // USE_EFFECTS PARA CARREGAR CURSOS E HORÁRIOS
   useEffect(() => {
@@ -240,11 +278,17 @@ export default function FormularioCursos() {
               </Select>
             </td>
           </tr>
+          {avisoCompatibilidade &&
+            <tr className='cursos-erro'>
+              <td />
+              <td>{avisoCompatibilidade}</td>
+            </tr>
+          }
         </tbody>
         <tfoot>
           <tr className='submit'>
             <td>
-              <button type='button' disabled={carregando || carregamentoInicial} onClick={submit}>Concluir Inscrição</button>
+              <button type='button' disabled={carregando || carregamentoInicial || !!avisoCompatibilidade} onClick={submit}>Concluir Inscrição</button>
             </td>
           </tr>
         </tfoot>
