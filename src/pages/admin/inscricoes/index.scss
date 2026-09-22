@@ -4,20 +4,6 @@
 .admin-inscricoes {
     @include admin.admin-lista-page;
 
-    .corpo-com-preview {
-        display: flex;
-        align-items: flex-start;
-        gap: 24px;
-    }
-
-    .coluna-tabela {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 26px;
-    }
-
     .col-rg {
         display: flex;
         align-items: center;
@@ -41,24 +27,63 @@
             color: t.$c-navy;
             border-color: t.$c-navy;
         }
+
+        // Fixado por clique — some só ao clicar de novo ou fechar pelo ×, não no mouseleave.
+        &.fixado {
+            color: t.$c-white;
+            background: t.$c-navy;
+            border-color: t.$c-navy;
+        }
     }
 
+    // Flutuante de verdade (position: fixed): não participa do layout da tabela/filtros, então
+    // não empurra nem realinha nada — sempre aparece ao lado do conteúdo, não preso ao topo dos
+    // filtros.
     .painel-preview-rg {
-        position: sticky;
-        top: 24px;
-        flex-shrink: 0;
+        position: fixed;
+        top: 50%;
+        right: 32px;
+        transform: translateY(-50%);
+        z-index: 20;
         width: 280px;
+        max-height: calc(100vh - 80px);
+        overflow-y: auto;
         display: flex;
         flex-direction: column;
         gap: 12px;
         background: t.$c-white;
-        border: 1px solid t.$c-border;
+        border: 1px solid t.$c-navy;
         padding: 16px;
+
+        .topo-preview {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
 
         .titulo-preview {
             @include t.type-label;
             font-size: 11px;
             color: t.$c-text-muted;
+        }
+
+        .fechar-preview {
+            flex-shrink: 0;
+            width: 22px;
+            height: 22px;
+            line-height: 1;
+            font-size: 16px;
+            color: t.$c-text-muted;
+            border: 1px solid t.$c-input-border;
+            border-radius: 50%;
+            transition: t.$transition;
+
+            &:hover,
+            &:focus-visible {
+                color: t.$c-navy;
+                border-color: t.$c-navy;
+            }
         }
 
         img {
@@ -75,13 +100,15 @@
     }
 
     @include t.bp-960 {
-        .corpo-com-preview {
-            flex-direction: column;
-        }
-
         .painel-preview-rg {
-            position: static;
-            width: 100%;
+            position: fixed;
+            top: auto;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            transform: none;
+            width: auto;
+            max-height: 70vh;
         }
     }
 

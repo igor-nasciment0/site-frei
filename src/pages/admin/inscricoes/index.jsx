@@ -16,6 +16,7 @@ export default function AdminInscricoes() {
   const [status, setStatus] = useState("");
   const [pagina, setPagina] = useState(1);
   const [preview, setPreview] = useState(null);
+  const [fixado, setFixado] = useState(null); // { userId, nome } do preview fixado por clique
   const cacheRg = useRef({});
   const navigate = useNavigate();
 
@@ -55,23 +56,50 @@ export default function AdminInscricoes() {
   async function mostrarPreviewRg(item) {
     const emCache = cacheRg.current[item.userId];
     if (emCache) {
-      setPreview({ nome: item.studentName, ...emCache });
+      setPreview({ userId: item.userId, nome: item.studentName, ...emCache });
       return;
     }
 
-    setPreview({ nome: item.studentName, carregando: true });
+    setPreview({ userId: item.userId, nome: item.studentName, carregando: true });
     const blob = await callApi(getDocumentoRGCandidato, true, item.userId);
     if (!blob) {
-      setPreview(null);
+      setPreview(atual => (atual?.userId === item.userId ? null : atual));
       return;
     }
 
     const dado = { url: URL.createObjectURL(blob), tipo: blob.type };
     cacheRg.current[item.userId] = dado;
-    setPreview(atual => (atual?.nome === item.studentName ? { nome: item.studentName, ...dado } : atual));
+    setPreview(atual => (atual?.userId === item.userId ? { userId: item.userId, nome: item.studentName, ...dado } : atual));
   }
 
-  function esconderPreviewRg() {
+  // Mouse saindo do ícone: some, a menos que esse item esteja fixado por clique — nesse caso,
+  // se o hover era de outra linha "espiando por cima", volta a mostrar o preview fixado.
+  function esconderPreviewRg(item) {
+    if (fixado?.userId === item.userId) return;
+
+    if (fixado) {
+      const dado = cacheRg.current[fixado.userId];
+      setPreview(dado ? { ...fixado, ...dado } : null);
+      return;
+    }
+
+    setPreview(null);
+  }
+
+  // Clique no ícone: alterna fixar/desfixar o preview dessa linha.
+  function alternarFixarRg(item) {
+    if (fixado?.userId === item.userId) {
+      setFixado(null);
+      setPreview(null);
+      return;
+    }
+
+    setFixado({ userId: item.userId, nome: item.studentName });
+    mostrarPreviewRg(item);
+  }
+
+  function fecharPreview() {
+    setFixado(null);
     setPreview(null);
   }
 
@@ -84,110 +112,115 @@ export default function AdminInscricoes() {
         <h1>Inscrições</h1>
       </div>
 
-      <div className="corpo-com-preview">
-        <div className="coluna-tabela">
-          <div className="filtros">
-            <input
-              type="text"
-              placeholder="Buscar por protocolo, nome, CPF ou e-mail…"
-              value={buscaInput}
-              onChange={e => setBuscaInput(e.target.value)}
-            />
+      <div className="filtros">
+        <input
+          type="text"
+          placeholder="Buscar por protocolo, nome, CPF ou e-mail…"
+          value={buscaInput}
+          onChange={e => setBuscaInput(e.target.value)}
+        />
 
-            <select value={status} onChange={e => { setStatus(e.target.value); setPagina(1); }}>
-              <option value="">Todos os status</option>
-              <option value="Open">Aberta</option>
-              <option value="Validated">Validada</option>
-              <option value="Canceled">Cancelada</option>
-            </select>
+        <select value={status} onChange={e => { setStatus(e.target.value); setPagina(1); }}>
+          <option value="">Todos os status</option>
+          <option value="Open">Aberta</option>
+          <option value="Validated">Validada</option>
+          <option value="Canceled">Cancelada</option>
+        </select>
+      </div>
+
+      {!resultado && <Carregamento />}
+
+      {resultado &&
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Protocolo</th>
+              <th>Candidato</th>
+              <th>CPF</th>
+              <th>RG</th>
+              <th>1ª opção</th>
+              <th>Status</th>
+              <th>Inscrito em</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {resultado.items.length === 0 &&
+              <tr className="vazio"><td colSpan={8}>Nenhuma inscrição encontrada.</td></tr>
+            }
+
+            {resultado.items.map(item => (
+              <tr key={item.id}>
+                <td>{item.protocol}</td>
+                <td>
+                  <span className="nome">{item.studentName}</span>
+                  <span className="email">{item.studentEmail}</span>
+                </td>
+                <td>{item.studentCpf}</td>
+                <td className="col-rg">
+                  {item.hasRgDocument &&
+                    <button
+                      type="button"
+                      className={"icone-ver-rg" + (fixado?.userId === item.userId ? " fixado" : "")}
+                      aria-label={`Pré-visualizar RG de ${item.studentName}`}
+                      aria-pressed={fixado?.userId === item.userId}
+                      onMouseEnter={() => mostrarPreviewRg(item)}
+                      onMouseLeave={() => esconderPreviewRg(item)}
+                      onFocus={() => mostrarPreviewRg(item)}
+                      onBlur={() => esconderPreviewRg(item)}
+                      onClick={() => alternarFixarRg(item)}
+                    >
+                      <IconeOlho />
+                    </button>
+                  }
+                  <span>{item.studentRg || "—"}</span>
+                </td>
+                <td>{item.firstChoiceCourseName} — {item.firstChoicePeriodName}</td>
+                <td>
+                  <span className={"admin-badge status-" + item.status.toLowerCase()}>
+                    {STATUS_LABEL[item.status] || item.status}
+                  </span>
+                </td>
+                <td>{converterDataUTCParaLocalSemMudarDia(item.createdAt)}</td>
+                <td className="acoes">
+                  <Link to={`/admin/inscricoes/${item.id}`}>Ver detalhes</Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      }
+
+      {resultado && resultado.total > 0 &&
+        <div className="paginacao">
+          <button disabled={pagina <= 1} onClick={() => setPagina(p => p - 1)}>Anterior</button>
+          <span>Página {resultado.page} de {totalPaginas} · {resultado.total} inscrições</span>
+          <button disabled={pagina >= totalPaginas} onClick={() => setPagina(p => p + 1)}>Próxima</button>
+        </div>
+      }
+
+      {/* position: fixed — flutua ao lado da tabela sem participar do layout em flex/coluna,
+          então não empurra nem realinha o conteúdo quando aparece/some no hover. */}
+      {preview &&
+        <div className="painel-preview-rg">
+          <div className="topo-preview">
+            <span className="titulo-preview">RG de {preview.nome}</span>
+            {fixado?.userId === preview.userId &&
+              <button type="button" className="fechar-preview" aria-label="Fechar preview" onClick={fecharPreview}>×</button>
+            }
           </div>
 
-          {!resultado && <Carregamento />}
+          {preview.carregando && <Carregamento />}
 
-          {resultado &&
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Protocolo</th>
-                  <th>Candidato</th>
-                  <th>CPF</th>
-                  <th>RG</th>
-                  <th>1ª opção</th>
-                  <th>Status</th>
-                  <th>Inscrito em</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {resultado.items.length === 0 &&
-                  <tr className="vazio"><td colSpan={8}>Nenhuma inscrição encontrada.</td></tr>
-                }
-
-                {resultado.items.map(item => (
-                  <tr key={item.id}>
-                    <td>{item.protocol}</td>
-                    <td>
-                      <span className="nome">{item.studentName}</span>
-                      <span className="email">{item.studentEmail}</span>
-                    </td>
-                    <td>{item.studentCpf}</td>
-                    <td className="col-rg">
-                      {item.hasRgDocument &&
-                        <button
-                          type="button"
-                          className="icone-ver-rg"
-                          aria-label={`Pré-visualizar RG de ${item.studentName}`}
-                          onMouseEnter={() => mostrarPreviewRg(item)}
-                          onMouseLeave={esconderPreviewRg}
-                          onFocus={() => mostrarPreviewRg(item)}
-                          onBlur={esconderPreviewRg}
-                        >
-                          <IconeOlho />
-                        </button>
-                      }
-                      <span>{item.studentRg || "—"}</span>
-                    </td>
-                    <td>{item.firstChoiceCourseName} — {item.firstChoicePeriodName}</td>
-                    <td>
-                      <span className={"admin-badge status-" + item.status.toLowerCase()}>
-                        {STATUS_LABEL[item.status] || item.status}
-                      </span>
-                    </td>
-                    <td>{converterDataUTCParaLocalSemMudarDia(item.createdAt)}</td>
-                    <td className="acoes">
-                      <Link to={`/admin/inscricoes/${item.id}`}>Ver detalhes</Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {!preview.carregando && preview.tipo?.startsWith("image/") &&
+            <img src={preview.url} alt={`RG de ${preview.nome}`} />
           }
 
-          {resultado && resultado.total > 0 &&
-            <div className="paginacao">
-              <button disabled={pagina <= 1} onClick={() => setPagina(p => p - 1)}>Anterior</button>
-              <span>Página {resultado.page} de {totalPaginas} · {resultado.total} inscrições</span>
-              <button disabled={pagina >= totalPaginas} onClick={() => setPagina(p => p + 1)}>Próxima</button>
-            </div>
+          {!preview.carregando && preview.tipo === "application/pdf" &&
+            <iframe src={preview.url} title={`RG de ${preview.nome}`} />
           }
         </div>
-
-        {preview &&
-          <div className="painel-preview-rg">
-            <span className="titulo-preview">RG de {preview.nome}</span>
-
-            {preview.carregando && <Carregamento />}
-
-            {!preview.carregando && preview.tipo?.startsWith("image/") &&
-              <img src={preview.url} alt={`RG de ${preview.nome}`} />
-            }
-
-            {!preview.carregando && preview.tipo === "application/pdf" &&
-              <iframe src={preview.url} title={`RG de ${preview.nome}`} />
-            }
-          </div>
-        }
-      </div>
+      }
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   resetarSenha,
   resetarPagamento,
   inserirPagamentoManual,
+  removerInscricao,
 } from "../../../../api/services/admin/inscricoes";
 import { converterDataUTCParaLocalSemMudarDia } from "../../../../util/date";
 import Carregamento from "../../../../components/carregamento";
@@ -76,6 +77,47 @@ export default function AdminInscricaoDetalhes() {
       <ResetarSenha inscricaoId={inscricao.id} nomeCandidato={student.name} />
 
       <DadosCandidato candidato={student} />
+
+      <RemoverInscricao inscricaoId={inscricao.id} protocolo={inscricao.protocol} nomeCandidato={student.name} />
+    </div>
+  );
+}
+
+// Zona de perigo: apaga o documento da inscrição do banco (curso, status, dados de prova e
+// todos os campos de pagamento embutidos nela — não há coleção separada de pagamento por
+// inscrição). Irreversível. A conta do candidato (User) não é afetada — ele pode se inscrever
+// de novo do zero, se a edição ainda permitir.
+function RemoverInscricao({ inscricaoId, protocolo, nomeCandidato }) {
+  const navigate = useNavigate();
+  const [removendo, setRemovendo] = useState(false);
+
+  async function remover() {
+    const confirmado = confirm(
+      `Remover definitivamente a inscrição de "${nomeCandidato}" (protocolo ${protocolo})?\n\n` +
+      "Isso apaga o registro desta inscrição e todas as informações de pagamento associadas a ela. " +
+      "Não pode ser desfeito. A conta do candidato continua existindo — ele pode se inscrever de novo, se a edição ainda permitir."
+    );
+    if (!confirmado) return;
+
+    setRemovendo(true);
+    const r = await callApi(removerInscricao, true, inscricaoId);
+    setRemovendo(false);
+
+    if (r?.success) {
+      toast.success("Inscrição removida.");
+      navigate("/admin/inscricoes");
+    }
+  }
+
+  return (
+    <div className="secao-inscricao secao-perigo">
+      <h2>Remover inscrição</h2>
+      <p className="aviso">
+        Apaga definitivamente o registro desta inscrição e todas as informações de pagamento associadas a ela. Ação irreversível — a conta do candidato não é afetada.
+      </p>
+      <button type="button" className="admin-btn-perigo" disabled={removendo} onClick={remover}>
+        {removendo ? "Removendo…" : "Remover inscrição"}
+      </button>
     </div>
   );
 }

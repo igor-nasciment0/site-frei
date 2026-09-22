@@ -43,6 +43,11 @@ export default function Inicio() {
   const [totalCursos, setTotalCursos] = useState(null);
   const [assistiuVideo, setAssistiuVideo] = useState(assistiuVideoInstitucional());
 
+  // Só de sessão, de propósito (não é persistido nem deriva do backend): ao terminar o vídeo
+  // agora, o espaço dele vira um convite pra conhecer os cursos. Se a pessoa atualizar a
+  // página, o vídeo volta a aparecer — quem quiser assistir de novo, consegue.
+  const [videoTerminouAgora, setVideoTerminouAgora] = useState(false);
+
   useEffect(() => {
     (async () => {
       const total = await callApi(getTotalCursos);
@@ -66,6 +71,7 @@ export default function Inicio() {
           onStateChange: async (evento) => {
             if (evento.data !== YT.PlayerState.ENDED) return;
 
+            setVideoTerminouAgora(true);
             if (await marcarVideoInstitucionalAssistido())
               setAssistiuVideo(true);
           },
@@ -75,7 +81,10 @@ export default function Inicio() {
 
     return () => {
       cancelado = true;
-      player?.destroy?.();
+      // O iframe pode já ter sumido do DOM se o efeito estiver limpando por causa do próprio
+      // vídeo ter terminado (troca pelo quadro "Conheça nossos cursos") — destroy() não precisa
+      // funcionar nesse caso, só não pode estourar erro.
+      try { player?.destroy?.(); } catch { /* iframe já removido do DOM */ }
     };
   }, [statusVestibular?.presentationVideoUrl, assistiuVideo])
 
@@ -100,7 +109,7 @@ export default function Inicio() {
 
       <div className="destaques">
         <div className="card-vestibular">
-          <p className="eyebrow">Vestibular 2026</p>
+          <p className="eyebrow">Vestibular {statusVestibular?.year ?? <Skeleton width={30} />}</p>
 
           {inscricaoConcluida ?
             <>
@@ -156,13 +165,20 @@ export default function Inicio() {
           </h3>
 
           <div className='moldura'>
-            <iframe
-              id={ID_IFRAME_VIDEO}
-              src={corrigeURLVideo(statusVestibular.presentationVideoUrl)}
-              title="Vídeo de apresentação do vestibular"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+            {videoTerminouAgora ?
+              <div className="cta-cursos" onClick={() => navigate("/cursos")}>
+                <p className="titulo">Conheça nossos cursos</p>
+                <p className="legenda">Veja todas as opções disponíveis e escolha a sua</p>
+              </div>
+              :
+              <iframe
+                id={ID_IFRAME_VIDEO}
+                src={corrigeURLVideo(statusVestibular.presentationVideoUrl)}
+                title="Vídeo de apresentação do vestibular"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            }
           </div>
         </div>
       }

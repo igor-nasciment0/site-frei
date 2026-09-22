@@ -184,3 +184,13 @@
         }
     }
 }
+
+.secao-perigo {
+    border-color: t.$c-clay;
+
+    .aviso {
+        font-size: 13px;
+        color: t.$c-text-muted;
+        line-height: 1.6;
+    }
+}

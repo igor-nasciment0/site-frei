@@ -206,6 +206,45 @@
                 height: 100%;
                 border: 0;
             }
+
+            .cta-cursos {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                text-align: center;
+                padding: 24px;
+                cursor: pointer;
+
+                .titulo {
+                    font-size: 22px;
+                    font-weight: 700;
+                    color: t.$c-on-navy-title;
+                }
+
+                .legenda {
+                    font-size: 14px;
+                    color: t.$c-on-navy-body;
+                }
+
+                &::after {
+                    content: "Ver cursos →";
+                    margin-top: 10px;
+                    font-size: 13.5px;
+                    font-weight: 600;
+                    color: t.$c-sand;
+                    border-bottom: 1px solid t.$c-sand;
+                    padding-bottom: 1px;
+                    transition: opacity t.$transition;
+                }
+
+                &:hover::after {
+                    opacity: 0.75;
+                }
+            }
         }
     }
 

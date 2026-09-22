@@ -42,6 +42,14 @@ export async function inserirPagamentoManual(id, { valor, pagoEm } = {}) {
     return r.data;
 }
 
+// Remove definitivamente a inscrição (curso escolhido, status, dados de prova e todos os
+// campos de pagamento — não há coleção separada de pagamento por inscrição). A conta do
+// candidato não é afetada. Irreversível.
+export async function removerInscricao(id) {
+    const r = await adminApi().delete('/admin/enrollments/' + id);
+    return r.data;
+}
+
 // O endpoint exige o Bearer de admin, então não dá para usar um <a href> direto —
 // o arquivo vem como blob e é aberto a partir de uma URL de objeto.
 export async function getDocumentoRGCandidato(userId) {
