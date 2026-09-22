@@ -131,93 +131,97 @@ export default function AdminInscricoes() {
       {!resultado && <Carregamento />}
 
       {resultado &&
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Protocolo</th>
-              <th>Candidato</th>
-              <th>CPF</th>
-              <th>RG</th>
-              <th>1ª opção</th>
-              <th>Status</th>
-              <th>Inscrito em</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {resultado.items.length === 0 &&
-              <tr className="vazio"><td colSpan={8}>Nenhuma inscrição encontrada.</td></tr>
-            }
+        <div className="corpo-tabela">
+          <div className="coluna-tabela">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Protocolo</th>
+                  <th>Candidato</th>
+                  <th>CPF</th>
+                  <th>RG</th>
+                  <th>1ª opção</th>
+                  <th>Status</th>
+                  <th>Inscrito em</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {resultado.items.length === 0 &&
+                  <tr className="vazio"><td colSpan={8}>Nenhuma inscrição encontrada.</td></tr>
+                }
 
-            {resultado.items.map(item => (
-              <tr key={item.id}>
-                <td>{item.protocol}</td>
-                <td>
-                  <span className="nome">{item.studentName}</span>
-                  <span className="email">{item.studentEmail}</span>
-                </td>
-                <td>{item.studentCpf}</td>
-                <td className="col-rg">
-                  {item.hasRgDocument &&
-                    <button
-                      type="button"
-                      className={"icone-ver-rg" + (fixado?.userId === item.userId ? " fixado" : "")}
-                      aria-label={`Pré-visualizar RG de ${item.studentName}`}
-                      aria-pressed={fixado?.userId === item.userId}
-                      onMouseEnter={() => mostrarPreviewRg(item)}
-                      onMouseLeave={() => esconderPreviewRg(item)}
-                      onFocus={() => mostrarPreviewRg(item)}
-                      onBlur={() => esconderPreviewRg(item)}
-                      onClick={() => alternarFixarRg(item)}
-                    >
-                      <IconeOlho />
-                    </button>
-                  }
-                  <span>{item.studentRg || "—"}</span>
-                </td>
-                <td>{item.firstChoiceCourseName} — {item.firstChoicePeriodName}</td>
-                <td>
-                  <span className={"admin-badge status-" + item.status.toLowerCase()}>
-                    {STATUS_LABEL[item.status] || item.status}
-                  </span>
-                </td>
-                <td>{converterDataUTCParaLocalSemMudarDia(item.createdAt)}</td>
-                <td className="acoes">
-                  <Link to={`/admin/inscricoes/${item.id}`}>Ver detalhes</Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      }
+                {resultado.items.map(item => (
+                  <tr key={item.id}>
+                    <td>{item.protocol}</td>
+                    <td>
+                      <span className="nome">{item.studentName}</span>
+                      <span className="email">{item.studentEmail}</span>
+                    </td>
+                    <td>{item.studentCpf}</td>
+                    <td className="col-rg">
+                      {item.hasRgDocument &&
+                        <button
+                          type="button"
+                          className={"icone-ver-rg" + (fixado?.userId === item.userId ? " fixado" : "")}
+                          aria-label={`Pré-visualizar RG de ${item.studentName}`}
+                          aria-pressed={fixado?.userId === item.userId}
+                          onMouseEnter={() => mostrarPreviewRg(item)}
+                          onMouseLeave={() => esconderPreviewRg(item)}
+                          onFocus={() => mostrarPreviewRg(item)}
+                          onBlur={() => esconderPreviewRg(item)}
+                          onClick={() => alternarFixarRg(item)}
+                        >
+                          <IconeOlho />
+                        </button>
+                      }
+                      <span>{item.studentRg || "—"}</span>
+                    </td>
+                    <td>{item.firstChoiceCourseName} — {item.firstChoicePeriodName}</td>
+                    <td>
+                      <span className={"admin-badge status-" + item.status.toLowerCase()}>
+                        {STATUS_LABEL[item.status] || item.status}
+                      </span>
+                    </td>
+                    <td>{converterDataUTCParaLocalSemMudarDia(item.createdAt)}</td>
+                    <td className="acoes">
+                      <Link to={`/admin/inscricoes/${item.id}`}>Ver detalhes</Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-      {resultado && resultado.total > 0 &&
-        <div className="paginacao">
-          <button disabled={pagina <= 1} onClick={() => setPagina(p => p - 1)}>Anterior</button>
-          <span>Página {resultado.page} de {totalPaginas} · {resultado.total} inscrições</span>
-          <button disabled={pagina >= totalPaginas} onClick={() => setPagina(p => p + 1)}>Próxima</button>
-        </div>
-      }
-
-      {/* position: fixed — flutua ao lado da tabela sem participar do layout em flex/coluna,
-          então não empurra nem realinha o conteúdo quando aparece/some no hover. */}
-      {preview &&
-        <div className="painel-preview-rg">
-          <div className="topo-preview">
-            <span className="titulo-preview">RG de {preview.nome}</span>
-            {fixado?.userId === preview.userId &&
-              <button type="button" className="fechar-preview" aria-label="Fechar preview" onClick={fecharPreview}>×</button>
+            {resultado.total > 0 &&
+              <div className="paginacao">
+                <button disabled={pagina <= 1} onClick={() => setPagina(p => p - 1)}>Anterior</button>
+                <span>Página {resultado.page} de {totalPaginas} · {resultado.total} inscrições</span>
+                <button disabled={pagina >= totalPaginas} onClick={() => setPagina(p => p + 1)}>Próxima</button>
+              </div>
             }
           </div>
 
-          {preview.carregando && <Carregamento />}
+          {/* sticky dentro do flex — gruda ao lado da tabela (não dos filtros, que ficam fora
+              deste wrapper) e acompanha a rolagem até sair da área da tabela. */}
+          {preview &&
+            <div className="painel-preview-rg">
+              <div className="topo-preview">
+                <span className="titulo-preview">RG de {preview.nome}</span>
+                {fixado?.userId === preview.userId &&
+                  <button type="button" className="fechar-preview" aria-label="Fechar preview" onClick={fecharPreview}>×</button>
+                }
+              </div>
 
-          {!preview.carregando && preview.tipo?.startsWith("image/") &&
-            <img src={preview.url} alt={`RG de ${preview.nome}`} />
-          }
+              {preview.carregando && <Carregamento />}
 
-          {!preview.carregando && preview.tipo === "application/pdf" &&
-            <iframe src={preview.url} title={`RG de ${preview.nome}`} />
+              {!preview.carregando && preview.tipo?.startsWith("image/") &&
+                <img src={preview.url} alt={`RG de ${preview.nome}`} />
+              }
+
+              {!preview.carregando && preview.tipo === "application/pdf" &&
+                <iframe src={preview.url} title={`RG de ${preview.nome}`} />
+              }
+            </div>
           }
         </div>
       }
