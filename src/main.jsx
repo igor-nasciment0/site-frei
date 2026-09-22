@@ -15,6 +15,7 @@ import RecuperarSenha from './pages/recuperar-senha';
 import Acompanhamento from './pages/app/subpages/acompanhamento';
 import { LoadingBarContainer } from 'react-top-loading-bar';
 import TrocarSenha from './pages/trocar-senha';
+import TrocarSenhaObrigatoria from './pages/trocar-senha-obrigatoria';
 import Cadastro from './pages/cadastro';
 import ModalProvider from './components/modal';
 import AdminApp from './pages/admin';
@@ -52,6 +53,7 @@ createRoot(document.getElementById('root')).render(
             <Route path='/login' element={<Login />} />
             <Route path='/recuperar-senha' element={<RecuperarSenha />} />
             <Route path='/trocar-senha' element={<TrocarSenha />} />
+            <Route path='/trocar-senha-obrigatoria' element={<TrocarSenhaObrigatoria />} />
 
             <Route path='/admin' element={<AdminApp />}>
               <Route index element={<AdminDashboard />} />

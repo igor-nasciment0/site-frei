@@ -25,6 +25,13 @@ export async function trocaSenha(dados) {
     return r.data;
 }
 
+// Troca de senha do candidato já logado (exige a senha atual) — usado tanto para
+// troca voluntária quanto para a troca obrigatória após um reset feito pelo admin.
+export async function trocaSenhaLogado(dados) {
+    const r = await api().post('/users/change-password', dados);
+    return r.data;
+}
+
 export async function getInfoUsuario() {
     const r = await api().get('/users/profile');
 

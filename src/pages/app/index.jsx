@@ -29,6 +29,13 @@ export default function App() {
         return;
       }
 
+      // Senha resetada pelo admin: bloqueia o resto da área logada até trocar.
+      if (usuario.mustChangePassword) {
+        set("user", usuario);
+        navigate("/trocar-senha-obrigatoria");
+        return;
+      }
+
       set("user", usuario);
       setUser(usuario);
       setStatusVestibular(await callApi(getStatusVestibular));

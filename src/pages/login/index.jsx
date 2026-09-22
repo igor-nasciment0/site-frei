@@ -32,7 +32,10 @@ export default function Login() {
       set("token", r.token);
       set("user", r.user);
       setTimeout(complete, 750);
-      setTimeout(() => navigate("/"), 1000);
+      setTimeout(
+        () => navigate(r.user?.mustChangePassword ? "/trocar-senha-obrigatoria" : "/"),
+        1000
+      );
     }
   }
 

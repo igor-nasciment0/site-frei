@@ -4,6 +4,87 @@
 .admin-inscricoes {
     @include admin.admin-lista-page;
 
+    .corpo-com-preview {
+        display: flex;
+        align-items: flex-start;
+        gap: 24px;
+    }
+
+    .coluna-tabela {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 26px;
+    }
+
+    .col-rg {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .icone-ver-rg {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: t.$c-text-muted;
+        border: 1px solid t.$c-input-border;
+        border-radius: 50%;
+        width: 26px;
+        height: 26px;
+        flex-shrink: 0;
+        transition: t.$transition;
+
+        &:hover,
+        &:focus-visible {
+            color: t.$c-navy;
+            border-color: t.$c-navy;
+        }
+    }
+
+    .painel-preview-rg {
+        position: sticky;
+        top: 24px;
+        flex-shrink: 0;
+        width: 280px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: t.$c-white;
+        border: 1px solid t.$c-border;
+        padding: 16px;
+
+        .titulo-preview {
+            @include t.type-label;
+            font-size: 11px;
+            color: t.$c-text-muted;
+        }
+
+        img {
+            width: 100%;
+            display: block;
+            border: 1px solid t.$c-divider-soft;
+        }
+
+        iframe {
+            width: 100%;
+            height: 360px;
+            border: 1px solid t.$c-divider-soft;
+        }
+    }
+
+    @include t.bp-960 {
+        .corpo-com-preview {
+            flex-direction: column;
+        }
+
+        .painel-preview-rg {
+            position: static;
+            width: 100%;
+        }
+    }
+
     .filtros {
         display: flex;
         gap: 12px;
