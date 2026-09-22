@@ -18,6 +18,11 @@
     .btn-primario {
         @include admin.admin-btn-primario;
     }
+
+    .admin-btn-perigo {
+        @include admin.admin-btn-perigo;
+        align-self: flex-start;
+    }
 }
 
 // Base de .secao-inscricao, .grade-info e .info: pages/admin/componentes/dadosCandidato.scss.
@@ -36,6 +41,98 @@
         &.status-canceled {
             color: t.$c-clay;
             border-color: t.$c-alert-border;
+        }
+    }
+}
+
+.secao-pagamento {
+    .admin-badge {
+        &.status-pending {
+            color: t.$c-slate;
+            border-color: t.$c-tag-border;
+        }
+
+        &.status-paid {
+            color: t.$c-navy;
+            border-color: t.$c-navy;
+        }
+
+        &.status-expired,
+        &.status-failed,
+        &.status-canceled {
+            color: t.$c-clay;
+            border-color: t.$c-alert-border;
+        }
+    }
+
+    .campo-copia-cola {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+
+        .rotulo {
+            @include t.type-label;
+            font-size: 11px;
+            color: t.$c-text-muted;
+        }
+
+        code {
+            font-family: t.$font-mono;
+            font-size: 12px;
+            color: t.$c-text;
+            background: t.$c-input-bg;
+            border: 1px solid t.$c-border;
+            padding: 10px 12px;
+            word-break: break-all;
+        }
+    }
+
+    .acoes-pagamento {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        border-top: 1px solid t.$c-divider-soft;
+        padding-top: 18px;
+
+        @include t.bp-640 {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .bloco-acao {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .aviso {
+            font-size: 13px;
+            color: t.$c-text-muted;
+            line-height: 1.6;
+        }
+    }
+
+    .linha-pagamento-manual {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+
+        input {
+            flex: 1;
+            min-width: 160px;
+            font-size: 14px;
+            color: t.$c-text;
+            background: t.$c-input-bg;
+            border: 1px solid t.$c-input-border;
+            padding: 10px 12px;
+            font-family: t.$font-sans;
+
+            &:focus {
+                border-color: t.$c-navy;
+            }
+        }
+
+        .btn-primario {
+            flex-shrink: 0;
         }
     }
 }

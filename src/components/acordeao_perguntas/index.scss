@@ -76,14 +76,34 @@
             padding: 0 28px;
             padding-left: 66px;
 
-            p {
+            .conteudo-resposta {
                 min-height: 0;
                 overflow: hidden;
 
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            p {
                 font-size: 14.5px;
                 line-height: 1.75;
                 color: t.$c-text;
                 max-width: 70ch;
+            }
+
+            .link-mapa {
+                align-self: flex-start;
+                width: fit-content;
+                font-size: 13.5px;
+                font-weight: 600;
+                color: t.$c-navy;
+                border-bottom: 1px solid t.$c-sand;
+                transition: border-color t.$transition;
+
+                &:hover {
+                    border-color: t.$c-navy;
+                }
             }
         }
 

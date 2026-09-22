@@ -2,13 +2,26 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import toast from "react-hot-toast";
 import callApi from "../../../../api/callAPI";
-import { getInscricao, resetarSenha } from "../../../../api/services/admin/inscricoes";
+import {
+  getInscricao,
+  resetarSenha,
+  resetarPagamento,
+  inserirPagamentoManual,
+} from "../../../../api/services/admin/inscricoes";
 import { converterDataUTCParaLocalSemMudarDia } from "../../../../util/date";
 import Carregamento from "../../../../components/carregamento";
 import DadosCandidato, { Info } from "../../componentes/dadosCandidato";
 import "./index.scss";
 
 const STATUS_LABEL = { Open: "Aberta", Validated: "Validada", Canceled: "Cancelada" };
+
+const PAYMENT_STATUS_LABEL = {
+  Pending: "Pendente",
+  Paid: "Pago",
+  Expired: "Expirado",
+  Failed: "Falhou",
+  Canceled: "Cancelado",
+};
 
 export default function AdminInscricaoDetalhes() {
   const { id } = useParams();
@@ -57,6 +70,8 @@ export default function AdminInscricaoDetalhes() {
           <Info rotulo="2ª opção" valor={inscricao.secondChoice ? `${inscricao.secondChoice.courseName} — ${inscricao.secondChoice.periodName}` : "—"} />
         </div>
       </div>
+
+      <Pagamento inscricao={inscricao} aoAtualizar={carregar} />
 
       <ResetarSenha inscricaoId={inscricao.id} nomeCandidato={student.name} />
 
@@ -118,6 +133,118 @@ function ResetarSenha({ inscricaoId, nomeCandidato }) {
           <button className="btn-fantasma" onClick={copiar}>Copiar</button>
         </div>
       }
+    </div>
+  );
+}
+
+function formatarMoeda(valor) {
+  return Number(valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function formatarDataHora(dataStringUTC) {
+  return dataStringUTC ? new Date(dataStringUTC).toLocaleString("pt-BR") : "—";
+}
+
+// Mostra os campos de pagamento (PIX) da inscrição e permite duas ações administrativas
+// que só afetam o pagamento, nunca a inscrição em si: remover a cobrança vigente (o
+// candidato recebe uma nova, com QR code novo, ao reabrir o Acompanhamento) e registrar um
+// pagamento recebido fora do PIX, sem precisar gerar QR code.
+function Pagamento({ inscricao, aoAtualizar }) {
+  const [resetando, setResetando] = useState(false);
+  const [valorManual, setValorManual] = useState("");
+  const [dataManual, setDataManual] = useState("");
+  const [enviandoManual, setEnviandoManual] = useState(false);
+
+  async function resetar() {
+    if (!confirm("Remover as informações de pagamento desta inscrição? Uma cobrança PIX nova (com QR code novo) será gerada na próxima vez que o candidato abrir o Acompanhamento."))
+      return;
+
+    setResetando(true);
+    const r = await callApi(resetarPagamento, true, inscricao.id);
+    setResetando(false);
+
+    if (r) {
+      toast.success("Informações de pagamento removidas.");
+      aoAtualizar();
+    }
+  }
+
+  async function inserirManual() {
+    if (!confirm("Marcar esta inscrição como paga manualmente?")) return;
+
+    setEnviandoManual(true);
+    const r = await callApi(inserirPagamentoManual, true, inscricao.id, {
+      valor: valorManual ? Number(valorManual) : undefined,
+      pagoEm: dataManual ? new Date(dataManual).toISOString() : undefined,
+    });
+    setEnviandoManual(false);
+
+    if (r) {
+      toast.success("Pagamento registrado manualmente.");
+      setValorManual("");
+      setDataManual("");
+      aoAtualizar();
+    }
+  }
+
+  const status = inscricao.paymentStatus;
+
+  return (
+    <div className="secao-inscricao secao-pagamento">
+      <h2>Pagamento</h2>
+
+      <div className="grade-info">
+        <Info
+          rotulo="Status"
+          valor={<span className={"admin-badge status-" + (status || "").toLowerCase()}>{PAYMENT_STATUS_LABEL[status] || status}</span>}
+        />
+        <Info rotulo="Valor" valor={formatarMoeda(inscricao.paymentAmount)} />
+        <Info rotulo="Pago em" valor={formatarDataHora(inscricao.paymentPaidAt)} />
+        <Info rotulo="Cobrança vence em" valor={formatarDataHora(inscricao.paymentExpiresAt)} />
+        <Info rotulo="Correlation ID (PIX)" valor={inscricao.paymentCorrelationId || "—"} />
+      </div>
+
+      {inscricao.paymentCopyPasteCode &&
+        <div className="campo-copia-cola">
+          <span className="rotulo">Código PIX copia-e-cola</span>
+          <code>{inscricao.paymentCopyPasteCode}</code>
+        </div>
+      }
+
+      <div className="acoes-pagamento">
+        <div className="bloco-acao">
+          <p className="aviso">
+            Remove a cobrança atual; o candidato recebe uma cobrança nova (com QR code novo) ao reabrir o Acompanhamento.
+          </p>
+          <button type="button" className="admin-btn-perigo" disabled={resetando} onClick={resetar}>
+            {resetando ? "Removendo…" : "Remover informações de pagamento"}
+          </button>
+        </div>
+
+        <div className="bloco-acao">
+          <p className="aviso">
+            Marca a inscrição como paga sem gerar QR code — use para pagamentos recebidos fora do PIX.
+          </p>
+          <div className="linha-pagamento-manual">
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Valor (opcional)"
+              value={valorManual}
+              onChange={e => setValorManual(e.target.value)}
+            />
+            <input
+              type="datetime-local"
+              value={dataManual}
+              onChange={e => setDataManual(e.target.value)}
+            />
+            <button type="button" className="btn-primario" disabled={enviandoManual} onClick={inserirManual}>
+              {enviandoManual ? "Registrando…" : "Inserir pagamento manual"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

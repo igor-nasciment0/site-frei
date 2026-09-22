@@ -96,12 +96,8 @@ export default function Inicio() {
             <span className="rotulo">Abertura das inscrições</span>
           </div>
           <div className="marco">
-            <span className="data">{formatarDataCurta(inscricao?.testDate) ?? "A definir"}</span>
-            <span className="rotulo">Prova presencial</span>
-          </div>
-          <div className="marco fraco">
-            <span className="data">{formatarDataCurta(statusVestibular?.resultPublicationDate) ?? <Skeleton width={40} />}</span>
-            <span className="rotulo">Resultado</span>
+            <span className="data">{formatarDataCurta(statusVestibular?.endDate) ?? <Skeleton width={40} />}</span>
+            <span className="rotulo">Fim das inscrições</span>
           </div>
         </div>
       </div>

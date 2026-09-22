@@ -6,6 +6,11 @@ import { formatarComoHTML } from '../../util/string';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 
+// Resposta que menciona o endereço do Instituto ganha um link direto pro mapa — evita ter
+// que copiar o endereço à mão para achar o lugar.
+const REGEX_ENDERECO_INSTITUTO = /coronel\s+octaviano/i;
+const LINK_MAPA_INSTITUTO = "https://www.google.com/maps/search/?api=1&query=-23.6803333,-46.7079309";
+
 // `onSelecionar`, quando informado, transforma o componente numa lista de atalhos (ex.: preview
 // de FAQ na Início): o clique não expande a resposta ali mesmo, só notifica a pergunta escolhida
 // (usado para navegar até /faq?q=<key> com a pergunta já aberta).
@@ -88,7 +93,20 @@ export default function AcordeaoPerguntas({ max, numbered = true, aberta, onSele
           </div>
           {!onSelecionar &&
             <div className="resposta">
-              <p>{formatarComoHTML(p.answer)}</p>
+              <div className="conteudo-resposta">
+                <p>{formatarComoHTML(p.answer)}</p>
+                {REGEX_ENDERECO_INSTITUTO.test(p.answer) &&
+                  <a
+                    className="link-mapa"
+                    href={LINK_MAPA_INSTITUTO}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    Abrir no mapa
+                  </a>
+                }
+              </div>
             </div>
           }
         </div>
