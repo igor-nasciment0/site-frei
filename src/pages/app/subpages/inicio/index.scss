@@ -101,6 +101,22 @@
                     background: t.$c-sand;
                     color: t.$c-navy;
                 }
+
+                &:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+
+                    &:hover {
+                        background: none;
+                        color: t.$c-sand;
+                    }
+                }
+            }
+
+            .aviso-video {
+                font-size: 12.5px;
+                color: t.$c-on-navy-caption;
+                margin-top: -8px;
             }
         }
 
@@ -152,6 +168,28 @@
         h3 {
             @include t.type-h3-section;
             color: t.$c-navy;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+
+            .selo-assistido,
+            .selo-pendente {
+                font-size: 12px;
+                font-weight: 600;
+                padding: 4px 10px;
+                border-radius: 999px;
+            }
+
+            .selo-assistido {
+                color: t.$c-navy;
+                background: rgba(194, 164, 106, 0.25); // t.$c-sand suavizado
+            }
+
+            .selo-pendente {
+                color: t.$c-clay;
+                background: rgba(184, 92, 79, 0.12); // t.$c-clay suavizado
+            }
         }
 
         .moldura {

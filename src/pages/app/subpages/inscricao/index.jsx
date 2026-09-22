@@ -10,8 +10,9 @@ import padroes from './padroes';
 import toast from 'react-hot-toast';
 import { get, set } from 'local-storage';
 import { mergeObjects, testState } from '../../../../util/general';
-import { useOutletContext } from 'react-router';
+import { useNavigate, useOutletContext } from 'react-router';
 import { formatarParaInputDate } from '../../../../util/date';
+import { podeEntrarNaInscricao } from '../../../../util/institutionVideo';
 
 const formularios = [FormularioDadosPessoais, FormularioEndereco, FormularioNascimento, FormularioRG, FormularioResponsavelPrimario, FormularioResponsavelSecundario, FormularioEscolar, FormularioInformacoesGerais]
 const titulos = ["Informações Pessoais", "Endereço", "Informações de Nascimento", "Documento", "Dados da Mãe", "Responsável Secundário", "Escolaridade", "Informações Gerais"]
@@ -33,9 +34,20 @@ const secoesPorPasso = [
 export default function Inscricao() {
 
   const statusVestibular = useOutletContext();
+  const navigate = useNavigate();
 
   const [passoAtual, setPassoAtual] = useState(0);
   const [mostraFormCursos, setMostraFormCursos] = useState(false);
+
+  // Redundância de segurança pro caso do link direto/URL — o bloqueio "de verdade" já impede o
+  // clique na BarraLateral e no botão da Início. Validação só de front (watchInstitutionVideo),
+  // não existe checagem equivalente no backend.
+  useEffect(() => {
+    if (!podeEntrarNaInscricao(statusVestibular)) {
+      toast.error("Assista ao vídeo de apresentação na Início até o fim antes de continuar.");
+      navigate("/");
+    }
+  }, [])
 
   useEffect(() => {
     if (statusVestibular.currentPhase >= 3) {

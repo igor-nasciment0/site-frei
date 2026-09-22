@@ -6,6 +6,7 @@ export default {
   endDate: "",
   extensionDate: "",
   allowRegistration: true,
+  testerEmails: [],
   resultPublicationDate: "",
   resultPublicationDateExternal: "",
   roomNoticeEmailDate: "",

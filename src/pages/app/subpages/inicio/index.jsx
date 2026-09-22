@@ -11,6 +11,10 @@ import { ptBR } from 'date-fns/locale';
 import useMinhaInscricao from '../../../../util/useMinhaInscricao';
 import { calcularProgresso } from '../../../../util/progresso';
 import { corrigeURLVideo } from '../../../../util/string';
+import { carregarYoutubeIframeApi } from '../../../../util/youtubeApi';
+import { assistiuVideoInstitucional, marcarVideoInstitucionalAssistido } from '../../../../util/institutionVideo';
+
+const ID_IFRAME_VIDEO = 'video-institucional';
 
 // Cada item aponta para a `key` de uma pergunta cadastrada no FAQ pelo admin. Itens cuja
 // pergunta ainda não existe simplesmente não abrem nada — por isso o link é sempre válido.
@@ -37,6 +41,7 @@ export default function Inicio() {
 
   const { inscricao } = useMinhaInscricao();
   const [totalCursos, setTotalCursos] = useState(null);
+  const [assistiuVideo, setAssistiuVideo] = useState(assistiuVideoInstitucional());
 
   useEffect(() => {
     (async () => {
@@ -45,8 +50,38 @@ export default function Inicio() {
     })()
   }, [])
 
+  // Instancia o player via IFrame API só quando há vídeo cadastrado e ele ainda não foi
+  // assistido — pra detectar o fim (ENDED) e liberar "Minha inscrição" (watchInstitutionVideo).
+  useEffect(() => {
+    if (!statusVestibular?.presentationVideoUrl || assistiuVideo) return;
+
+    let player;
+    let cancelado = false;
+
+    carregarYoutubeIframeApi().then(YT => {
+      if (cancelado || !document.getElementById(ID_IFRAME_VIDEO)) return;
+
+      player = new YT.Player(ID_IFRAME_VIDEO, {
+        events: {
+          onStateChange: async (evento) => {
+            if (evento.data !== YT.PlayerState.ENDED) return;
+
+            if (await marcarVideoInstitucionalAssistido())
+              setAssistiuVideo(true);
+          },
+        },
+      });
+    });
+
+    return () => {
+      cancelado = true;
+      player?.destroy?.();
+    };
+  }, [statusVestibular?.presentationVideoUrl, assistiuVideo])
+
   const inscricaoConcluida = !!inscricao?.firstChoice;
   const progresso = calcularProgresso(user, inscricaoConcluida);
+  const precisaAssistirVideo = !inscricaoConcluida && !!statusVestibular?.presentationVideoUrl && !assistiuVideo;
 
   return (
     <section className='inicio'>
@@ -83,9 +118,17 @@ export default function Inicio() {
             <div style={{ width: `${(progresso.concluidas / progresso.total) * 100}%` }} />
           </div>
 
-          <button onClick={() => navigate(inscricaoConcluida ? "/acompanhamento" : "/inscricao")}>
+          <button
+            disabled={precisaAssistirVideo}
+            title={precisaAssistirVideo ? "Assista ao vídeo de apresentação até o fim para continuar" : undefined}
+            onClick={() => navigate(inscricaoConcluida ? "/acompanhamento" : "/inscricao")}
+          >
             {inscricaoConcluida ? "Ver acompanhamento" : "Continuar inscrição"}
           </button>
+
+          {precisaAssistirVideo &&
+            <p className="aviso-video">Assista ao vídeo de apresentação abaixo até o fim para liberar a inscrição.</p>
+          }
         </div>
 
         <div className="card-datas">
@@ -104,10 +147,17 @@ export default function Inicio() {
 
       {statusVestibular?.presentationVideoUrl &&
         <div className='video-apresentacao'>
-          <h3>Assista à apresentação</h3>
+          <h3>
+            Assista à apresentação
+            {assistiuVideo
+              ? <span className="selo-assistido">✓ Assistido</span>
+              : <span className="selo-pendente">Assista até o fim para liberar a inscrição</span>
+            }
+          </h3>
 
           <div className='moldura'>
             <iframe
+              id={ID_IFRAME_VIDEO}
               src={corrigeURLVideo(statusVestibular.presentationVideoUrl)}
               title="Vídeo de apresentação do vestibular"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

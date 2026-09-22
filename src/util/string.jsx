@@ -73,6 +73,10 @@ export function corrigeURLVideo(url) {
       params += `?list=${listParam}`;
     }
 
+    // enablejsapi + origin: necessários para o player aceitar a IFrame API (usada para detectar
+    // quando o candidato termina de assistir — ver util/institutionVideo.js).
+    params += `${params ? "&" : "?"}enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`;
+
     return videoId ? `https://www.youtube.com/embed/${videoId}${params}` : null;
   } catch {
     return null; // URL inválida

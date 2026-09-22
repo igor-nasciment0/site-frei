@@ -132,7 +132,6 @@ export default function AdminInscricoes() {
                     </td>
                     <td>{item.studentCpf}</td>
                     <td className="col-rg">
-                      <span>{item.studentRg || "—"}</span>
                       {item.hasRgDocument &&
                         <button
                           type="button"
@@ -146,6 +145,7 @@ export default function AdminInscricoes() {
                           <IconeOlho />
                         </button>
                       }
+                      <span>{item.studentRg || "—"}</span>
                     </td>
                     <td>{item.firstChoiceCourseName} — {item.firstChoicePeriodName}</td>
                     <td>

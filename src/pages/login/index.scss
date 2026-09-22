@@ -7,4 +7,17 @@
     .painel-form {
         @include auth.auth-painel-form;
     }
+
+    .aviso-inscricoes-fechadas {
+        font-size: 13.5px;
+        line-height: 1.6;
+        color: t.$c-clay;
+        background: t.$c-white;
+        border: 1px solid t.$c-alert-border;
+        padding: 12px 14px;
+
+        strong {
+            font-weight: 700;
+        }
+    }
 }

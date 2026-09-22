@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router";
 import toast from "react-hot-toast";
 import { useLoadingBar } from "react-top-loading-bar";
@@ -27,9 +27,11 @@ export default function AdminVestibularForm() {
   const navigate = useNavigate();
   const { start, complete } = useLoadingBar({ color: "#C2A46A", height: 3 });
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, reset, control, formState: { errors, isSubmitting } } = useForm({
     defaultValues: padroesEdicao,
   });
+
+  const testers = useFieldArray({ control, name: "testerEmails" });
 
   useEffect(() => {
     if (!editando) return;
@@ -49,6 +51,8 @@ export default function AdminVestibularForm() {
         // Edições criadas antes destes campos vêm com 0: mostra vazio para o admin preencher.
         year: edicao.year || "",
         enrollmentFee: edicao.enrollmentFee || "",
+        // useFieldArray exige itens objeto — a API trabalha com string[] puro.
+        testerEmails: (edicao.testerEmails || []).map(email => ({ email })),
       });
       setCarregando(false);
     })();
@@ -59,6 +63,9 @@ export default function AdminVestibularForm() {
     CAMPOS_DATA.forEach(campo => { payload[campo] = paraISODataSimples(dados[campo]); });
     payload.year = Number(dados.year);
     payload.enrollmentFee = Number(dados.enrollmentFee);
+    payload.testerEmails = (dados.testerEmails || [])
+      .map(t => t.email?.trim())
+      .filter(Boolean);
 
     if (editando) {
       // nextEnrollmentNumber não é editável via PUT (só no POST de criação).
@@ -209,6 +216,40 @@ export default function AdminVestibularForm() {
               <label htmlFor="allowRegistration">Permitir novas inscrições nesta edição</label>
             </div>
           </div>
+
+          <div className="divisor" />
+
+          <div className="subsecao">
+            <div className="titulo-subsecao">
+              <h3>E-mails de teste</h3>
+              <button type="button" className="btn-fantasma" onClick={() => testers.append({ email: "" })}>
+                + Adicionar e-mail
+              </button>
+            </div>
+
+            <p className="aviso">
+              Esses e-mails podem logar e usar o sistema normalmente mesmo com "Permitir novas
+              inscrições" desligado — para testar o fluxo antes da abertura oficial.
+            </p>
+
+            {testers.fields.length === 0 && <p className="aviso">Nenhum e-mail de teste cadastrado ainda.</p>}
+
+            {testers.fields.map((campo, index) => (
+              <div className="linha-repetivel linha-testers" key={campo.id}>
+                <div className="campo">
+                  <label>E-mail</label>
+                  <input
+                    {...register(`testerEmails.${index}.email`, { required: true })}
+                    type="email"
+                    placeholder="pessoa@email.com"
+                  />
+                </div>
+                <button type="button" className="admin-btn-perigo" onClick={() => testers.remove(index)}>Remover</button>
+              </div>
+            ))}
+          </div>
+
+          <div className="divisor" />
 
           <div className="campo largo">
             <label htmlFor="description">Descrição/instruções (aceita HTML)</label>

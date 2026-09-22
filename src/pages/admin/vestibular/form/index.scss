@@ -10,4 +10,8 @@
         gap: 16px;
         margin-top: -14px;
     }
+
+    .linha-testers {
+        grid-template-columns: 1fr auto;
+    }
 }

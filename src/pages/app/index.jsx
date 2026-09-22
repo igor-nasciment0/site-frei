@@ -48,7 +48,7 @@ export default function App() {
 
   return (
     <div className="shell">
-      <BarraLateral user={user} inscricao={inscricao} />
+      <BarraLateral user={user} inscricao={inscricao} statusVestibular={statusVestibular} />
 
       <main>
         <Cabecalho user={user} inscricao={inscricao} />

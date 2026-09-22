@@ -1,6 +1,9 @@
 import { set } from "local-storage";
+import { useEffect, useState } from "react";
 import callApi from "../../api/callAPI";
 import { login } from "../../api/services/user";
+import { getStatusVestibular } from "../../api/services/vestibular";
+import { converterDataUTCParaLocalSemMudarDia } from "../../util/date";
 import "./index.scss";
 
 import { useForm } from "react-hook-form";
@@ -18,6 +21,16 @@ export default function Login() {
   } = useForm();
 
   const navigate = useNavigate();
+  const [statusVestibular, setStatusVestibular] = useState(null);
+
+  // Aviso proativo — o formulário continua funcionando normalmente (e-mails de teste
+  // cadastrados no admin conseguem logar mesmo com as inscrições fechadas).
+  useEffect(() => {
+    (async () => {
+      const status = await callApi(getStatusVestibular);
+      if (status) setStatusVestibular(status);
+    })();
+  }, []);
 
   const { start, complete } = useLoadingBar({
     color: "#C2A46A",
@@ -51,6 +64,13 @@ export default function Login() {
             <p className="eyebrow">Área do candidato</p>
             <h2>Acessar minha conta</h2>
           </div>
+
+          {statusVestibular && !statusVestibular.allowRegistration &&
+            <p className="aviso-inscricoes-fechadas">
+              As inscrições ainda não começaram. Volte no dia{" "}
+              <strong>{converterDataUTCParaLocalSemMudarDia(statusVestibular.startDate)}</strong>.
+            </p>
+          }
 
           <form onSubmit={handleSubmit(submit)}>
             <div className={"campo " + (errors.Email ? "erro" : "")}>
