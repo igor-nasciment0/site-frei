@@ -179,10 +179,6 @@ export function Pagamento({ pago, onConfirmado }) {
         <button type="button" onClick={copiar}>{copiado ? "Copiado!" : "Copiar código"}</button>
       </div>
 
-      {cobranca.expiresAt &&
-        <p className="expiracao">Cobrança válida até {converterDataUTCParaLocalSemMudarDia(cobranca.expiresAt)}.</p>
-      }
-
       <div className="verificacao">
         <button type="button" className="btn-verificar" onClick={verificarAgora} disabled={verificando}>
           {verificando ? "Verificando…" : "Já paguei — verificar pagamento"}

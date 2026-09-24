@@ -63,6 +63,7 @@ export default function AdminCursoForm() {
       subjects: dados.subjects.map(s => ({ ...s, code: Number(s.code) })),
       installmentsCount: Number(dados.installmentsCount) || 0,
       installmentValue: Number(dados.installmentValue) || 0,
+      ordenacao: Number(dados.ordenacao) || 0,
     };
 
     const r = editando
@@ -113,6 +114,11 @@ export default function AdminCursoForm() {
             <div className="campo">
               <label htmlFor="type">Tipo</label>
               <input {...register("type")} type="text" placeholder="Ex.: Técnico, Livre, Teens" />
+            </div>
+
+            <div className="campo">
+              <label htmlFor="ordenacao">Ordenação</label>
+              <input {...register("ordenacao")} type="number" min="0" placeholder="Menor aparece primeiro" />
             </div>
 
             <div className="campo">

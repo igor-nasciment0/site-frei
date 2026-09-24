@@ -12,7 +12,6 @@ export const parentesco = [
   "Irmão",
   "Avô/Avó",
   "Tio/Tia",
-  "Vizinho",
   "Outro"
 ]
 

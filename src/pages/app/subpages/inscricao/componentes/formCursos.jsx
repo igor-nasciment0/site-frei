@@ -7,6 +7,14 @@ import toast from 'react-hot-toast';
 import { useLoadingBar } from 'react-top-loading-bar';
 import { useNavigate } from 'react-router';
 
+// Ex.: "Manhã - 08:00h às 09:00h". Sem horários cadastrados, mostra só o nome.
+function rotuloHorario(horario) {
+  if (!horario.entryTime || !horario.exitTime)
+    return horario.name;
+
+  return `${horario.name} - ${horario.entryTime}h às ${horario.exitTime}h`;
+}
+
 export default function FormularioCursos() {
 
   const [carregamentoInicial, setCarregamentoInicial] = useState(true);
@@ -243,7 +251,7 @@ export default function FormularioCursos() {
                 value={codigoPrimeiroHorario}
                 onChange={novoValor => handleMudaHorario1(novoValor)}>
                 {opcoesHorario1.map((horario, index) =>
-                  <SelectItem key={'ph' + index} value={String(horario.code)}>{horario.name}</SelectItem>
+                  <SelectItem key={'ph' + index} value={String(horario.code)}>{rotuloHorario(horario)}</SelectItem>
                 )}
               </Select>
             </td>
@@ -273,7 +281,7 @@ export default function FormularioCursos() {
                 value={codigoSegundoHorario}
                 onChange={novoValor => handleMudaHorario2(novoValor)}>
                 {opcoesHorario2.map((horario, index) =>
-                  <SelectItem key={'sh' + index} value={String(horario.code)}>{horario.name}</SelectItem>
+                  <SelectItem key={'sh' + index} value={String(horario.code)}>{rotuloHorario(horario)}</SelectItem>
                 )}
               </Select>
             </td>

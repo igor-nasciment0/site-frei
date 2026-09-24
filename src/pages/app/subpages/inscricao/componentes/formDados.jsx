@@ -300,7 +300,7 @@ export function FormularioRG({ avancar, retornar }) {
           />
         </tr>
 
-        <tr className="group-label"><td colSpan={2}>Documento de Identidade (RG)</td></tr>
+        <tr className="group-label"><td colSpan={2}>Documento de Identidade (RG/SIM)</td></tr>
         <tr>
           <td className="label obrigatorio">Número</td>
 
