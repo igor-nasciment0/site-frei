@@ -179,6 +179,22 @@
                 border-color: t.$c-sand;
             }
 
+            &.pagamento-paid {
+                color: t.$c-navy;
+                border-color: t.$c-sand;
+            }
+
+            &.pagamento-pending {
+                color: t.$c-text-muted;
+            }
+
+            &.pagamento-expired,
+            &.pagamento-failed,
+            &.pagamento-canceled {
+                color: t.$c-clay;
+                border-color: t.$c-alert-border;
+            }
+
             &.status-canceled {
                 color: t.$c-clay;
                 border-color: t.$c-alert-border;

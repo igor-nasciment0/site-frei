@@ -10,7 +10,7 @@ import "./index.scss";
 // criação lendo a resposta do POST.
 export default function AdminUsuarios() {
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
-    defaultValues: { username: "", email: "", name: "", password: "" },
+    defaultValues: { username: "", email: "", name: "", password: "", role: "Admin" },
   });
 
   async function submit(dados) {
@@ -59,6 +59,14 @@ export default function AdminUsuarios() {
               <label htmlFor="email">E-mail</label>
               <input {...register("email", { required: "Campo obrigatório" })} type="email" />
               {errors.email && <span className="mensagem-erro">{errors.email.message}</span>}
+            </div>
+
+            <div className="campo">
+              <label htmlFor="role">Perfil</label>
+              <select {...register("role")} id="role">
+                <option value="Admin">Admin — acesso total</option>
+                <option value="Financeiro">Financeiro — somente relatório financeiro</option>
+              </select>
             </div>
 
             <div className={"campo " + (errors.password ? "erro" : "")}>

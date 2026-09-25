@@ -7,6 +7,7 @@ import Carregamento from "../../../components/carregamento";
 import "./index.scss";
 
 const STATUS_LABEL = { Open: "Aberta", Validated: "Validada", Canceled: "Cancelada" };
+const PAGAMENTO_LABEL = { Pending: "Pendente", Paid: "Pago", Expired: "Vencido", Failed: "Recusado", Canceled: "Cancelado" };
 const PAGE_SIZE = 20;
 
 export default function AdminInscricoes() {
@@ -142,13 +143,14 @@ export default function AdminInscricoes() {
                   <th>RG</th>
                   <th>1ª opção</th>
                   <th>Status</th>
+                  <th>Pagamento</th>
                   <th>Inscrito em</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {resultado.items.length === 0 &&
-                  <tr className="vazio"><td colSpan={8}>Nenhuma inscrição encontrada.</td></tr>
+                  <tr className="vazio"><td colSpan={9}>Nenhuma inscrição encontrada.</td></tr>
                 }
 
                 {resultado.items.map(item => (
@@ -181,6 +183,11 @@ export default function AdminInscricoes() {
                     <td>
                       <span className={"admin-badge status-" + item.status.toLowerCase()}>
                         {STATUS_LABEL[item.status] || item.status}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={"admin-badge pagamento-" + (item.paymentStatus || "").toLowerCase()}>
+                        {PAGAMENTO_LABEL[item.paymentStatus] || item.paymentStatus || "—"}
                       </span>
                     </td>
                     <td>{converterDataUTCParaLocalSemMudarDia(item.createdAt)}</td>

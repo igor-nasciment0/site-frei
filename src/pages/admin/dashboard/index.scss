@@ -20,7 +20,7 @@
 
     .grade-atalhos {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 20px;
 
         @include t.bp-960 {
@@ -158,6 +158,10 @@ $cor-serie-outros: t.$c-inactive;
 
     &.validated .ponto {
         background: $cor-serie-2;
+    }
+
+    &.paga .ponto {
+        background: t.$c-slate;
     }
 
     &.canceled .ponto {

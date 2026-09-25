@@ -86,6 +86,11 @@ function EstatisticasInscricoes({ dados }) {
             <p className="valor">{s.count}</p>
           </div>
         ))}
+        <div className="tile-status paga">
+          <span className="ponto" />
+          <p className="rotulo">Pagas</p>
+          <p className="valor">{dados.paidCount ?? 0}</p>
+        </div>
       </div>
 
       <GraficoPorDia linhas={dados.byDay || []} />

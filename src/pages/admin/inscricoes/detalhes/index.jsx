@@ -191,10 +191,13 @@ function formatarDataHora(dataStringUTC) {
 // que só afetam o pagamento, nunca a inscrição em si: remover a cobrança vigente (o
 // candidato recebe uma nova, com QR code novo, ao reabrir o Acompanhamento) e registrar um
 // pagamento recebido fora do PIX, sem precisar gerar QR code.
+const FORMAS_PAGAMENTO = ["Pix", "Dinheiro", "Cartão de débito", "Cartão de crédito", "Transferência", "Outro"];
+
 function Pagamento({ inscricao, aoAtualizar }) {
   const [resetando, setResetando] = useState(false);
   const [valorManual, setValorManual] = useState("");
   const [dataManual, setDataManual] = useState("");
+  const [formaManual, setFormaManual] = useState("");
   const [enviandoManual, setEnviandoManual] = useState(false);
 
   async function resetar() {
@@ -212,12 +215,18 @@ function Pagamento({ inscricao, aoAtualizar }) {
   }
 
   async function inserirManual() {
+    if (!formaManual) {
+      toast.error("Selecione a forma de pagamento.");
+      return;
+    }
+
     if (!confirm("Marcar esta inscrição como paga manualmente?")) return;
 
     setEnviandoManual(true);
     const r = await callApi(inserirPagamentoManual, true, inscricao.id, {
       valor: valorManual ? Number(valorManual) : undefined,
       pagoEm: dataManual ? new Date(dataManual).toISOString() : undefined,
+      forma: formaManual,
     });
     setEnviandoManual(false);
 
@@ -225,6 +234,7 @@ function Pagamento({ inscricao, aoAtualizar }) {
       toast.success("Pagamento registrado manualmente.");
       setValorManual("");
       setDataManual("");
+      setFormaManual("");
       aoAtualizar();
     }
   }
@@ -242,6 +252,7 @@ function Pagamento({ inscricao, aoAtualizar }) {
         />
         <Info rotulo="Valor" valor={formatarMoeda(inscricao.paymentAmount)} />
         <Info rotulo="Pago em" valor={formatarDataHora(inscricao.paymentPaidAt)} />
+        {status === "Paid" && <Info rotulo="Forma de pagamento" valor={inscricao.paymentMethod || "QR Code"} />}
         <Info rotulo="Cobrança vence em" valor={formatarDataHora(inscricao.paymentExpiresAt)} />
         <Info rotulo="Correlation ID (PIX)" valor={inscricao.paymentCorrelationId || "—"} />
       </div>
@@ -276,6 +287,10 @@ function Pagamento({ inscricao, aoAtualizar }) {
               value={valorManual}
               onChange={e => setValorManual(e.target.value)}
             />
+            <select value={formaManual} onChange={e => setFormaManual(e.target.value)} aria-label="Forma de pagamento">
+              <option value="">Forma de pagamento</option>
+              {FORMAS_PAGAMENTO.map(f => <option key={f} value={f}>{f}</option>)}
+            </select>
             <input
               type="datetime-local"
               value={dataManual}

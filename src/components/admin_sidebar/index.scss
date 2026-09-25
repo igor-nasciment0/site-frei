@@ -113,6 +113,52 @@
         }
     }
 
+    nav .grupo-nav {
+        display: flex;
+        flex-direction: column;
+
+        .grupo-titulo {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            width: 100%;
+            padding: 13px 26px;
+            text-align: left;
+            color: t.$c-on-navy-body;
+            font-size: 14.5px;
+            font-weight: 500;
+            transition: color t.$transition;
+
+            &:hover,
+            &.ativo {
+                color: t.$c-white;
+            }
+
+            .seta {
+                width: 7px;
+                height: 7px;
+                border-right: 1.5px solid currentColor;
+                border-bottom: 1.5px solid currentColor;
+                transform: rotate(45deg);
+                transition: transform t.$transition;
+
+                &.aberta {
+                    transform: rotate(-135deg);
+                }
+            }
+        }
+
+        .grupo-links a {
+            padding-left: 42px;
+            font-size: 14px;
+
+            &.ativo {
+                padding-left: 40px;
+            }
+        }
+    }
+
     .rodape {
         margin-top: auto;
         padding: 0 26px;

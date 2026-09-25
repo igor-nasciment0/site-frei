@@ -33,6 +33,7 @@ import AdminVestibular from './pages/admin/vestibular';
 import AdminVestibularForm from './pages/admin/vestibular/form';
 import AdminUsuarios from './pages/admin/administradores';
 import AdminImportacoes from './pages/admin/importacoes';
+import AdminRelatorioFinanceiro from './pages/admin/relatorios/financeiro';
 
 createRoot(document.getElementById('root')).render(
   <LoadingBarContainer>
@@ -70,6 +71,7 @@ createRoot(document.getElementById('root')).render(
               <Route path='vestibular/novo' element={<AdminVestibularForm />} />
               <Route path='vestibular/:id' element={<AdminVestibularForm />} />
               <Route path='importacoes' element={<AdminImportacoes />} />
+              <Route path='relatorios/financeiro' element={<AdminRelatorioFinanceiro />} />
               <Route path='administradores' element={<AdminUsuarios />} />
             </Route>
             <Route path='/admin/login' element={<AdminLogin />} />

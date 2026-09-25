@@ -116,7 +116,8 @@
         flex-wrap: wrap;
         gap: 10px;
 
-        input {
+        input,
+        select {
             flex: 1;
             min-width: 160px;
             font-size: 14px;

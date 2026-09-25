@@ -1,11 +1,14 @@
 import './index.scss';
 
-import { Outlet, useNavigate } from "react-router";
+import { Navigate, Outlet, useLocation, useNavigate } from "react-router";
 import get from 'local-storage';
 import { useEffect, useState } from 'react';
 import AdminSidebar from '../../components/admin_sidebar';
 import Carregamento from '../../components/carregamento';
 import ToasterContainer from '../../components/toaster_container';
+
+const PERFIL_FINANCEIRO = 'Financeiro';
+const ROTA_FINANCEIRO = '/admin/relatorios/financeiro';
 
 // Layout raiz das telas autenticadas do painel administrativo — paralelo a
 // src/pages/app/index.jsx, mas com sessão própria (chave "adminToken",
@@ -15,6 +18,7 @@ export default function AdminApp() {
   const [mostraApp, setMostraApp] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const token = get('adminToken');
@@ -31,6 +35,11 @@ export default function AdminApp() {
 
   if (!mostraApp)
     return <Carregamento style={{ height: "100dvh" }} />
+
+  // O backend é quem protege os endpoints por perfil; aqui é só para não mostrar telas
+  // que dariam 403. Sessões antigas (sem "role" salvo) são de Admin.
+  if (admin?.role === PERFIL_FINANCEIRO && !location.pathname.startsWith(ROTA_FINANCEIRO))
+    return <Navigate to={ROTA_FINANCEIRO} replace />
 
   return (
     <div className="admin-shell">

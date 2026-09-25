@@ -1,0 +1,61 @@
+@use '../../../../styles/tokens' as t;
+@use '../../../../styles/admin' as admin;
+
+.admin-relatorio-financeiro {
+    @include admin.admin-lista-page;
+
+    .filtros {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 14px;
+
+        label {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+
+            span {
+                @include t.type-label;
+                font-size: 12px;
+                color: t.$c-slate;
+            }
+        }
+
+        input[type='text'] {
+            min-width: 260px;
+        }
+
+        .btn-primario {
+            @include admin.admin-btn-primario;
+        }
+    }
+
+    .barra-resultado {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 20px 0 12px;
+        font-size: 13.5px;
+        color: t.$c-text-muted;
+
+        .btn-exportar {
+            @include admin.admin-btn-fantasma;
+
+            &:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+        }
+    }
+
+    // Sem paginação, e são 9 colunas: a tabela rola na horizontal em vez de estourar a página.
+    .rolagem-tabela {
+        overflow-x: auto;
+
+        .admin-table {
+            min-width: 1200px;
+        }
+    }
+}

@@ -14,10 +14,22 @@ const LINKS = [
   { para: '/admin/administradores', titulo: 'Administradores' },
 ];
 
+// Grupos expansíveis no próprio menu; o grupo abre sozinho quando a rota atual é de um dos filhos.
+const GRUPOS = [
+  {
+    titulo: 'Relatórios',
+    base: '/admin/relatorios',
+    links: [
+      { para: '/admin/relatorios/financeiro', titulo: 'Financeiro' },
+    ],
+  },
+];
+
 export default function AdminSidebar({ admin }) {
   const [aberta, setAberta] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const financeiro = admin?.role === 'Financeiro';
 
   useEffect(() => setAberta(false), [location.pathname]);
 
@@ -51,8 +63,12 @@ export default function AdminSidebar({ admin }) {
       <p className="rotulo-nav">Gestão</p>
 
       <nav>
-        {LINKS.map(link => (
+        {!financeiro && LINKS.map(link => (
           <LinkLateral key={link.para} {...link} pathname={location.pathname} />
+        ))}
+
+        {GRUPOS.map(grupo => (
+          <GrupoLateral key={grupo.base} {...grupo} pathname={location.pathname} />
         ))}
       </nav>
 
@@ -75,5 +91,34 @@ function LinkLateral({ para, titulo, pathname }) {
       {selecionado && <span className="marcador-ativo" />}
       <span className="titulo">{titulo}</span>
     </Link>
+  );
+}
+
+function GrupoLateral({ titulo, base, links, pathname }) {
+  const ativo = pathname.startsWith(base);
+  const [aberto, setAberto] = useState(ativo);
+
+  useEffect(() => { if (ativo) setAberto(true); }, [ativo]);
+
+  return (
+    <div className="grupo-nav">
+      <button
+        type="button"
+        className={'grupo-titulo' + (ativo ? ' ativo' : '')}
+        aria-expanded={aberto}
+        onClick={() => setAberto(!aberto)}
+      >
+        <span className="titulo">{titulo}</span>
+        <span className={'seta' + (aberto ? ' aberta' : '')} aria-hidden="true" />
+      </button>
+
+      {aberto && (
+        <div className="grupo-links">
+          {links.map(link => (
+            <LinkLateral key={link.para} {...link} pathname={pathname} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

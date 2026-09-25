@@ -27,7 +27,8 @@
     "react-loading-skeleton": "^3.5.0",
     "react-router": "^7.9.1",
     "react-top-loading-bar": "^3.0.2",
-    "tailwindcss": "^4.1.13"
+    "tailwindcss": "^4.1.13",
+    "write-excel-file": "^4.1.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

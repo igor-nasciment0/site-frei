@@ -34,10 +34,11 @@ export async function resetarPagamento(id) {
 }
 
 // Marca a inscrição como paga manualmente (pagamento recebido fora do PIX), sem gerar QR code.
-export async function inserirPagamentoManual(id, { valor, pagoEm } = {}) {
+export async function inserirPagamentoManual(id, { valor, pagoEm, forma } = {}) {
     const r = await adminApi().post('/admin/enrollments/' + id + '/payment/manual', {
         amount: valor || null,
-        paidAt: pagoEm || null
+        paidAt: pagoEm || null,
+        method: forma
     });
     return r.data;
 }
