@@ -133,4 +133,61 @@
             @include admin.admin-btn-fantasma;
         }
     }
+
+    .btn-primario {
+        @include admin.admin-btn-primario;
+        flex-shrink: 0;
+    }
+
+    .secao-reset-senha {
+        border-color: t.$c-alert-border;
+
+        .aviso {
+            font-size: 13px;
+            color: t.$c-text-muted;
+            line-height: 1.6;
+        }
+
+        .linha-reset {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+
+            input {
+                flex: 1;
+                min-width: 220px;
+                font-size: 14px;
+                color: t.$c-text;
+                background: t.$c-input-bg;
+                border: 1px solid t.$c-input-border;
+                padding: 10px 12px;
+                font-family: t.$font-sans;
+
+                &:focus {
+                    border-color: t.$c-navy;
+                }
+            }
+        }
+
+        .senha-gerada {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            background: t.$c-row-hover;
+            border: 1px solid t.$c-tag-border;
+            padding: 12px 16px;
+            font-size: 13.5px;
+            color: t.$c-text;
+
+            strong {
+                font-family: t.$font-mono;
+                color: t.$c-navy;
+            }
+
+            .btn-fantasma {
+                @include admin.admin-btn-fantasma;
+            }
+        }
+    }
 }
