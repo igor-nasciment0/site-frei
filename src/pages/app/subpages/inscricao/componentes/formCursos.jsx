@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { getCursoHorarios, getCursos } from '../../../../../api/services/cursos';
 import callApi from '../../../../../api/callAPI';
 import { criaInscricao, getInscricao, validaEscolhasCurso } from '../../../../../api/services/inscricao';
+import { temOpcoesDeCurso } from '../../../../../util/useMinhaInscricao';
 import toast from 'react-hot-toast';
 import { useLoadingBar } from 'react-top-loading-bar';
 import { useNavigate } from 'react-router';
@@ -18,6 +19,8 @@ function rotuloHorario(horario) {
 export default function FormularioCursos() {
 
   const [carregamentoInicial, setCarregamentoInicial] = useState(true);
+
+  const [opcoesCanceladas, setOpcoesCanceladas] = useState(false);
 
   const [minhaInscricao, setMinhaInscricao] = useState(null);
 
@@ -81,7 +84,10 @@ export default function FormularioCursos() {
 
       const insc = (await callApi(getInscricao))?.data;
 
-      if (insc?.firstChoice) {
+      if (insc && !temOpcoesDeCurso(insc))
+        setOpcoesCanceladas(true);
+
+      if (temOpcoesDeCurso(insc)) {
         const idOpcao1 = cursos.find(curso => curso.code == insc.firstChoice.courseCode).id;
         const idOpcao2 = cursos.find(curso => curso.code == insc.secondChoice.courseCode)?.id;
 
@@ -215,6 +221,12 @@ export default function FormularioCursos() {
 
       <table className="tabela-form">
         <tbody>
+          {opcoesCanceladas &&
+            <tr className='cursos-erro'>
+              <td />
+              <td>Suas opções de curso foram canceladas porque os dados de nascimento ou de escolaridade foram alterados. Escolha os cursos novamente.</td>
+            </tr>
+          }
           {erro &&
             <tr className='cursos-erro'>
               <td />

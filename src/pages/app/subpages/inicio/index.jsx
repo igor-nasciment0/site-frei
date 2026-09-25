@@ -8,7 +8,7 @@ import { getTotalCursos } from '../../../../api/services/cursos';
 import Skeleton from 'react-loading-skeleton';
 import { format, addMinutes, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import useMinhaInscricao from '../../../../util/useMinhaInscricao';
+import useMinhaInscricao, { temOpcoesDeCurso } from '../../../../util/useMinhaInscricao';
 import { calcularProgresso } from '../../../../util/progresso';
 import { corrigeURLVideo } from '../../../../util/string';
 import { carregarYoutubeIframeApi } from '../../../../util/youtubeApi';
@@ -88,7 +88,7 @@ export default function Inicio() {
     };
   }, [statusVestibular?.presentationVideoUrl, assistiuVideo])
 
-  const inscricaoConcluida = !!inscricao?.firstChoice;
+  const inscricaoConcluida = temOpcoesDeCurso(inscricao);
   const progresso = calcularProgresso(user, inscricaoConcluida);
   const precisaAssistirVideo = !inscricaoConcluida && !!statusVestibular?.presentationVideoUrl && !assistiuVideo;
 

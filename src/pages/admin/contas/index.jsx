@@ -17,6 +17,8 @@ export default function AdminContas() {
   const [pagina, setPagina] = useState(1);
   const navigate = useNavigate();
   const { openModal } = useModal();
+  // Incrementado quando o modal altera a conta (troca de e-mail), para recarregar a lista.
+  const [versao, setVersao] = useState(0);
 
   // Debounce simples do campo de busca — espera o usuário parar de digitar
   // antes de disparar a requisição (search casa com nome, e-mail ou CPF).
@@ -45,7 +47,7 @@ export default function AdminContas() {
     })();
 
     return () => { ativo = false; };
-  }, [busca, pagina, navigate]);
+  }, [busca, pagina, navigate, versao]);
 
   // O modal é renderizado pelo ModalProvider, fora do BrowserRouter: a navegação para a
   // inscrição é feita por aqui, onde o router existe.
@@ -55,6 +57,7 @@ export default function AdminContas() {
         <ModalConta
           id={id}
           fechar={fechar}
+          onAlterada={() => setVersao(v => v + 1)}
           onVerInscricao={idInscricao => {
             fechar();
             navigate(`/admin/inscricoes/${idInscricao}`);

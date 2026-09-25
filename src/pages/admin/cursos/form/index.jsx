@@ -156,14 +156,23 @@ export default function AdminCursoForm() {
               <input {...register("installmentValue")} type="number" min="0" step="0.01" placeholder="Ex.: 160.00" />
             </div>
 
-            <div className="campo">
-              <label htmlFor="minBirthDate">Data de nascimento mínima permitida</label>
-              <input {...register("maxBirtDate")} type="date" />
+            <div className={"campo " + (errors.maxBirtDate ? "erro" : "")}>
+              <label htmlFor="maxBirtDate">Data de nascimento mínima permitida</label>
+              <input {...register("maxBirtDate", { required: "Campo obrigatório" })} id="maxBirtDate" type="date" />
+              {errors.maxBirtDate && <span className="mensagem-erro">{errors.maxBirtDate.message}</span>}
             </div>
 
-            <div className="campo">
-              <label htmlFor="maxBirthDate">Data de nascimento máxima permitida</label>
-              <input {...register("minBirthDate")} type="date" />
+            <div className={"campo " + (errors.minBirthDate ? "erro" : "")}>
+              <label htmlFor="minBirthDate">Data de nascimento máxima permitida</label>
+              <input
+                {...register("minBirthDate", {
+                  required: "Campo obrigatório",
+                  validate: (maxima, dados) => !dados.maxBirtDate || dados.maxBirtDate <= maxima || "Deve ser igual ou posterior à data mínima",
+                })}
+                id="minBirthDate"
+                type="date"
+              />
+              {errors.minBirthDate && <span className="mensagem-erro">{errors.minBirthDate.message}</span>}
             </div>
 
             <div className="campo">

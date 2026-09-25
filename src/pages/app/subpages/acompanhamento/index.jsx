@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "./index.scss";
 import callApi from "../../../../api/callAPI";
 import { getInscricao } from "../../../../api/services/inscricao";
+import { temOpcoesDeCurso } from "../../../../util/useMinhaInscricao";
 import { getCursos } from "../../../../api/services/cursos";
 import { Link, useNavigate } from "react-router";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
@@ -50,6 +51,19 @@ export default function Acompanhamento() {
   function tipoDoCurso(courseCode) {
     return cursos.find(c => c.code == courseCode)?.type || "Curso";
   }
+
+  if (!carregando && dadosInscricao && !temOpcoesDeCurso(dadosInscricao))
+    return (
+      <section className="sem-inscricao">
+        <p className="eyebrow">Inscrição {dadosInscricao.protocol}</p>
+        <h1>Escolha seus cursos novamente.</h1>
+        <p>
+          Suas opções de curso foram canceladas porque os dados de nascimento ou de escolaridade foram
+          alterados. Escolha os cursos de novo para continuar a inscrição.
+        </p>
+        <button onClick={() => navigate("/inscricao")}>Escolher cursos</button>
+      </section>
+    )
 
   if (naoPossui && !carregando)
     return (

@@ -13,6 +13,8 @@ import { mergeObjects, testState } from '../../../../util/general';
 import { useNavigate, useOutletContext } from 'react-router';
 import { formatarParaInputDate } from '../../../../util/date';
 import { podeEntrarNaInscricao } from '../../../../util/institutionVideo';
+import { getInscricao } from '../../../../api/services/inscricao';
+import { temOpcoesDeCurso } from '../../../../util/useMinhaInscricao';
 
 const formularios = [FormularioDadosPessoais, FormularioEndereco, FormularioNascimento, FormularioRG, FormularioResponsavelPrimario, FormularioResponsavelSecundario, FormularioEscolar, FormularioInformacoesGerais]
 const titulos = ["Informações Pessoais", "Endereço", "Informações de Nascimento", "Documento", "Dados da Mãe", "Responsável Secundário", "Escolaridade", "Informações Gerais"]
@@ -31,6 +33,13 @@ const secoesPorPasso = [
   ["schoolInfo"],
 ]
 
+// Etapas 3 (nascimento) e 7 (escolaridade): alterá-las cancela as opções de curso já escolhidas,
+// porque idade e escolaridade mínima dependem delas (regra aplicada no backend, no PUT /users/profile).
+const CAMPOS_QUE_CANCELAM_CURSOS = {
+  birthInfo: ["date", "city", "state", "country"],
+  schoolInfo: ["currentSchool", "currentGrade", "schoolType"],
+}
+
 export default function Inscricao() {
 
   const statusVestibular = useOutletContext();
@@ -38,6 +47,14 @@ export default function Inscricao() {
 
   const [passoAtual, setPassoAtual] = useState(0);
   const [mostraFormCursos, setMostraFormCursos] = useState(false);
+  const [inscricao, setInscricao] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      const r = await callApi(getInscricao, false);
+      setInscricao(r?.status === 200 ? r.data : null);
+    })();
+  }, [])
 
   // Redundância de segurança pro caso do link direto/URL — o bloqueio "de verdade" já impede o
   // clique na BarraLateral e no botão da Início. Validação só de front (watchInstitutionVideo),
@@ -83,6 +100,35 @@ export default function Inscricao() {
     methods.reset(values)
   }, [window.location.pathname])
 
+  // Compara nascimento/escolaridade do formulário com o que está salvo.
+  function alteraDadosQueCancelamCursos(valores) {
+    const salvo = getInfoAtual();
+    return Object.entries(CAMPOS_QUE_CANCELAM_CURSOS).some(([secao, campos]) =>
+      valores[secao] && campos.some(campo =>
+        String(valores[secao][campo] ?? "").trim() !== String(salvo?.[secao]?.[campo] ?? "").trim()));
+  }
+
+  // Devolve false se o candidato desistir (ou não puder) alterar. Só pergunta quando há curso escolhido.
+  function confirmaCancelamentoDosCursos(valores) {
+    if (!temOpcoesDeCurso(inscricao) || !alteraDadosQueCancelamCursos(valores))
+      return true;
+
+    if (inscricao.status !== 1 || inscricao.paymentStatus === 2) {
+      toast.error("Dados de nascimento e escolaridade não podem mais ser alterados, pois sua inscrição já foi paga ou validada. Procure a secretaria.", { duration: 8000 });
+      return false;
+    }
+
+    return confirm("Alterar os dados de nascimento ou de escolaridade cancela as opções de curso que você já escolheu, e será preciso escolhê-las novamente. Deseja continuar?");
+  }
+
+  // Depois de gravar, reflete localmente o cancelamento feito pelo backend.
+  function marcaCursosCancelados(valores) {
+    if (temOpcoesDeCurso(inscricao) && alteraDadosQueCancelamCursos(valores)) {
+      setInscricao({ ...inscricao, firstChoice: { courseCode: 0 }, secondChoice: { courseCode: 0 } });
+      toast("Suas opções de curso foram canceladas. Escolha-as novamente na etapa Escolha do curso.", { duration: 8000 });
+    }
+  }
+
   async function submitInfoUsuario(novosDados) {
     novosDados.primaryResponsible.relationship = "Mãe";
 
@@ -90,6 +136,8 @@ export default function Inscricao() {
       toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
+
+    if (!confirmaCancelamentoDosCursos(novosDados)) return;
 
     novosDados.generalInfo.income = Number(novosDados.generalInfo.income.toString().replaceAll("R$ ", "").replaceAll(".", "").replaceAll(",", "."));
 
@@ -100,6 +148,7 @@ export default function Inscricao() {
       toast.error(r.Message[0], { duration: 8000 })
     }
     else {
+      marcaCursosCancelados(novosDados);
       set("user", r.data);
       setMostraFormCursos(true);
     }
@@ -113,9 +162,12 @@ export default function Inscricao() {
     if (parcial.primaryResponsible)
       parcial.primaryResponsible = { ...parcial.primaryResponsible, relationship: "Mãe" };
 
+    if (!confirmaCancelamentoDosCursos(parcial)) return false;
+
     const r = await callApi(atualizaUsuario, true, parcial);
     if (!r) return false; // callApi já mostrou o erro
 
+    marcaCursosCancelados(parcial);
     set("user", r.data);
     return true;
   }

@@ -1,3 +1,4 @@
+import { temOpcoesDeCurso } from '../../util/useMinhaInscricao';
 import { Link, useLocation, useMatch, useNavigate } from 'react-router';
 import './index.scss';
 import { useEffect, useState } from 'react';
@@ -24,7 +25,7 @@ export default function BarraLateral({ user, inscricao, statusVestibular }) {
 
   useEffect(() => setAberta(false), [location.pathname]);
 
-  const progresso = calcularProgresso(user, !!inscricao?.firstChoice);
+  const progresso = calcularProgresso(user, temOpcoesDeCurso(inscricao));
   const badgeValue = `${progresso.concluidas}/${progresso.total}`;
 
   // Enquanto o candidato não assiste o vídeo institucional (assistido na Início), "Minha
