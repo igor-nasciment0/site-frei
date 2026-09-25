@@ -181,7 +181,14 @@ export default function Inscricao() {
                 avancar={async (campos) => {
                   const valido = await methods.trigger(campos);
 
-                  if (valido) {
+                  // Antes, um passo barrado pela validação ficava mudo — o botão parecia não fazer nada.
+                  if (!valido) {
+                    console.warn("[Inscricao] validação barrou o passo", passoAtual + 1, methods.formState.errors);
+                    toast.error("Revise os campos do formulário antes de avançar.");
+                    return;
+                  }
+
+                  {
                     if (passoAtual === formularios.length - 1) {
                       await methods.handleSubmit(submitInfoUsuario)();
                     } else if (await salvarPasso(passoAtual)) {
