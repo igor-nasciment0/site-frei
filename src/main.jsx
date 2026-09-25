@@ -32,6 +32,7 @@ import AdminFAQForm from './pages/admin/faq/form';
 import AdminVestibular from './pages/admin/vestibular';
 import AdminVestibularForm from './pages/admin/vestibular/form';
 import AdminUsuarios from './pages/admin/administradores';
+import AdminTrocarSenha from './pages/admin/trocar-senha';
 import AdminImportacoes from './pages/admin/importacoes';
 import AdminRelatorioFinanceiro from './pages/admin/relatorios/financeiro';
 
@@ -74,6 +75,7 @@ createRoot(document.getElementById('root')).render(
               <Route path='relatorios/financeiro' element={<AdminRelatorioFinanceiro />} />
               <Route path='administradores' element={<AdminUsuarios />} />
             </Route>
+            <Route path='/admin/trocar-senha' element={<AdminTrocarSenha />} />
             <Route path='/admin/login' element={<AdminLogin />} />
             <Route path='/admin/bootstrap' element={<AdminBootstrap />} />
           </Routes>

@@ -38,6 +38,10 @@ export default function AdminApp() {
 
   // O backend é quem protege os endpoints por perfil; aqui é só para não mostrar telas
   // que dariam 403. Sessões antigas (sem "role" salvo) são de Admin.
+  // Senha resetada por outro admin: nada do painel abre antes de definir uma nova.
+  if (admin?.mustChangePassword)
+    return <Navigate to="/admin/trocar-senha" replace />
+
   if (admin?.role === PERFIL_FINANCEIRO && !location.pathname.startsWith(ROTA_FINANCEIRO))
     return <Navigate to={ROTA_FINANCEIRO} replace />
 

@@ -1,0 +1,21 @@
+@use '../../../styles/tokens' as t;
+@use '../../../styles/auth' as auth;
+
+.admin-auth-page {
+    @include auth.auth-page;
+
+    .painel-form {
+        @include auth.auth-painel-form;
+
+        // Sair não navega por <a>: o botão reaproveita a aparência de .link-secundario.
+        .link-secundario button {
+            background: none;
+            border: none;
+            padding: 0 0 1px;
+            font: inherit;
+            color: t.$c-navy;
+            border-bottom: 1px solid t.$c-sand;
+            cursor: pointer;
+        }
+    }
+}

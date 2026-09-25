@@ -10,4 +10,72 @@
         line-height: 1.6;
         margin-top: -14px;
     }
+
+    .admin-table {
+        @include admin.admin-table;
+
+        td .nome {
+            display: block;
+            font-weight: 600;
+        }
+
+        td .email {
+            display: block;
+            font-size: 12px;
+            color: t.$c-text-muted;
+        }
+
+        .acoes button {
+            font-size: 13px;
+            font-weight: 600;
+            color: t.$c-clay;
+
+            &:hover:not(:disabled) {
+                text-decoration: underline;
+            }
+
+            &:disabled {
+                opacity: 0.6;
+                cursor: wait;
+            }
+        }
+    }
+
+    .admin-badge {
+        @include admin.admin-badge;
+        margin-right: 6px;
+
+        &.ativo {
+            color: t.$c-navy;
+            border-color: t.$c-navy;
+        }
+
+        &.inativo,
+        &.pendente {
+            color: t.$c-clay;
+            border-color: t.$c-alert-border;
+        }
+    }
+
+    .senha-gerada {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        background: t.$c-white;
+        border: 1px solid t.$c-sand;
+        padding: 14px 18px;
+        font-size: 13.5px;
+
+        strong {
+            font-family: monospace;
+            font-size: 15px;
+            color: t.$c-navy;
+        }
+
+        .btn-fantasma {
+            @include admin.admin-btn-fantasma;
+        }
+    }
 }

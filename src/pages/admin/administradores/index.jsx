@@ -1,17 +1,28 @@
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import callApi from "../../../api/callAPI";
-import { criarAdmin } from "../../../api/services/admin/auth";
+import { criarAdmin, listarAdmins, resetarSenhaAdmin } from "../../../api/services/admin/auth";
+import Carregamento from "../../../components/carregamento";
 import "./index.scss";
 
-// A API (specs/openapi.yaml) só expõe POST /api/admin/users — não existe
-// endpoint de listagem de administradores, então esta tela é só o formulário
-// de criação (sem tabela). O próprio administrador logado confirma a
-// criação lendo a resposta do POST.
+const PERFIL_LABEL = { Admin: "Admin", Financeiro: "Financeiro" };
+
 export default function AdminUsuarios() {
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
     defaultValues: { username: "", email: "", name: "", password: "", role: "Admin" },
   });
+
+  const [admins, setAdmins] = useState(null);
+  const [resetando, setResetando] = useState(null); // id do admin com reset em andamento
+  const [senhaGerada, setSenhaGerada] = useState(null); // { nome, senha }
+
+  useEffect(() => { carregar(); }, []);
+
+  async function carregar() {
+    const r = await callApi(listarAdmins, true);
+    if (r) setAdmins(r);
+  }
 
   async function submit(dados) {
     const r = await callApi(criarAdmin, true, dados);
@@ -19,7 +30,27 @@ export default function AdminUsuarios() {
     if (r?.id) {
       toast.success(`Administrador "${r.name}" criado com sucesso!`);
       reset();
+      carregar();
     }
+  }
+
+  async function resetar(admin) {
+    if (!confirm(`Resetar a senha de "${admin.name}"? A senha atual deixa de funcionar e uma nova será exigida no próximo login.`)) return;
+
+    setResetando(admin.id);
+    const r = await callApi(resetarSenhaAdmin, true, admin.id);
+    setResetando(null);
+
+    if (r?.success) {
+      setSenhaGerada({ nome: admin.name, senha: r.newPassword });
+      toast.success("Senha resetada com sucesso!");
+      carregar();
+    }
+  }
+
+  function copiar() {
+    navigator.clipboard?.writeText(senhaGerada.senha);
+    toast.success("Senha copiada!");
   }
 
   return (
@@ -30,9 +61,59 @@ export default function AdminUsuarios() {
       </div>
 
       <p className="aviso">
-        Conceda acesso ao painel para uma nova pessoa. A API atual não expõe uma lista de administradores existentes —
-        apenas a criação de novos.
+        Veja quem tem acesso ao painel, resete senhas e conceda acesso a novas pessoas.
+        Após um reset, a pessoa precisa definir uma nova senha no próximo login.
       </p>
+
+      {senhaGerada &&
+        <div className="senha-gerada">
+          <span>Nova senha de {senhaGerada.nome}: <strong>{senhaGerada.senha}</strong> — exibida só desta vez, repasse à pessoa.</span>
+          <button type="button" className="btn-fantasma" onClick={copiar}>Copiar</button>
+        </div>
+      }
+
+      {!admins && <Carregamento />}
+
+      {admins &&
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Usuário</th>
+              <th>Perfil</th>
+              <th>Situação</th>
+              <th>Último acesso</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {admins.length === 0 &&
+              <tr className="vazio"><td colSpan={6}>Nenhum administrador cadastrado.</td></tr>
+            }
+
+            {admins.map(a => (
+              <tr key={a.id}>
+                <td>
+                  <span className="nome">{a.name}</span>
+                  <span className="email">{a.email}</span>
+                </td>
+                <td>{a.username}</td>
+                <td>{PERFIL_LABEL[a.role] || a.role}</td>
+                <td>
+                  <span className={"admin-badge " + (a.isActive ? "ativo" : "inativo")}>{a.isActive ? "Ativo" : "Inativo"}</span>
+                  {a.mustChangePassword && <span className="admin-badge pendente">Troca de senha pendente</span>}
+                </td>
+                <td>{a.lastLoginAt ? new Date(a.lastLoginAt).toLocaleString("pt-BR") : "—"}</td>
+                <td className="acoes">
+                  <button type="button" disabled={resetando === a.id} onClick={() => resetar(a)}>
+                    {resetando === a.id ? "Resetando…" : "Resetar senha"}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      }
 
       <div className="admin-form-card">
         <form onSubmit={handleSubmit(submit)}>
