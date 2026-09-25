@@ -6,9 +6,9 @@
 
     .filtros {
         display: flex;
+        gap: 12px;
         flex-wrap: wrap;
         align-items: flex-end;
-        gap: 14px;
 
         label {
             display: flex;
@@ -22,8 +22,23 @@
             }
         }
 
-        input[type='text'] {
-            min-width: 260px;
+        // Mesmo padrão de campo das listas de Inscrições/Contas.
+        input {
+            font-size: 14px;
+            color: t.$c-text;
+            background: t.$c-input-bg;
+            border: 1px solid t.$c-input-border;
+            padding: 10px 12px;
+            font-family: t.$font-sans;
+
+            &:focus {
+                border-color: t.$c-navy;
+            }
+        }
+
+        label:first-child {
+            flex: 1;
+            min-width: 240px;
         }
 
         .btn-primario {
@@ -50,12 +65,23 @@
         }
     }
 
-    // Sem paginação, e são 9 colunas: a tabela rola na horizontal em vez de estourar a página.
-    .rolagem-tabela {
-        overflow-x: auto;
+    // São 11 colunas: células mais compactas e com quebra de linha, para a tabela caber
+    // na largura da página sem rolagem horizontal.
+    .admin-table {
+        th,
+        td {
+            padding: 10px 10px;
+            font-size: 12.5px;
+            overflow-wrap: anywhere;
+        }
 
-        .admin-table {
-            min-width: 1200px;
+        th {
+            font-size: 10.5px;
         }
     }
+}
+
+// A largura padrão do conteúdo do painel (1120px) é estreita para esta tabela.
+.pad:has(.admin-relatorio-financeiro) {
+    max-width: none;
 }

@@ -105,7 +105,7 @@ export default function AdminRelatorioFinanceiro() {
             </button>
           </div>
 
-          <div className="rolagem-tabela">
+          <div>
             <table className="admin-table">
               <thead>
                 <tr>{COLUNAS.map((c, i) => <th key={i}>{c.titulo}</th>)}</tr>
