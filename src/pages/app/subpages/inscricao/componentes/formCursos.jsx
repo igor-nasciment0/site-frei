@@ -2,7 +2,7 @@ import { Select, SelectItem } from '../../../../../components/select';
 import { useEffect, useState } from 'react';
 import { getCursoHorarios, getCursos } from '../../../../../api/services/cursos';
 import callApi from '../../../../../api/callAPI';
-import { criaInscricao, getInscricao, getOpcoesSegundaOpcao, validaEscolhasCurso } from '../../../../../api/services/inscricao';
+import { criaInscricao, getInscricao, getOpcoesPrimeiraOpcao, getOpcoesSegundaOpcao, validaEscolhasCurso } from '../../../../../api/services/inscricao';
 import { temOpcoesDeCurso } from '../../../../../util/useMinhaInscricao';
 import toast from 'react-hot-toast';
 import { useLoadingBar } from 'react-top-loading-bar';
@@ -34,6 +34,10 @@ export default function FormularioCursos() {
   const [codigoSegundoHorario, setCodigoSegundoHorario] = useState("");
 
   const [opcoesCurso, setOpcoesCurso] = useState([]);
+
+  // Cursos/períodos que o candidato consegue usar como 1ª opção (matriz + nascimento +
+  // escolaridade). null = não carregado (ou falhou) — aí a lista não é filtrada.
+  const [opcoesPrimeira, setOpcoesPrimeira] = useState(null);
   const [opcoesHorario1, setOpcoesHorario1] = useState([]);
   const [opcoesHorario2, setOpcoesHorario2] = useState([]);
 
@@ -45,6 +49,21 @@ export default function FormularioCursos() {
   const [regraSegunda, setRegraSegunda] = useState(null);
 
   const primeiraOpcaoCurso = opcoesCurso?.find(opcao => opcao.code == codigoPrimeiroCurso);
+
+  // A 1ª opção já salva na inscrição continua na lista mesmo se deixou de valer para o perfil —
+  // o aviso de validação explica o motivo, em vez de o campo aparecer vazio.
+  const salvaPrimeira = minhaInscricao?.firstChoice;
+  const periodosPrimeira = codigo => {
+    const permitidos = opcoesPrimeira?.find(o => o.courseCode == codigo)?.periodCodes ?? [];
+    return salvaPrimeira?.courseCode == codigo ? [...permitidos, salvaPrimeira.periodCode] : permitidos;
+  };
+  const cursosPrimeiraOpcao = opcoesPrimeira
+    ? opcoesCurso.filter(curso => periodosPrimeira(curso.code).length > 0)
+    : opcoesCurso;
+  const horariosPrimeiraOpcao = opcoesPrimeira
+    ? opcoesHorario1.filter(horario => periodosPrimeira(codigoPrimeiroCurso).includes(horario.code))
+    : opcoesHorario1;
+  const semCursoDisponivel = !carregamentoInicial && opcoesPrimeira && cursosPrimeiraOpcao.length === 0;
   const segundaOpcaoCurso = opcoesCurso?.find(opcao => opcao.code == codigoSegundoCurso);
 
   // A API já devolve só cursos com algum período disponível (inclusive o próprio curso da 1ª
@@ -147,8 +166,12 @@ export default function FormularioCursos() {
   // USE_EFFECTS PARA CARREGAR CURSOS E HORÁRIOS
   useEffect(() => {
     (async () => {
-      const cursos = await callApi(getCursos);
+      const [cursos, primeira] = await Promise.all([
+        callApi(getCursos),
+        callApi(getOpcoesPrimeiraOpcao, false),
+      ]);
       setOpcoesCurso(cursos);
+      setOpcoesPrimeira(Array.isArray(primeira) ? primeira : null);
 
       // 404 = ainda sem inscrição; o corpo do 404 não é uma inscrição.
       const respostaInscricao = await callApi(getInscricao);
@@ -296,6 +319,12 @@ export default function FormularioCursos() {
               <td>Suas opções de curso foram canceladas porque os dados de nascimento ou de escolaridade foram alterados. Escolha os cursos novamente.</td>
             </tr>
           }
+          {semCursoDisponivel &&
+            <tr className='cursos-erro'>
+              <td />
+              <td>Nenhum curso está disponível para o seu perfil (data de nascimento e escolaridade informadas). Confira seus dados ou fale com a secretaria.</td>
+            </tr>
+          }
           {erro &&
             <tr className='cursos-erro'>
               <td />
@@ -313,7 +342,7 @@ export default function FormularioCursos() {
                 className={carregamentoInicial ? "carregando" : ""}
                 onChange={novoValor => handleMudaPrimeiraOpcaoCurso(novoValor)}>
 
-                {opcoesCurso.map((curso, index) =>
+                {cursosPrimeiraOpcao.map((curso, index) =>
                   <SelectItem key={'po' + index} value={String(curso.code)}>
                     {curso.name}
                   </SelectItem>
@@ -331,7 +360,7 @@ export default function FormularioCursos() {
                 placeholder="Selecione um horário..."
                 value={codigoPrimeiroHorario}
                 onChange={novoValor => handleMudaHorario1(novoValor)}>
-                {opcoesHorario1.map((horario, index) =>
+                {horariosPrimeiraOpcao.map((horario, index) =>
                   <SelectItem key={'ph' + index} value={String(horario.code)}>{rotuloHorario(horario)}</SelectItem>
                 )}
               </Select>

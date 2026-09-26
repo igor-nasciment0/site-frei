@@ -13,6 +13,14 @@ export async function validaEscolhasCurso(dadosEscolhas) {
   return r.data;
 }
 
+// Cursos e períodos que o candidato consegue usar como 1ª opção — matriz de compatibilidade e
+// faixa de nascimento do cadastro, já filtrados pelo perfil dele (nascimento, escolaridade,
+// aluno interno/externo).
+export async function getOpcoesPrimeiraOpcao() {
+  const r = await api().get("/enrollments/first-choice-options");
+  return r.data;
+}
+
 // Obrigatoriedade da 2ª opção e cursos/períodos permitidos nela, dada a 1ª (curso e período) —
 // segundo a matriz de compatibilidade do painel admin, já filtrados pelo perfil do candidato
 // (aluno interno/externo, nascimento, escolaridade).
