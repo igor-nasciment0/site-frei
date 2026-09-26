@@ -2,7 +2,7 @@ import { Select, SelectItem } from '../../../../../components/select';
 import { useEffect, useState } from 'react';
 import { getCursoHorarios, getCursos } from '../../../../../api/services/cursos';
 import callApi from '../../../../../api/callAPI';
-import { criaInscricao, getInscricao, validaEscolhasCurso } from '../../../../../api/services/inscricao';
+import { criaInscricao, getInscricao, getOpcoesSegundaOpcao, validaEscolhasCurso } from '../../../../../api/services/inscricao';
 import { temOpcoesDeCurso } from '../../../../../util/useMinhaInscricao';
 import toast from 'react-hot-toast';
 import { useLoadingBar } from 'react-top-loading-bar';
@@ -15,6 +15,10 @@ function rotuloHorario(horario) {
 
   return `${horario.name} - ${horario.entryTime}h às ${horario.exitTime}h`;
 }
+
+// Mesmos valores do enum SecondChoiceRequirement da API.
+const SEGUNDA_OBRIGATORIA = 1;
+const SEGUNDA_OPCIONAL = 2;
 
 export default function FormularioCursos() {
 
@@ -36,8 +40,72 @@ export default function FormularioCursos() {
   const [erro, setErro] = useState("");
   const [avisoCompatibilidade, setAvisoCompatibilidade] = useState("");
 
+  // O que a 1ª opção escolhida (curso e período) permite na 2ª, segundo a matriz de
+  // compatibilidade do admin — já filtrado pelo perfil do candidato. null = ainda não consultado.
+  const [regraSegunda, setRegraSegunda] = useState(null);
+
   const primeiraOpcaoCurso = opcoesCurso?.find(opcao => opcao.code == codigoPrimeiroCurso);
   const segundaOpcaoCurso = opcoesCurso?.find(opcao => opcao.code == codigoSegundoCurso);
+
+  // A API já devolve só cursos com algum período disponível (inclusive o próprio curso da 1ª
+  // opção, em outro período, quando a diagonal libera).
+  const opcaoDoCurso = codigo => regraSegunda?.options.find(o => o.courseCode == codigo);
+  const cursosSegundaOpcao = regraSegunda
+    ? opcoesCurso.filter(curso => opcaoDoCurso(curso.code))
+    : [];
+  const aceitaSegunda = cursosSegundaOpcao.length > 0;
+  const segundaObrigatoria = regraSegunda?.secondChoiceRequirement === SEGUNDA_OBRIGATORIA;
+  const segundaOpcional = regraSegunda?.secondChoiceRequirement === SEGUNDA_OPCIONAL;
+
+  // Só os períodos que a matriz habilita para o período escolhido na 1ª opção.
+  const periodosPermitidos = opcaoDoCurso(codigoSegundoCurso)?.periodCodes ?? [];
+  const horariosSegundaOpcao = opcoesHorario2.filter(horario => periodosPermitidos.includes(horario.code));
+
+  let placeholderSegunda = "Selecione um curso...";
+  if (!codigoPrimeiroCurso) placeholderSegunda = "Escolha a primeira opção antes";
+  else if (!codigoPrimeiroHorario) placeholderSegunda = "Escolha o período da primeira opção antes";
+  else if (!regraSegunda) placeholderSegunda = "Carregando...";
+  else if (!aceitaSegunda) placeholderSegunda = "Sem segunda opção para este curso";
+  else if (segundaOpcional) placeholderSegunda = "Sem segunda opção";
+
+  // A cada 1ª opção (curso + período), busca o que ela permite como 2ª.
+  useEffect(() => {
+    if (!codigoPrimeiroCurso || !codigoPrimeiroHorario) {
+      setRegraSegunda(null);
+      return;
+    }
+
+    let cancelado = false;
+    setRegraSegunda(null);
+
+    (async () => {
+      const r = await callApi(getOpcoesSegundaOpcao, false, codigoPrimeiroCurso, codigoPrimeiroHorario);
+      if (cancelado || !r) return;
+
+      setRegraSegunda(r);
+    })();
+
+    return () => { cancelado = true; };
+  }, [codigoPrimeiroCurso, codigoPrimeiroHorario]);
+
+  // 2ª opção (ou só o período dela) que não entra na lista da nova 1ª é limpa — o backend
+  // recusaria a combinação de qualquer jeito. Só reage à regra nova, não a cada troca da 2ª.
+  useEffect(() => {
+    if (!regraSegunda || !codigoSegundoCurso) return;
+
+    const opcao = regraSegunda.options.find(o => o.courseCode == codigoSegundoCurso);
+    if (!opcao) {
+      setCodigoSegundoCurso("");
+      setCodigoSegundoHorario("");
+      setErro("Sua segunda opção foi removida porque não pode ser combinada com a primeira escolhida.");
+      return;
+    }
+
+    if (codigoSegundoHorario && !opcao.periodCodes.includes(Number(codigoSegundoHorario))) {
+      setCodigoSegundoHorario("");
+      setErro("O período da sua segunda opção foi removido porque não pode ser combinado com a primeira escolhida.");
+    }
+  }, [regraSegunda]);
 
   // Aviso antecipado de incompatibilidade entre 1ª e 2ª opção (ou qualquer outro requisito da
   // inscrição) — roda no backend a mesma validação de POST /enrollments, com debounce, sem
@@ -82,14 +150,16 @@ export default function FormularioCursos() {
       const cursos = await callApi(getCursos);
       setOpcoesCurso(cursos);
 
-      const insc = (await callApi(getInscricao))?.data;
+      // 404 = ainda sem inscrição; o corpo do 404 não é uma inscrição.
+      const respostaInscricao = await callApi(getInscricao);
+      const insc = respostaInscricao?.status === 200 ? respostaInscricao.data : null;
 
       if (insc && !temOpcoesDeCurso(insc))
         setOpcoesCanceladas(true);
 
       if (temOpcoesDeCurso(insc)) {
         const idOpcao1 = cursos.find(curso => curso.code == insc.firstChoice.courseCode).id;
-        const idOpcao2 = cursos.find(curso => curso.code == insc.secondChoice.courseCode)?.id;
+        const idOpcao2 = cursos.find(curso => curso.code == insc.secondChoice?.courseCode)?.id;
 
         const h1 = await callApi(getCursoHorarios, false, idOpcao1);
 
@@ -110,9 +180,12 @@ export default function FormularioCursos() {
   useEffect(() => {
     if (minhaInscricao) {
       setCodigoPrimeiroCurso(String(minhaInscricao.firstChoice.courseCode));
-      setCodigoSegundoCurso(String(minhaInscricao.secondChoice.courseCode));
       setCodigoPrimeiroHorario(String(minhaInscricao.firstChoice.periodCode));
-      setCodigoSegundoHorario(String(minhaInscricao.secondChoice.periodCode));
+
+      // Sem 2ª opção a API devolve código 0 — no formulário isso é "vazio".
+      const segunda = minhaInscricao.secondChoice;
+      setCodigoSegundoCurso(segunda?.courseCode ? String(segunda.courseCode) : "");
+      setCodigoSegundoHorario(segunda?.courseCode ? String(segunda.periodCode) : "");
     }
 
   }, [minhaInscricao])
@@ -185,12 +258,8 @@ export default function FormularioCursos() {
       return;
     }
 
-    // const nomePrimeiraOpcaoCurso = primeiraOpcaoCurso?.name.toLowerCase().normalize();
-
-    // if ((!codigoSegundoCurso || !codigoSegundoHorario) && !nomePrimeiraOpcaoCurso.includes("teens")) {
-    //   toast.error(`"Sem segunda opção" só está disponível para os cursos Teens.`);
-    //   return;
-    // }
+    // Se a 2ª opção é obrigatória depende da 1ª (matriz de compatibilidade) — quem recusa é o
+    // backend, e o aviso antecipado (validate-choices) já mostra a mensagem antes do clique.
 
     setCarregando(true);
 
@@ -269,30 +338,33 @@ export default function FormularioCursos() {
             </td>
           </tr>
           <tr>
-            <td className="label obrigatorio">Segunda Opção de Curso</td>
+            <td className={"label" + (segundaObrigatoria ? " obrigatorio" : "")}>Segunda Opção de Curso</td>
             <td className="input">
 
+              {/* Só os cursos que a matriz de compatibilidade libera para a 1ª opção escolhida. */}
               <Select
-                placeholder="Sem segunda opção"
-                disabled={carregamentoInicial}
+                placeholder={placeholderSegunda}
+                disabled={carregamentoInicial || !aceitaSegunda}
                 value={codigoSegundoCurso}
                 onChange={novoValor => handleMudaSegundaOpcaoCurso(novoValor)}>
-                <SelectItem value="" placeholder>Sem segunda opção</SelectItem>
-                {opcoesCurso.map((curso, index) =>
-                  <SelectItem key={'so' + index} value={String(curso.code)}>{curso.name}</SelectItem>
+                {segundaOpcional && <SelectItem value="">Sem segunda opção</SelectItem>}
+                {cursosSegundaOpcao.map((curso, index) =>
+                  <SelectItem key={'so' + index} value={String(curso.code)}>
+                    {curso.code == codigoPrimeiroCurso ? `${curso.name} (outro período)` : curso.name}
+                  </SelectItem>
                 )}
               </Select>
             </td>
           </tr>
           <tr>
-            <td className="label obrigatorio">Período Segunda Opção</td>
+            <td className={"label" + (segundaObrigatoria ? " obrigatorio" : "")}>Período Segunda Opção</td>
             <td className="input">
               <Select
                 disabled={!segundaOpcaoCurso || carregamentoInicial}
                 placeholder="Selecione um horário..."
                 value={codigoSegundoHorario}
                 onChange={novoValor => handleMudaHorario2(novoValor)}>
-                {opcoesHorario2.map((horario, index) =>
+                {horariosSegundaOpcao.map((horario, index) =>
                   <SelectItem key={'sh' + index} value={String(horario.code)}>{rotuloHorario(horario)}</SelectItem>
                 )}
               </Select>

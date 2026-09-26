@@ -29,6 +29,7 @@ import AdminCursos from './pages/admin/cursos';
 import AdminCursoForm from './pages/admin/cursos/form';
 import AdminFAQs from './pages/admin/faq';
 import AdminFAQForm from './pages/admin/faq/form';
+import AdminCompatibilidades from './pages/admin/compatibilidades';
 import AdminVestibular from './pages/admin/vestibular';
 import AdminVestibularForm from './pages/admin/vestibular/form';
 import AdminUsuarios from './pages/admin/administradores';
@@ -68,6 +69,7 @@ createRoot(document.getElementById('root')).render(
               <Route path='faq' element={<AdminFAQs />} />
               <Route path='faq/novo' element={<AdminFAQForm />} />
               <Route path='faq/:id' element={<AdminFAQForm />} />
+              <Route path='compatibilidades' element={<AdminCompatibilidades />} />
               <Route path='vestibular' element={<AdminVestibular />} />
               <Route path='vestibular/novo' element={<AdminVestibularForm />} />
               <Route path='vestibular/:id' element={<AdminVestibularForm />} />

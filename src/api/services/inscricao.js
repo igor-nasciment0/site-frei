@@ -13,6 +13,16 @@ export async function validaEscolhasCurso(dadosEscolhas) {
   return r.data;
 }
 
+// Obrigatoriedade da 2ª opção e cursos/períodos permitidos nela, dada a 1ª (curso e período) —
+// segundo a matriz de compatibilidade do painel admin, já filtrados pelo perfil do candidato
+// (aluno interno/externo, nascimento, escolaridade).
+export async function getOpcoesSegundaOpcao(codigoPrimeiroCurso, codigoPrimeiroHorario) {
+  const r = await api().get("/enrollments/second-choice-options", {
+    params: { firstChoiceCourseCode: codigoPrimeiroCurso, firstChoicePeriodCode: codigoPrimeiroHorario }
+  });
+  return r.data;
+}
+
 export async function getInscricao() {
   const r = await api().get("/enrollments/my-enrollment", {
     validateStatus: status => (status >= 200 && status < 300) || status === 404

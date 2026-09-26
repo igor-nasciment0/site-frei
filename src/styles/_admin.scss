@@ -24,6 +24,11 @@
         width: 100%;
     }
 
+    // A matriz de compatibilidades precisa da largura inteira: ela tem uma coluna por curso.
+    .pad:has(.admin-compatibilidades) {
+        max-width: none;
+    }
+
     @include t.bp-1150 {
         .pad {
             padding: 36px 32px 64px;

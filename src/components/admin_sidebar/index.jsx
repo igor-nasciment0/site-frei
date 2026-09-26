@@ -8,6 +8,7 @@ const LINKS = [
   { para: '/admin/inscricoes', titulo: 'Inscrições' },
   { para: '/admin/contas', titulo: 'Contas' },
   { para: '/admin/cursos', titulo: 'Cursos' },
+  { para: '/admin/compatibilidades', titulo: 'Compatibilidades' },
   { para: '/admin/faq', titulo: 'Dúvidas frequentes' },
   { para: '/admin/vestibular', titulo: 'Vestibular' },
   { para: '/admin/importacoes', titulo: 'Importações' },

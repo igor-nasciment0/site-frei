@@ -92,7 +92,8 @@ Regras:
 - Só fica acessível depois que o wizard de dados pessoais foi preenchido ao menos uma vez (checagem: `generalInfo.howDidYouKnow` não vazio).
 - Traz um link "Conheça os cursos disponíveis" (abre `/cursos` em **nova aba**, para não descartar o
   estado do wizard).
-- Seleciona 1ª opção de curso (obrigatória) + período/horário daquele curso (obrigatório), e opcionalmente uma 2ª opção de curso + horário.
+- Seleciona 1ª opção de curso (obrigatória) + período/horário daquele curso (obrigatório), e a 2ª opção de curso + horário.
+- **A 2ª opção depende da 1ª**, pela matriz de compatibilidade configurada no painel admin (menu Compatibilidades): a lista só traz os cursos liberados para aquela 1ª opção — já descontadas as condições de idade/escolaridade que o candidato não atende —, e a 2ª pode ser obrigatória, opcional ou não permitida. O mesmo curso em outro período aparece como "(outro período)" quando liberado.
 - Se o usuário já tiver uma inscrição enviada, o formulário vem pré-preenchido com as escolhas atuais (permitindo alteração, dentro da fase permitida).
 - **Regra de conflito:** 1ª e 2ª opção não podem ser o mesmo par curso+horário — ao detectar, o sistema limpa a opção conflitante e mostra mensagem de erro inline.
 - Ao concluir: `POST /enrollments` com os códigos escolhidos. Sucesso → barra de progresso, toast "Sucesso!", redirecionamento para `/acompanhamento`.
@@ -174,6 +175,6 @@ há prova a informar, e antes do pagamento a prova ainda não é a etapa atual.
 ## Casos de uso ainda não implementados / pontos em aberto observados no código
 
 - Recuperação de senha depende inteiramente do backend enviar e o usuário digitar corretamente um "código" — não há reenvio de código nem contagem regressiva na tela `/trocar-senha`.
-- A regra "2ª opção obrigatória, exceto para cursos Teens" existe comentada em `formCursos.jsx`, sugerindo que foi desativada intencionalmente (2ª opção é sempre opcional atualmente).
+- ~~A regra "2ª opção obrigatória, exceto para cursos Teens" comentada em `formCursos.jsx`~~ — a obrigatoriedade passou para a matriz de compatibilidade do admin (2026-09-26).
 - O componente `Select` tem uma implementação alternativa mais rica (Radix UI) comentada, indicando um redesign visual de select pendente.
 - `perguntas.js` (mock de FAQ) está presente mas não é mais usado — a fonte de verdade é a API.

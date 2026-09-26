@@ -50,6 +50,7 @@ LoadingBarContainer (react-top-loading-bar)
     :id                 → AdminInscricaoDetalhes
   contas                → AdminContas  (lista de contas; dados em modal só leitura)
   cursos                → AdminCursos  (novo | :id → AdminCursoForm)
+  compatibilidades      → AdminCompatibilidades  (matriz 1ª × 2ª opção de curso)
   faq                   → AdminFAQs    (novo | :id → AdminFAQForm)
   vestibular            → AdminVestibular (novo | :id → AdminVestibularForm)
   importacoes           → AdminImportacoes  (upload dos CSVs)
@@ -72,10 +73,10 @@ LoadingBarContainer (react-top-loading-bar)
   - `user.js` — `cadastro`, `login`, `atualizaUsuario` (PUT profile — usado pelo formulário de inscrição para submeter dados pessoais completos), `recuperacaoSenha`, `trocaSenha`, `getInfoUsuario`, `enviaDocumentoRG`/`getDocumentoRG` (anexo do RG, em `multipart` — não cabe no JSON do perfil).
   - `vestibular.js` — `getStatusVestibular` → `GET /parameters` (datas de abertura/fechamento de inscrição, fase atual, data/URL de resultado).
   - `cursos.js` — `getCursos`, `getTotalCursos` (`GET /courses/count`, **anônimo** — usado pelo painel das telas públicas e pela Início), `getCursoId`, `getCursoImagem` (blob), `getCursoHorarios` (períodos/turnos de um curso).
-  - `inscricao.js` — `criaInscricao` (POST enrollment com 1ª/2ª opção de curso+horário), `getInscricao` (GET, aceita 404 como resposta válida via `validateStatus` — usado para saber se o usuário ainda não se inscreveu), `validaEscolhasCurso` (`POST /enrollments/validate-choices` — roda a mesma validação do backend sem persistir, usada com debounce em `FormularioCursos` pra avisar incompatibilidade de curso antes do submit), `geraCobrancaInscricao` (`POST /enrollments/my-enrollment/payment` — gera ou devolve a cobrança PIX vigente) e `getStatusPagamentoInscricao` (`GET /enrollments/my-enrollment/payment/status` — a API consulta o provedor e devolve a situação atualizada).
+  - `inscricao.js` — `criaInscricao` (POST enrollment com 1ª/2ª opção de curso+horário), `getInscricao` (GET, aceita 404 como resposta válida via `validateStatus` — usado para saber se o usuário ainda não se inscreveu), `getOpcoesSegundaOpcao` (`GET /enrollments/second-choice-options` — obrigatoriedade da 2ª opção e cursos permitidos nela para a 1ª escolhida, segundo a matriz do admin, já filtrados pela idade/escolaridade do candidato), `validaEscolhasCurso` (`POST /enrollments/validate-choices` — roda a mesma validação do backend sem persistir, usada com debounce em `FormularioCursos` pra avisar incompatibilidade de curso antes do submit), `geraCobrancaInscricao` (`POST /enrollments/my-enrollment/payment` — gera ou devolve a cobrança PIX vigente) e `getStatusPagamentoInscricao` (`GET /enrollments/my-enrollment/payment/status` — a API consulta o provedor e devolve a situação atualizada).
   - `agendamento.js` — `getDatasAgendamento` (datas disponíveis para a prova), `getAgendamento` (agendamento do usuário logado), `criaAgendamento` (agenda/reagenda a prova).
   - `faq.js` — `getFAQ` (cada pergunta traz `key`, o slug estável usado nos links diretos `/faq?q=<key>`).
-  - `services/admin/` — serviços da área administrativa, sobre `adminBase.js` (token em `adminToken`, separado do candidato): `auth`, `cursos`, `faq`, `inscricoes`, `contas` (contas de candidatos, só leitura), `vestibular` e `importacoes` (upload de CSV em `multipart`).
+  - `services/admin/` — serviços da área administrativa, sobre `adminBase.js` (token em `adminToken`, separado do candidato): `auth`, `cursos`, `compatibilidades` (matriz de compatibilidade), `faq`, `inscricoes`, `contas` (contas de candidatos, só leitura), `vestibular` e `importacoes` (upload de CSV em `multipart`).
   - `enderecos.js` — não usa `api()`/backend próprio: chama diretamente a API pública ViaCEP (`https://viacep.com.br/ws/{cep}/json/`) para autocompletar endereço a partir do CEP.
 
 Convenção: nenhuma tela chama `axios`/`api()` diretamente — sempre `callApi(service, toastIt, ...args)`, o que centraliza tratamento de erro/toast.
