@@ -8,11 +8,20 @@ import {
   resetarPagamento,
   inserirPagamentoManual,
   removerInscricao,
+  getOpcoesPrimeiraOpcaoAdmin,
+  getOpcoesSegundaOpcaoAdmin,
+  atualizarEscolhasCurso,
 } from "../../../../api/services/admin/inscricoes";
+import { listarCursos } from "../../../../api/services/admin/cursos";
 import { converterDataUTCParaLocalSemMudarDia } from "../../../../util/date";
 import Carregamento from "../../../../components/carregamento";
+import { Select, SelectItem } from "../../../../components/select";
 import DadosCandidato, { Info } from "../../componentes/dadosCandidato";
 import "./index.scss";
+
+// Mesmos valores do enum SecondChoiceRequirement da API (ver formCursos.jsx, do candidato).
+const SEGUNDA_OBRIGATORIA = 1;
+const SEGUNDA_OPCIONAL = 2;
 
 const STATUS_LABEL = { Open: "Aberta", Validated: "Validada", Canceled: "Cancelada" };
 
@@ -66,10 +75,7 @@ export default function AdminInscricaoDetalhes() {
           <Info rotulo="Horário da prova" valor={inscricao.testTime || "—"} />
         </div>
 
-        <div className="grade-info">
-          <Info rotulo="1ª opção" valor={inscricao.firstChoice ? `${inscricao.firstChoice.courseName} — ${inscricao.firstChoice.periodName}` : "—"} />
-          <Info rotulo="2ª opção" valor={inscricao.secondChoice ? `${inscricao.secondChoice.courseName} — ${inscricao.secondChoice.periodName}` : "—"} />
-        </div>
+        <EscolhasCurso inscricao={inscricao} aoAtualizar={carregar} />
       </div>
 
       <Pagamento inscricao={inscricao} aoAtualizar={carregar} />
@@ -301,6 +307,251 @@ function Pagamento({ inscricao, aoAtualizar }) {
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Ex.: "Manhã - 08:00h às 09:00h". Sem horários cadastrados, mostra só o nome. Mesma regra do
+// formCursos.jsx (candidato).
+function rotuloHorario(horario) {
+  if (!horario.entryTime || !horario.exitTime)
+    return horario.name;
+
+  return `${horario.name} - ${horario.entryTime}h às ${horario.exitTime}h`;
+}
+
+// Mostra a 1ª/2ª opção de curso e período da inscrição e, sob demanda, permite à secretaria
+// trocá-las. Roda no backend exatamente as mesmas validações do formulário do candidato (matriz
+// de compatibilidade, idade, RG, mensalidades em aberto, cadastro completo) — a diferença é que
+// aqui funciona mesmo com a inscrição já validada ou paga, travas que só bloqueiam o candidato
+// (ver AdminUpdateEnrollmentChoicesCommandHandler).
+function EscolhasCurso({ inscricao, aoAtualizar }) {
+  const [editando, setEditando] = useState(false);
+  const [carregandoOpcoes, setCarregandoOpcoes] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+
+  const [cursos, setCursos] = useState([]);
+  // Cursos/períodos que o candidato consegue usar como 1ª opção (matriz + nascimento +
+  // escolaridade). null = não carregado (ou falhou) — aí a lista não é filtrada.
+  const [opcoesPrimeira, setOpcoesPrimeira] = useState(null);
+  // O que a 1ª opção escolhida permite como 2ª, segundo a matriz — já filtrado pelo perfil do
+  // candidato. null = ainda não consultado.
+  const [regraSegunda, setRegraSegunda] = useState(null);
+
+  const [codigoPrimeiroCurso, setCodigoPrimeiroCurso] = useState("");
+  const [codigoPrimeiroHorario, setCodigoPrimeiroHorario] = useState("");
+  const [codigoSegundoCurso, setCodigoSegundoCurso] = useState("");
+  const [codigoSegundoHorario, setCodigoSegundoHorario] = useState("");
+  const [erro, setErro] = useState("");
+
+  async function iniciarEdicao() {
+    setCodigoPrimeiroCurso(inscricao.firstChoice ? String(inscricao.firstChoice.courseCode) : "");
+    setCodigoPrimeiroHorario(inscricao.firstChoice ? String(inscricao.firstChoice.periodCode) : "");
+    setCodigoSegundoCurso(inscricao.secondChoice ? String(inscricao.secondChoice.courseCode) : "");
+    setCodigoSegundoHorario(inscricao.secondChoice ? String(inscricao.secondChoice.periodCode) : "");
+    setRegraSegunda(null);
+    setErro("");
+    setEditando(true);
+
+    setCarregandoOpcoes(true);
+    const [listaCursos, primeira] = await Promise.all([
+      callApi(listarCursos, true),
+      callApi(getOpcoesPrimeiraOpcaoAdmin, false, inscricao.id),
+    ]);
+    setCursos(listaCursos || []);
+    setOpcoesPrimeira(Array.isArray(primeira) ? primeira : null);
+    setCarregandoOpcoes(false);
+  }
+
+  function cancelarEdicao() {
+    setEditando(false);
+    setErro("");
+  }
+
+  // A cada 1ª opção (curso + período), busca o que ela permite como 2ª.
+  useEffect(() => {
+    if (!editando || !codigoPrimeiroCurso || !codigoPrimeiroHorario) {
+      setRegraSegunda(null);
+      return;
+    }
+
+    let cancelado = false;
+    setRegraSegunda(null);
+
+    (async () => {
+      const r = await callApi(getOpcoesSegundaOpcaoAdmin, false, inscricao.id, codigoPrimeiroCurso, codigoPrimeiroHorario);
+      if (!cancelado) setRegraSegunda(r || null);
+    })();
+
+    return () => { cancelado = true; };
+  }, [editando, codigoPrimeiroCurso, codigoPrimeiroHorario]);
+
+  // A 1ª/2ª opção já salva continua na lista mesmo que o perfil do candidato tenha deixado de
+  // atender os critérios atuais — senão o campo apareceria vazio para uma escolha já feita.
+  const salvaPrimeira = inscricao.firstChoice;
+  const periodosPrimeira = codigo => {
+    const permitidos = opcoesPrimeira?.find(o => o.courseCode == codigo)?.periodCodes ?? [];
+    if (salvaPrimeira?.courseCode == codigo && !permitidos.includes(salvaPrimeira.periodCode))
+      return [...permitidos, salvaPrimeira.periodCode];
+    return permitidos;
+  };
+  const cursosPrimeiraOpcao = opcoesPrimeira ? cursos.filter(c => periodosPrimeira(c.code).length > 0) : cursos;
+  const primeiraOpcaoCurso = cursos.find(c => c.code == codigoPrimeiroCurso);
+  const horariosPrimeiraOpcao = opcoesPrimeira
+    ? (primeiraOpcaoCurso?.availablePeriods || []).filter(h => periodosPrimeira(codigoPrimeiroCurso).includes(h.code))
+    : (primeiraOpcaoCurso?.availablePeriods || []);
+
+  const opcaoDoCurso = codigo => regraSegunda?.options?.find(o => o.courseCode == codigo);
+  const cursosSegundaOpcao = regraSegunda ? cursos.filter(c => opcaoDoCurso(c.code)) : [];
+  const aceitaSegunda = cursosSegundaOpcao.length > 0;
+  const segundaObrigatoria = regraSegunda?.secondChoiceRequirement === SEGUNDA_OBRIGATORIA;
+  const segundaOpcional = regraSegunda?.secondChoiceRequirement === SEGUNDA_OPCIONAL;
+  const segundaOpcaoCurso = cursos.find(c => c.code == codigoSegundoCurso);
+  const periodosPermitidos = opcaoDoCurso(codigoSegundoCurso)?.periodCodes ?? [];
+  const horariosSegundaOpcao = (segundaOpcaoCurso?.availablePeriods || []).filter(h => periodosPermitidos.includes(h.code));
+
+  let placeholderSegunda = "Selecione um curso...";
+  if (!codigoPrimeiroCurso) placeholderSegunda = "Escolha a primeira opção antes";
+  else if (!codigoPrimeiroHorario) placeholderSegunda = "Escolha o período da primeira opção antes";
+  else if (!regraSegunda) placeholderSegunda = "Carregando...";
+  else if (!aceitaSegunda) placeholderSegunda = "Sem segunda opção para este curso";
+  else if (segundaOpcional) placeholderSegunda = "Sem segunda opção";
+
+  function handleMudaPrimeiraOpcaoCurso(novaOpcao) {
+    setCodigoPrimeiroCurso(novaOpcao);
+    setCodigoPrimeiroHorario("");
+    if (erro) setErro("");
+  }
+
+  function handleMudaSegundaOpcaoCurso(novaOpcao) {
+    setCodigoSegundoCurso(novaOpcao);
+    setCodigoSegundoHorario("");
+    if (erro) setErro("");
+  }
+
+  function handleMudaHorario1(novaOpcao) {
+    if (codigoPrimeiroCurso == codigoSegundoCurso && codigoSegundoHorario == novaOpcao) {
+      setCodigoSegundoCurso("");
+      setCodigoSegundoHorario("");
+      setErro("Opções de curso e período não podem ser iguais.");
+    }
+    setCodigoPrimeiroHorario(novaOpcao);
+  }
+
+  function handleMudaHorario2(novaOpcao) {
+    if (codigoPrimeiroCurso == codigoSegundoCurso && codigoPrimeiroHorario == novaOpcao) {
+      setCodigoPrimeiroCurso("");
+      setCodigoPrimeiroHorario("");
+      setErro("Opções de curso e período não podem ser iguais.");
+    }
+    setCodigoSegundoHorario(novaOpcao);
+  }
+
+  async function salvar() {
+    if (!codigoPrimeiroCurso || !codigoPrimeiroHorario) {
+      toast.error("Selecione a primeira opção de curso e período.");
+      return;
+    }
+
+    setSalvando(true);
+    const r = await callApi(atualizarEscolhasCurso, true, inscricao.id, {
+      firstChoiceCourseCode: Number(codigoPrimeiroCurso),
+      firstChoicePeriodCode: Number(codigoPrimeiroHorario),
+      secondChoiceCourseCode: codigoSegundoCurso ? Number(codigoSegundoCurso) : 0,
+      secondChoicePeriodCode: codigoSegundoHorario ? Number(codigoSegundoHorario) : 0,
+    });
+    setSalvando(false);
+
+    if (r) {
+      toast.success("Opções de curso atualizadas.");
+      setEditando(false);
+      aoAtualizar();
+    }
+  }
+
+  if (!editando) {
+    return (
+      <div className="grade-info bloco-escolhas-curso">
+        <Info rotulo="1ª opção" valor={inscricao.firstChoice ? `${inscricao.firstChoice.courseName} — ${inscricao.firstChoice.periodName}` : "—"} />
+        <Info rotulo="2ª opção" valor={inscricao.secondChoice ? `${inscricao.secondChoice.courseName} — ${inscricao.secondChoice.periodName}` : "—"} />
+        <button type="button" className="btn-fantasma" onClick={iniciarEdicao}>Editar opções de curso</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bloco-escolhas-curso editando">
+      <p className="aviso">
+        Roda as mesmas validações do formulário de inscrição (matriz de compatibilidade, idade, RG,
+        mensalidades em aberto, cadastro completo). Diferente do candidato, aqui a troca funciona
+        mesmo com a inscrição já validada ou com o pagamento confirmado.
+      </p>
+
+      {erro && <p className="cursos-erro">{erro}</p>}
+
+      <div className="grade">
+        <div className="campo">
+          <label>Primeira opção de curso</label>
+          <Select
+            disabled={carregandoOpcoes}
+            placeholder="Selecione um curso..."
+            value={codigoPrimeiroCurso}
+            onChange={handleMudaPrimeiraOpcaoCurso}>
+            {cursosPrimeiraOpcao.map((curso, index) =>
+              <SelectItem key={'po' + index} value={String(curso.code)}>{curso.name}</SelectItem>
+            )}
+          </Select>
+        </div>
+
+        <div className="campo">
+          <label>Período da primeira opção</label>
+          <Select
+            disabled={!primeiraOpcaoCurso || carregandoOpcoes}
+            placeholder="Selecione um horário..."
+            value={codigoPrimeiroHorario}
+            onChange={handleMudaHorario1}>
+            {horariosPrimeiraOpcao.map((horario, index) =>
+              <SelectItem key={'ph' + index} value={String(horario.code)}>{rotuloHorario(horario)}</SelectItem>
+            )}
+          </Select>
+        </div>
+
+        <div className="campo">
+          <label>{segundaObrigatoria ? "Segunda opção de curso *" : "Segunda opção de curso"}</label>
+          <Select
+            placeholder={placeholderSegunda}
+            disabled={carregandoOpcoes || !aceitaSegunda}
+            value={codigoSegundoCurso}
+            onChange={handleMudaSegundaOpcaoCurso}>
+            {segundaOpcional && <SelectItem value="">Sem segunda opção</SelectItem>}
+            {cursosSegundaOpcao.map((curso, index) =>
+              <SelectItem key={'so' + index} value={String(curso.code)}>
+                {curso.code == codigoPrimeiroCurso ? `${curso.name} (outro período)` : curso.name}
+              </SelectItem>
+            )}
+          </Select>
+        </div>
+
+        <div className="campo">
+          <label>{segundaObrigatoria ? "Período da segunda opção *" : "Período da segunda opção"}</label>
+          <Select
+            disabled={!segundaOpcaoCurso || carregandoOpcoes}
+            placeholder="Selecione um horário..."
+            value={codigoSegundoHorario}
+            onChange={handleMudaHorario2}>
+            {horariosSegundaOpcao.map((horario, index) =>
+              <SelectItem key={'sh' + index} value={String(horario.code)}>{rotuloHorario(horario)}</SelectItem>
+            )}
+          </Select>
+        </div>
+      </div>
+
+      <div className="acoes-escolhas-curso">
+        <button type="button" className="btn-fantasma" disabled={salvando} onClick={cancelarEdicao}>Cancelar</button>
+        <button type="button" className="btn-primario" disabled={salvando || carregandoOpcoes} onClick={salvar}>
+          {salvando ? "Salvando…" : "Salvar opções de curso"}
+        </button>
       </div>
     </div>
   );

@@ -195,3 +195,59 @@
         line-height: 1.6;
     }
 }
+
+.bloco-escolhas-curso {
+    &:not(.editando) {
+        align-items: center;
+
+        .btn-fantasma {
+            align-self: center;
+        }
+    }
+
+    &.editando {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        padding-top: 6px;
+
+        .aviso {
+            font-size: 13px;
+            color: t.$c-text-muted;
+            line-height: 1.6;
+        }
+
+        .cursos-erro {
+            font-size: 13px;
+            color: t.$c-clay;
+        }
+
+        .grade {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+
+            @include t.bp-640 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .campo {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+
+            label {
+                @include t.type-label;
+                font-size: 12px;
+                color: t.$c-slate;
+            }
+        }
+    }
+
+    .acoes-escolhas-curso {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+}

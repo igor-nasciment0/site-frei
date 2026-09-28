@@ -19,6 +19,31 @@ export async function getInscricao(id) {
     return r.data;
 }
 
+// Cursos e períodos que o candidato dono da inscrição consegue usar como 1ª opção — mesmo
+// filtro do formulário dele (matriz de compatibilidade + nascimento do cadastro).
+export async function getOpcoesPrimeiraOpcaoAdmin(id) {
+    const r = await adminApi().get('/admin/enrollments/' + id + '/first-choice-options');
+    return r.data;
+}
+
+// O que a 1ª opção (curso e período) permite como 2ª, já filtrado pelo perfil do candidato
+// dono da inscrição (aluno interno/externo, nascimento, escolaridade).
+export async function getOpcoesSegundaOpcaoAdmin(id, firstChoiceCourseCode, firstChoicePeriodCode) {
+    const r = await adminApi().get('/admin/enrollments/' + id + '/second-choice-options', {
+        params: { firstChoiceCourseCode, firstChoicePeriodCode }
+    });
+    return r.data;
+}
+
+// Troca a 1ª/2ª opção de curso e período da inscrição. Roda as mesmas validações do formulário
+// do candidato (matriz de compatibilidade, idade, RG, mensalidades em aberto, cadastro completo)
+// — a diferença é que aqui funciona mesmo com a inscrição já validada ou com o pagamento
+// confirmado, travas que só existem para impedir o candidato de mexer sozinho depois disso.
+export async function atualizarEscolhasCurso(id, escolhas) {
+    const r = await adminApi().put('/admin/enrollments/' + id + '/choices', escolhas);
+    return r.data;
+}
+
 export async function resetarSenha(id, novaSenha) {
     const r = await adminApi().post('/admin/enrollments/' + id + '/reset-password', {
         newPassword: novaSenha || null

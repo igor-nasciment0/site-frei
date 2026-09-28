@@ -171,6 +171,16 @@ Campo de anexo da foto do RG, usado no passo 4 do wizard de inscrição.
   - Edição local até "Salvar alterações", que envia só as linhas alteradas (`PUT /admin/compatibilities`); "Descartar" volta ao salvo, e fechar a aba com alteração pendente pede confirmação (`beforeunload`).
 - **`importacoes/index.jsx`** (`AdminImportacoes`) — envio dos dois CSVs. Cada bloco (`CartaoImportacao`) mostra as colunas esperadas, o efeito da importação, o total de registros na base e a data do último lote, e exibe o resultado com as linhas recusadas e o motivo (limitado a 20 na tela). O cartão de pagamentos é marcado como **destrutivo** e pede confirmação antes de enviar, porque substitui a base inteira.
 - **`inscricoes/detalhes/index.jsx`** — dados da inscrição, reset de senha e `DadosCandidato`. O `AnexoRGCandidato` (dentro de `DadosCandidato`) baixa o anexo do RG como blob (o endpoint exige o Bearer de admin, então um `<a href>` direto não funcionaria) e o abre em nova aba, revogando a URL de objeto depois.
+  - **`EscolhasCurso({ inscricao, aoAtualizar })`** — mostra a 1ª/2ª opção de curso e período e,
+    sob demanda ("Editar opções de curso"), permite trocá-las. Reaproveita a mesma UX de
+    `FormularioCursos` (candidato): busca a lista de cursos do admin (`listarCursos`, que já traz
+    `availablePeriods` embutido — sem chamada extra de horários), filtra a 1ª opção por
+    `getOpcoesPrimeiraOpcaoAdmin` e recalcula a 2ª a cada troca da 1ª via
+    `getOpcoesSegundaOpcaoAdmin` (debounce não é necessário aqui — não há aviso antecipado de
+    incompatibilidade, só o erro real do backend ao salvar). Ao salvar, chama
+    `atualizarEscolhasCurso` (`PUT /admin/enrollments/{id}/choices`), que roda a mesma validação do
+    formulário do candidato mas funciona mesmo com a inscrição já validada ou paga — ver
+    `nsf-app-v3/specs/features-usecases.md` seção 15.
 - **`faq/form/index.jsx`** — além de pergunta/resposta/ordem, edita a **`key`** (slug validado por `^[a-z0-9-]*$`) usada nos links diretos e no quadro "Informações gerais" da Início.
 - **`vestibular/form/index.jsx`** — edita as datas da edição, incluindo **resultado do candidato externo** em curso de continuidade e **data do e-mail com horário e sala**, e os dados da cobrança PIX: **ano da edição** (compõe o correlationID `insfvest_{ano}{protocolo}`) e **taxa de inscrição**, ambos obrigatórios.
 - **`cursos/form/capaCurso.jsx`** (`CapaCurso`) — capa do curso: prévia (baixada como blob de `GET /courses/{id}/image`, endpoint anônimo, reaproveitado aqui mesmo dentro do admin) + upload (`POST /admin/courses/{id}/image`, próprio serviço `enviarImagemCurso`), mesmo padrão upload-ao-escolher do `anexoRG.jsx`. Como o upload depende de um curso já existir, fica desabilitado em "Novo curso" até o primeiro salvamento — que, só nesse caso (criação), navega para a edição do curso recém-criado em vez da listagem, para liberar o envio da capa. O campo de texto livre "Identificador da imagem" que existia antes foi removido do formulário visível (vira um input oculto sincronizado via `setValue`, só para manter o valor no payload do `PUT`).
