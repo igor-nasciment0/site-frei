@@ -39,7 +39,7 @@ export default function Inicio() {
   const user = get("user");
   const navigate = useNavigate();
 
-  const { inscricao } = useMinhaInscricao();
+  const { inscricao, carregando: carregandoInscricao } = useMinhaInscricao();
   const [totalCursos, setTotalCursos] = useState(null);
   const [assistiuVideo, setAssistiuVideo] = useState(assistiuVideoInstitucional());
 
@@ -88,16 +88,20 @@ export default function Inicio() {
     };
   }, [statusVestibular?.presentationVideoUrl, assistiuVideo])
 
-  const inscricaoConcluida = temOpcoesDeCurso(inscricao);
-  const progresso = calcularProgresso(user, inscricaoConcluida);
-  const precisaAssistirVideo = !inscricaoConcluida && !!statusVestibular?.presentationVideoUrl && !assistiuVideo;
+  // Curso escolhido fecha as 9 etapas do formulário, mas a inscrição só está efetivada com a
+  // taxa paga — até lá o card chama para o pagamento em vez de dizer "concluída".
+  const cursoEscolhido = temOpcoesDeCurso(inscricao);
+  const inscricaoConcluida = cursoEscolhido && inscricao?.paymentStatus === 2;
+  const aguardandoPagamento = cursoEscolhido && !inscricaoConcluida;
+  const progresso = calcularProgresso(user, cursoEscolhido);
+  const precisaAssistirVideo = !cursoEscolhido && !!statusVestibular?.presentationVideoUrl && !assistiuVideo;
 
   return (
     <section className='inicio'>
       <p className="eyebrow">Olá, seja bem-vindo</p>
       <h1>{user?.name}</h1>
 
-      {!inscricaoConcluida &&
+      {!carregandoInscricao && !cursoEscolhido &&
         <div className="alerta">
           <span className="ponto" />
           <div>
@@ -111,10 +115,20 @@ export default function Inicio() {
         <div className="card-vestibular">
           <p className="eyebrow">Vestibular {statusVestibular?.year ?? <Skeleton width={30} />}</p>
 
-          {inscricaoConcluida ?
+          {carregandoInscricao ?
+            <>
+              <h2><Skeleton baseColor="#2c3d5e" highlightColor="#3a4c70" /></h2>
+              <p className="etapa"><Skeleton width={180} baseColor="#2c3d5e" highlightColor="#3a4c70" /></p>
+            </>
+            : inscricaoConcluida ?
             <>
               <h2>Sua inscrição está concluída</h2>
               <p className="etapa">Etapa {progresso.total} de {progresso.total} · Inscrição concluída</p>
+            </>
+            : aguardandoPagamento ?
+            <>
+              <h2>Faça o pagamento para efetivar a inscrição</h2>
+              <p className="etapa">Etapa {progresso.total} de {progresso.total} · Pagamento pendente</p>
             </>
             :
             <>
@@ -130,9 +144,9 @@ export default function Inicio() {
           <button
             disabled={precisaAssistirVideo}
             title={precisaAssistirVideo ? "Assista ao vídeo de apresentação até o fim para continuar" : undefined}
-            onClick={() => navigate(inscricaoConcluida ? "/acompanhamento" : "/inscricao")}
+            onClick={() => navigate(cursoEscolhido ? "/acompanhamento" : "/inscricao")}
           >
-            {inscricaoConcluida ? "Ver acompanhamento" : "Continuar inscrição"}
+            {inscricaoConcluida ? "Ver acompanhamento" : aguardandoPagamento ? "Fazer pagamento" : "Continuar inscrição"}
           </button>
 
           {precisaAssistirVideo &&

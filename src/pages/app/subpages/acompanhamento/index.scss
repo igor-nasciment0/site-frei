@@ -46,6 +46,53 @@
         color: t.$c-navy;
     }
 
+    // Some sozinho quando a etapa de pagamento confirma (pagamentoConfirmado).
+    .aviso-pagamento {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-top: -14px;
+        font-size: 14.5px;
+        font-weight: 600;
+        color: t.$c-clay;
+
+        .pulso {
+            position: relative;
+            flex-shrink: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: t.$c-clay;
+
+            &::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                border-radius: 50%;
+                background: t.$c-clay;
+                animation: pulso-pagamento 1.6s ease-out infinite;
+            }
+        }
+
+        @keyframes pulso-pagamento {
+            from {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+
+            to {
+                transform: scale(2.8);
+                opacity: 0;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .pulso::after {
+                animation: none;
+            }
+        }
+    }
+
     .titulo-secao {
         @include t.type-eyebrow;
         color: t.$c-text-muted;

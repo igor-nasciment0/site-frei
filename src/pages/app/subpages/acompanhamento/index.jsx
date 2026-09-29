@@ -81,6 +81,13 @@ export default function Acompanhamento() {
       <p className="eyebrow">{carregando ? <Skeleton width={140} /> : `Inscrição ${dadosInscricao?.protocol ?? ""}`}</p>
       <h1>Acompanhamento</h1>
 
+      {!carregando && !pagamentoConfirmado &&
+        <p className="aviso-pagamento" role="status">
+          <span className="pulso" aria-hidden="true" />
+          Realize o pagamento da taxa de inscrição para efetivar sua inscrição.
+        </p>
+      }
+
       <SkeletonTheme baseColor="#e7e5da" highlightColor="#f5f4f1">
         <section className="cursos-escolhidos">
           <p className="titulo-secao">Cursos escolhidos</p>
