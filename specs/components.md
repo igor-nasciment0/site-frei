@@ -146,7 +146,7 @@ Campo de anexo da foto do RG, usado no passo 4 do wizard de inscrição.
 - **`linhaTempo/dadosLinha.jsx`** — conteúdo de cada etapa (todos exportados nomeados):
   - `CadastroCriado` / `InscricaoPreenchida` — mensagens estáticas de sucesso.
   - `Pagamento({ pago, onConfirmado })` — cobrança PIX da taxa de inscrição. Ao montar, chama `geraCobrancaInscricao` (com toast: taxa não configurada ou provedor fora do ar chegam como mensagem da API, e a tela oferece "Tentar novamente"). Mostra a imagem do QR code (`qrCodeImageUrl`, escondida se não carregar) e o código copia-e-cola com botão "Copiar" (`navigator.clipboard`, com fallback por toast pedindo cópia manual em contextos sem permissão).
-    - Enquanto pendente, chama `getStatusPagamentoInscricao` logo ao carregar e depois a cada 10s — o provedor não tem webhook, então é essa consulta que confirma o pagamento. Também há o botão "Já paguei — verificar pagamento" para consultar na hora.
+    - Enquanto pendente, chama `getStatusPagamentoInscricao` logo ao carregar e depois a cada 5s — o provedor não tem webhook, então é essa consulta que confirma o pagamento. Também há o botão "Já paguei — verificar pagamento" para consultar na hora.
     - Cobrança vencida, recusada ou cancelada na consulta → pede outra ao backend automaticamente.
     - Confirmado, chama `onConfirmado(true)`: a etapa é concluída e as seguintes são liberadas sem recarregar a página.
   - `ProvaPresencial({ realizado, dadosInscricao })` — ramifica por `isInternalStudent`: aluno interno vê a mensagem de nivelamento no próprio curso; externo vê endereço, data e o aviso de que horário e sala chegam por e-mail em `roomNoticeEmailDate`.

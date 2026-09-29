@@ -125,7 +125,7 @@ Regras:
 2. **Inscrição preenchida** — sempre concluída (é pré-requisito para chegar aqui).
 3. **Pagamento** — cobrança PIX da taxa de inscrição, gerada ao abrir a tela
    (`POST /enrollments/my-enrollment/payment`): QR code + código copia-e-cola com botão "Copiar".
-   Enquanto pendente, consulta `GET /enrollments/my-enrollment/payment/status` ao abrir e a cada 10s (e na hora,
+   Enquanto pendente, consulta `GET /enrollments/my-enrollment/payment/status` ao abrir e a cada 5s (e na hora,
    pelo botão "Já paguei — verificar pagamento"); a API consulta o provedor, que não tem webhook. A
    etapa vira sem recarregar a página. Cobrança vencida ou cancelada é reemitida automaticamente.
    Concluída quando `paymentStatus === 2`. **As etapas 4 e 5 ficam bloqueadas até o pagamento ser

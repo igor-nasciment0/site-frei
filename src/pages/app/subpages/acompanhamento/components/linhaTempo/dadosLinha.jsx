@@ -13,7 +13,7 @@ const PAGAMENTO_ENCERRADO = [3, 4, 5];
 
 // O provedor PIX não avisa quando o pagamento cai: enquanto a cobrança está pendente,
 // consulta a situação de tempos em tempos para a etapa virar sozinha.
-const INTERVALO_CONSULTA_PAGAMENTO = 10000;
+const INTERVALO_CONSULTA_PAGAMENTO = 5000;
 
 export function CadastroCriado() {
   return (
@@ -71,7 +71,7 @@ export function Pagamento({ pago, onConfirmado }) {
     if (!montado.current || !r?.correlationId) return r;
 
     // Gravar antes de reemitir tira a cobrança de "pendente" e para a consulta periódica —
-    // se a reemissão falhar, a tela mostra "Tentar novamente" em vez de repetir a cada 10s.
+    // se a reemissão falhar, a tela mostra "Tentar novamente" em vez de repetir a cada 5s.
     setCobranca(r);
     if (PAGAMENTO_ENCERRADO.includes(r.status)) gerar();
     return r;
@@ -86,7 +86,7 @@ export function Pagamento({ pago, onConfirmado }) {
   useEffect(() => {
     if (pago || !pendente) return;
 
-    // Confere já ao abrir — o pagamento pode ter caído com a tela fechada — e depois a cada 10s.
+    // Confere já ao abrir — o pagamento pode ter caído com a tela fechada — e depois a cada 5s.
     verificar();
     const intervalo = setInterval(verificar, INTERVALO_CONSULTA_PAGAMENTO);
     return () => clearInterval(intervalo);
@@ -183,7 +183,7 @@ export function Pagamento({ pago, onConfirmado }) {
         <button type="button" className="btn-verificar" onClick={verificarAgora} disabled={verificando}>
           {verificando ? "Verificando…" : "Já paguei — verificar pagamento"}
         </button>
-        <span>A situação também é verificada automaticamente a cada 10 segundos.</span>
+        <span>A situação também é verificada automaticamente a cada 5 segundos.</span>
       </div>
     </div>
   );
