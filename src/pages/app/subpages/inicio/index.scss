@@ -68,6 +68,11 @@
                 color: t.$c-white;
                 max-width: 22ch;
                 margin-bottom: 14px;
+
+                .destaque-alerta {
+                    color: t.$c-clay-on-navy;
+                    font-weight: 500;
+                }
             }
 
             .etapa {

@@ -127,7 +127,7 @@ export default function Inicio() {
             </>
             : aguardandoPagamento ?
             <>
-              <h2>Faça o pagamento para efetivar a inscrição</h2>
+              <h2>Faça o pagamento para <span className="destaque-alerta">concluir</span> a inscrição</h2>
               <p className="etapa">Etapa {progresso.total} de {progresso.total} · Pagamento pendente</p>
             </>
             :

@@ -84,7 +84,7 @@ export default function Acompanhamento() {
       {!carregando && !pagamentoConfirmado &&
         <p className="aviso-pagamento" role="status">
           <span className="pulso" aria-hidden="true" />
-          Realize o pagamento da taxa de inscrição para efetivar sua inscrição.
+          Realize o pagamento da taxa de inscrição para concluir sua inscrição.
         </p>
       }
 
