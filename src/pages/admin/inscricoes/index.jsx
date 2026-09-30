@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import callApi from "../../../api/callAPI";
-import { listarInscricoes, getDocumentoRGCandidato } from "../../../api/services/admin/inscricoes";
+import toast from "react-hot-toast";
+import { listarInscricoes, getDocumentoRGCandidato, verificarPagamento } from "../../../api/services/admin/inscricoes";
 import { converterDataUTCParaLocalSemMudarDia } from "../../../util/date";
 import Carregamento from "../../../components/carregamento";
 import "./index.scss";
@@ -9,6 +10,9 @@ import "./index.scss";
 const STATUS_LABEL = { Open: "Aberta", Validated: "Validada", Canceled: "Cancelada" };
 const PAGAMENTO_LABEL = { Pending: "Pendente", Paid: "Pago", Expired: "Vencido", Failed: "Recusado", Canceled: "Cancelado" };
 const PAGE_SIZE = 20;
+
+// Opção do filtro de status que não é um EnrollmentStatus: vira pendingPayment=true na API.
+const FILTRO_PENDENTE_PAGAMENTO = "PendingPayment";
 
 export default function AdminInscricoes() {
   const [resultado, setResultado] = useState(null);
@@ -18,6 +22,7 @@ export default function AdminInscricoes() {
   const [pagina, setPagina] = useState(1);
   const [preview, setPreview] = useState(null);
   const [fixado, setFixado] = useState(null); // { userId, nome } do preview fixado por clique
+  const [verificando, setVerificando] = useState(null); // id da inscrição com verificação de pagamento em curso
   const cacheRg = useRef({});
   const navigate = useNavigate();
 
@@ -44,7 +49,14 @@ export default function AdminInscricoes() {
   useEffect(() => { carregar(); }, [busca, status, pagina]);
 
   async function carregar() {
-    const r = await callApi(listarInscricoes, true, { search: busca || undefined, status: status || undefined, page: pagina, pageSize: PAGE_SIZE });
+    const pendentePagamento = status === FILTRO_PENDENTE_PAGAMENTO;
+    const r = await callApi(listarInscricoes, true, {
+      search: busca || undefined,
+      status: pendentePagamento ? undefined : status || undefined,
+      pendingPayment: pendentePagamento || undefined,
+      page: pagina,
+      pageSize: PAGE_SIZE
+    });
 
     if (!r) {
       navigate("/admin/login");
@@ -52,6 +64,23 @@ export default function AdminInscricoes() {
     }
 
     setResultado(r);
+  }
+
+  async function verificarPagamentoInscricao(item) {
+    setVerificando(item.id);
+    const r = await callApi(verificarPagamento, true, item.id);
+    setVerificando(null);
+    if (!r) return;
+
+    // status do EnrollmentPaymentDto é numérico: 2 = pago.
+    if (r.status === 2)
+      toast.success(`Pagamento da inscrição ${item.protocol} confirmado.`);
+    else if (!r.correlationId)
+      toast(`A inscrição ${item.protocol} ainda não tem cobrança PIX emitida.`);
+    else
+      toast(`Pagamento da inscrição ${item.protocol} ainda não confirmado pelo provedor.`);
+
+    carregar();
   }
 
   async function mostrarPreviewRg(item) {
@@ -126,6 +155,7 @@ export default function AdminInscricoes() {
           <option value="Open">Aberta</option>
           <option value="Validated">Validada</option>
           <option value="Canceled">Cancelada</option>
+          <option value={FILTRO_PENDENTE_PAGAMENTO}>Pendente pagamento</option>
         </select>
       </div>
 
@@ -192,6 +222,16 @@ export default function AdminInscricoes() {
                     </td>
                     <td>{converterDataUTCParaLocalSemMudarDia(item.createdAt)}</td>
                     <td className="acoes">
+                      {item.paymentStatus !== "Paid" && item.status !== "Canceled" &&
+                        <button
+                          type="button"
+                          className="acao-verificar-pagamento"
+                          disabled={verificando === item.id}
+                          onClick={() => verificarPagamentoInscricao(item)}
+                        >
+                          {verificando === item.id ? "Verificando…" : "Verificar pagamento"}
+                        </button>
+                      }
                       <Link to={`/admin/inscricoes/${item.id}`}>Ver detalhes</Link>
                     </td>
                   </tr>

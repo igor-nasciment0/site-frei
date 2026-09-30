@@ -7,9 +7,10 @@ export async function getDashboard(vestibularParametersId) {
     return r.data;
 }
 
-export async function listarInscricoes({ search, status, vestibularParametersId, page = 1, pageSize = 20 } = {}) {
+// pendingPayment: só inscrições não canceladas com pagamento ainda não confirmado.
+export async function listarInscricoes({ search, status, pendingPayment, vestibularParametersId, page = 1, pageSize = 20 } = {}) {
     const r = await adminApi().get('/admin/enrollments', {
-        params: { search, status, vestibularParametersId, page, pageSize }
+        params: { search, status, pendingPayment, vestibularParametersId, page, pageSize }
     });
     return r.data;
 }
@@ -55,6 +56,14 @@ export async function resetarSenha(id, novaSenha) {
 // na próxima vez que abrir a tela de Acompanhamento.
 export async function resetarPagamento(id) {
     const r = await adminApi().post('/admin/enrollments/' + id + '/payment/reset');
+    return r.data;
+}
+
+// Força a consulta da cobrança PIX no provedor (o mesmo que a tela de Acompanhamento do
+// candidato faz a cada 5s) e grava a situação. Se confirmar o pagamento, o backend envia o
+// e-mail de confirmação de inscrição.
+export async function verificarPagamento(id) {
+    const r = await adminApi().post('/admin/enrollments/' + id + '/payment/refresh');
     return r.data;
 }
 

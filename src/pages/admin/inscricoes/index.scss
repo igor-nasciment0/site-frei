@@ -4,6 +4,22 @@
 .admin-inscricoes {
     @include admin.admin-lista-page;
 
+    // Botão neutro: o padrão de .acoes button no admin é argila (ação destrutiva).
+    .admin-table .acoes .acao-verificar-pagamento {
+        color: t.$c-slate;
+        white-space: nowrap;
+
+        &:hover {
+            color: t.$c-navy;
+        }
+
+        &:disabled {
+            color: t.$c-text-muted;
+            cursor: default;
+            text-decoration: none;
+        }
+    }
+
     .col-rg {
         display: flex;
         align-items: center;
