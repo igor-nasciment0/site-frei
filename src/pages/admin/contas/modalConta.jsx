@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import callApi from "../../../api/callAPI";
 import toast from "react-hot-toast";
-import { getConta, resetarSenhaConta, trocarEmailConta } from "../../../api/services/admin/contas";
+import { getConta, resetarSenhaConta, trocarEmailConta, trocarCpfConta } from "../../../api/services/admin/contas";
 import { converterDataUTCParaLocalSemMudarDia } from "../../../util/date";
 import Carregamento from "../../../components/carregamento";
 import DadosCandidato, { Info } from "../componentes/dadosCandidato";
@@ -118,6 +118,61 @@ function TrocarEmail({ contaId, emailAtual, nomeCandidato, aoTrocar }) {
   );
 }
 
+// Troca o CPF da conta. Ao contrário do e-mail, o backend não valida formato nem dígito
+// verificador — aceita qualquer valor, mesmo um CPF "inválido de fato", só recusa CPF já usado
+// por outra conta (ativa ou inativa). Serve para corrigir um CPF digitado errado no cadastro.
+function TrocarCpf({ contaId, cpfAtual, nomeCandidato, aoTrocar }) {
+  const [novoCpf, setNovoCpf] = useState("");
+  const [enviando, setEnviando] = useState(false);
+
+  async function trocar(e) {
+    e.preventDefault();
+
+    const cpf = novoCpf.trim();
+    if (!cpf) return;
+
+    if (cpf === cpfAtual) {
+      toast.error("O novo CPF é igual ao atual.");
+      return;
+    }
+
+    if (!confirm(`Trocar o CPF de "${nomeCandidato}" de "${cpfAtual || "—"}" para "${cpf}"? O backend não valida se o CPF é válido de fato.`)) return;
+
+    setEnviando(true);
+    const r = await callApi(trocarCpfConta, true, contaId, cpf);
+    setEnviando(false);
+
+    if (r?.id) {
+      toast.success("CPF alterado com sucesso!");
+      setNovoCpf("");
+      aoTrocar();
+    }
+  }
+
+  return (
+    <div className="secao-inscricao secao-reset-senha">
+      <h2>Trocar CPF</h2>
+      <p className="aviso">
+        CPF atual: <strong>{cpfAtual || "—"}</strong>. Aceita qualquer valor, mesmo que não seja um CPF válido — use para corrigir um CPF digitado errado no cadastro.
+      </p>
+
+      <form className="linha-reset" onSubmit={trocar}>
+        <input
+          type="text"
+          placeholder="Novo CPF"
+          value={novoCpf}
+          onChange={e => setNovoCpf(e.target.value)}
+          maxLength={20}
+          required
+        />
+        <button type="submit" className="btn-primario" disabled={enviando}>
+          {enviando ? "Trocando…" : "Trocar CPF"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 // Dados da conta do candidato.
 export default function ModalConta({ id, fechar, onVerInscricao, onAlterada }) {
   const [conta, setConta] = useState(null);
@@ -140,7 +195,7 @@ export default function ModalConta({ id, fechar, onVerInscricao, onAlterada }) {
     return () => { ativo = false; };
   }, [id, versao]);
 
-  function aoTrocarEmail() {
+  function aoAlterarConta() {
     setVersao(v => v + 1);
     onAlterada?.();
   }
@@ -234,7 +289,27 @@ export default function ModalConta({ id, fechar, onVerInscricao, onAlterada }) {
               </div>
             }
 
-            <TrocarEmail contaId={id} emailAtual={account.email} nomeCandidato={account.name} aoTrocar={aoTrocarEmail} />
+            {conta.cpfChanges?.length > 0 &&
+              <div className="secao-inscricao">
+                <h2>Histórico de CPF</h2>
+                <ul className="lista-inscricoes">
+                  {conta.cpfChanges.map((c, i) => (
+                    <li key={i}>
+                      <div>
+                        <span className="detalhe">{c.oldCpf || "—"} → <strong>{c.newCpf}</strong></span>
+                        <span className="detalhe">
+                          {new Date(c.changedAt).toLocaleString("pt-BR")}{c.changedByAdmin ? ` · por ${c.changedByAdmin}` : ""}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            }
+
+            <TrocarEmail contaId={id} emailAtual={account.email} nomeCandidato={account.name} aoTrocar={aoAlterarConta} />
+
+            <TrocarCpf contaId={id} cpfAtual={account.cpf} nomeCandidato={account.name} aoTrocar={aoAlterarConta} />
 
             <ResetarSenha contaId={id} nomeCandidato={account.name} />
 

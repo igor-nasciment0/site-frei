@@ -26,3 +26,10 @@ export async function trocarEmailConta(id, novoEmail) {
     const r = await adminApi().put('/admin/accounts/' + id + '/email', { newEmail: novoEmail });
     return r.data;
 }
+
+// Troca o CPF da conta. Ao contrário do e-mail, o backend não valida formato nem dígito
+// verificador — só recusa CPF já usado por outra conta (ativa ou inativa).
+export async function trocarCpfConta(id, novoCpf) {
+    const r = await adminApi().put('/admin/accounts/' + id + '/cpf', { newCpf: novoCpf });
+    return r.data;
+}
