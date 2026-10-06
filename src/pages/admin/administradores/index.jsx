@@ -6,7 +6,7 @@ import { criarAdmin, listarAdmins, resetarSenhaAdmin } from "../../../api/servic
 import Carregamento from "../../../components/carregamento";
 import "./index.scss";
 
-const PERFIL_LABEL = { Admin: "Admin", Financeiro: "Financeiro" };
+const PERFIL_LABEL = { Admin: "Admin", Financeiro: "Financeiro", Secretaria: "Secretaria" };
 
 export default function AdminUsuarios() {
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
@@ -147,6 +147,7 @@ export default function AdminUsuarios() {
               <select {...register("role")} id="role">
                 <option value="Admin">Admin — acesso total</option>
                 <option value="Financeiro">Financeiro — somente relatório financeiro</option>
+                <option value="Secretaria">Secretaria — somente consulta de inscrições</option>
               </select>
             </div>
 

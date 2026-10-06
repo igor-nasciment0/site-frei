@@ -31,6 +31,7 @@ export default function AdminSidebar({ admin }) {
   const location = useLocation();
   const navigate = useNavigate();
   const financeiro = admin?.role === 'Financeiro';
+  const secretaria = admin?.role === 'Secretaria';
 
   useEffect(() => setAberta(false), [location.pathname]);
 
@@ -64,11 +65,16 @@ export default function AdminSidebar({ admin }) {
       <p className="rotulo-nav">Gestão</p>
 
       <nav>
-        {!financeiro && LINKS.map(link => (
+        {!financeiro && !secretaria && LINKS.map(link => (
           <LinkLateral key={link.para} {...link} pathname={location.pathname} />
         ))}
 
-        {GRUPOS.map(grupo => (
+        {/* Secretaria só enxerga Inscrições — as demais páginas/relatórios ficam fora do menu. */}
+        {secretaria &&
+          <LinkLateral para="/admin/inscricoes" titulo="Inscrições" pathname={location.pathname} />
+        }
+
+        {!secretaria && GRUPOS.map(grupo => (
           <GrupoLateral key={grupo.base} {...grupo} pathname={location.pathname} />
         ))}
       </nav>

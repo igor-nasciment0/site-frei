@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useOutletContext, useParams } from "react-router";
 import toast from "react-hot-toast";
 import callApi from "../../../../api/callAPI";
 import {
@@ -37,6 +37,11 @@ export default function AdminInscricaoDetalhes() {
   const { id } = useParams();
   const [inscricao, setInscricao] = useState(null);
   const navigate = useNavigate();
+  const admin = useOutletContext();
+  // Secretaria só consulta/vê detalhes, verifica pagamento e reseta senha — o restante
+  // (editar curso, mexer em pagamento, remover inscrição) fica restrito ao perfil Admin,
+  // que é o único que os endpoints correspondentes aceitam.
+  const somenteConsulta = admin?.role === "Secretaria";
 
   useEffect(() => { carregar(); }, [id]);
 
@@ -75,16 +80,18 @@ export default function AdminInscricaoDetalhes() {
           <Info rotulo="Horário da prova" valor={inscricao.testTime || "—"} />
         </div>
 
-        <EscolhasCurso inscricao={inscricao} aoAtualizar={carregar} />
+        <EscolhasCurso inscricao={inscricao} aoAtualizar={carregar} somenteConsulta={somenteConsulta} />
       </div>
 
-      <Pagamento inscricao={inscricao} aoAtualizar={carregar} />
+      <Pagamento inscricao={inscricao} aoAtualizar={carregar} somenteConsulta={somenteConsulta} />
 
       <ResetarSenha inscricaoId={inscricao.id} nomeCandidato={student.name} />
 
       <DadosCandidato candidato={student} />
 
-      <RemoverInscricao inscricaoId={inscricao.id} protocolo={inscricao.protocol} nomeCandidato={student.name} />
+      {!somenteConsulta &&
+        <RemoverInscricao inscricaoId={inscricao.id} protocolo={inscricao.protocol} nomeCandidato={student.name} />
+      }
     </div>
   );
 }
@@ -199,7 +206,7 @@ function formatarDataHora(dataStringUTC) {
 // pagamento recebido fora do PIX, sem precisar gerar QR code.
 const FORMAS_PAGAMENTO = ["Pix", "Dinheiro", "Cartão de débito", "Cartão de crédito", "Transferência", "Outro"];
 
-function Pagamento({ inscricao, aoAtualizar }) {
+function Pagamento({ inscricao, aoAtualizar, somenteConsulta }) {
   const [resetando, setResetando] = useState(false);
   const [valorManual, setValorManual] = useState("");
   const [dataManual, setDataManual] = useState("");
@@ -270,44 +277,46 @@ function Pagamento({ inscricao, aoAtualizar }) {
         </div>
       }
 
-      <div className="acoes-pagamento">
-        <div className="bloco-acao">
-          <p className="aviso">
-            Remove a cobrança atual; o candidato recebe uma cobrança nova (com QR code novo) ao reabrir o Acompanhamento.
-          </p>
-          <button type="button" className="admin-btn-perigo" disabled={resetando} onClick={resetar}>
-            {resetando ? "Removendo…" : "Remover informações de pagamento"}
-          </button>
-        </div>
-
-        <div className="bloco-acao">
-          <p className="aviso">
-            Marca a inscrição como paga sem gerar QR code — use para pagamentos recebidos fora do PIX.
-          </p>
-          <div className="linha-pagamento-manual">
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="Valor (opcional)"
-              value={valorManual}
-              onChange={e => setValorManual(e.target.value)}
-            />
-            <select value={formaManual} onChange={e => setFormaManual(e.target.value)} aria-label="Forma de pagamento">
-              <option value="">Forma de pagamento</option>
-              {FORMAS_PAGAMENTO.map(f => <option key={f} value={f}>{f}</option>)}
-            </select>
-            <input
-              type="datetime-local"
-              value={dataManual}
-              onChange={e => setDataManual(e.target.value)}
-            />
-            <button type="button" className="btn-primario" disabled={enviandoManual} onClick={inserirManual}>
-              {enviandoManual ? "Registrando…" : "Inserir pagamento manual"}
+      {!somenteConsulta &&
+        <div className="acoes-pagamento">
+          <div className="bloco-acao">
+            <p className="aviso">
+              Remove a cobrança atual; o candidato recebe uma cobrança nova (com QR code novo) ao reabrir o Acompanhamento.
+            </p>
+            <button type="button" className="admin-btn-perigo" disabled={resetando} onClick={resetar}>
+              {resetando ? "Removendo…" : "Remover informações de pagamento"}
             </button>
           </div>
+
+          <div className="bloco-acao">
+            <p className="aviso">
+              Marca a inscrição como paga sem gerar QR code — use para pagamentos recebidos fora do PIX.
+            </p>
+            <div className="linha-pagamento-manual">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Valor (opcional)"
+                value={valorManual}
+                onChange={e => setValorManual(e.target.value)}
+              />
+              <select value={formaManual} onChange={e => setFormaManual(e.target.value)} aria-label="Forma de pagamento">
+                <option value="">Forma de pagamento</option>
+                {FORMAS_PAGAMENTO.map(f => <option key={f} value={f}>{f}</option>)}
+              </select>
+              <input
+                type="datetime-local"
+                value={dataManual}
+                onChange={e => setDataManual(e.target.value)}
+              />
+              <button type="button" className="btn-primario" disabled={enviandoManual} onClick={inserirManual}>
+                {enviandoManual ? "Registrando…" : "Inserir pagamento manual"}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      }
     </div>
   );
 }
@@ -326,7 +335,7 @@ function rotuloHorario(horario) {
 // de compatibilidade, idade, RG, mensalidades em aberto, cadastro completo) — a diferença é que
 // aqui funciona mesmo com a inscrição já validada ou paga, travas que só bloqueiam o candidato
 // (ver AdminUpdateEnrollmentChoicesCommandHandler).
-function EscolhasCurso({ inscricao, aoAtualizar }) {
+function EscolhasCurso({ inscricao, aoAtualizar, somenteConsulta }) {
   const [editando, setEditando] = useState(false);
   const [carregandoOpcoes, setCarregandoOpcoes] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -475,7 +484,9 @@ function EscolhasCurso({ inscricao, aoAtualizar }) {
       <div className="grade-info bloco-escolhas-curso">
         <Info rotulo="1ª opção" valor={inscricao.firstChoice ? `${inscricao.firstChoice.courseName} — ${inscricao.firstChoice.periodName}` : "—"} />
         <Info rotulo="2ª opção" valor={inscricao.secondChoice ? `${inscricao.secondChoice.courseName} — ${inscricao.secondChoice.periodName}` : "—"} />
-        <button type="button" className="btn-fantasma" onClick={iniciarEdicao}>Editar opções de curso</button>
+        {!somenteConsulta &&
+          <button type="button" className="btn-fantasma" onClick={iniciarEdicao}>Editar opções de curso</button>
+        }
       </div>
     );
   }

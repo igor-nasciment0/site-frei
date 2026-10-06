@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useOutletContext } from "react-router";
 import callApi from "../../../api/callAPI";
 import toast from "react-hot-toast";
-import { listarInscricoes, getDocumentoRGCandidato, verificarPagamento } from "../../../api/services/admin/inscricoes";
+import { listarInscricoes, getRelatorioInscricoes, getDocumentoRGCandidato, verificarPagamento } from "../../../api/services/admin/inscricoes";
 import { converterDataUTCParaLocalSemMudarDia } from "../../../util/date";
 import Carregamento from "../../../components/carregamento";
 import "./index.scss";
@@ -14,6 +14,29 @@ const PAGE_SIZE = 20;
 // Opção do filtro de status que não é um EnrollmentStatus: vira pendingPayment=true na API.
 const FILTRO_PENDENTE_PAGAMENTO = "PendingPayment";
 
+// Colunas do relatório Excel — mesmos dados da listagem, mais os telefones do candidato e dos
+// responsáveis. Sem RG, preview, links ou qualquer coisa que não seja texto/data.
+const COLUNAS_RELATORIO = [
+  { titulo: "Protocolo", valor: l => l.protocol },
+  { titulo: "Candidato", valor: l => l.studentName },
+  { titulo: "CPF", valor: l => l.studentCpf },
+  { titulo: "E-mail", valor: l => l.studentEmail },
+  { titulo: "Telefone do candidato", valor: l => l.studentPhone },
+  { titulo: "Responsável 1 — Nome", valor: l => l.primaryResponsibleName },
+  { titulo: "Responsável 1 — Telefone", valor: l => l.primaryResponsiblePhone },
+  { titulo: "Responsável 1 — Telefone secundário", valor: l => l.primaryResponsiblePhoneSecondary },
+  { titulo: "Responsável 2 — Nome", valor: l => l.secondaryResponsibleName },
+  { titulo: "Responsável 2 — Telefone", valor: l => l.secondaryResponsiblePhone },
+  { titulo: "Responsável 2 — Telefone secundário", valor: l => l.secondaryResponsiblePhoneSecondary },
+  { titulo: "1ª opção — Curso", valor: l => l.firstChoiceCourseName },
+  { titulo: "1ª opção — Período", valor: l => l.firstChoicePeriodName },
+  { titulo: "2ª opção — Curso", valor: l => l.secondChoiceCourseName },
+  { titulo: "2ª opção — Período", valor: l => l.secondChoicePeriodName },
+  { titulo: "Status", valor: l => STATUS_LABEL[l.status] || l.status },
+  { titulo: "Pagamento", valor: l => PAGAMENTO_LABEL[l.paymentStatus] || l.paymentStatus },
+  { titulo: "Inscrito em", valor: l => converterDataUTCParaLocalSemMudarDia(l.createdAt) },
+];
+
 export default function AdminInscricoes() {
   const [resultado, setResultado] = useState(null);
   const [buscaInput, setBuscaInput] = useState("");
@@ -23,6 +46,11 @@ export default function AdminInscricoes() {
   const [preview, setPreview] = useState(null);
   const [fixado, setFixado] = useState(null); // { userId, nome } do preview fixado por clique
   const [verificando, setVerificando] = useState(null); // id da inscrição com verificação de pagamento em curso
+  const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
+  const admin = useOutletContext();
+  // Secretaria só consulta/verifica pagamento/vê detalhes/reseta senha — o relatório Excel
+  // (como as demais páginas do painel) fica restrito ao perfil Admin.
+  const somenteConsulta = admin?.role === "Secretaria";
   const cacheRg = useRef({});
   const navigate = useNavigate();
 
@@ -64,6 +92,38 @@ export default function AdminInscricoes() {
     }
 
     setResultado(r);
+  }
+
+  // Busca todas as páginas que batem com o filtro atual (sem paginação, via endpoint próprio)
+  // e gera o Excel no navegador — mesma biblioteca usada no relatório financeiro.
+  async function gerarRelatorio() {
+    setGerandoRelatorio(true);
+
+    const pendentePagamento = status === FILTRO_PENDENTE_PAGAMENTO;
+    const linhas = await callApi(getRelatorioInscricoes, true, {
+      search: busca || undefined,
+      status: pendentePagamento ? undefined : status || undefined,
+      pendingPayment: pendentePagamento || undefined
+    });
+
+    if (linhas) {
+      if (linhas.length === 0) {
+        toast("Nenhuma inscrição encontrada para o filtro atual.");
+      } else {
+        try {
+          const { default: writeXlsxFile } = await import("write-excel-file/browser");
+
+          const cabecalho = COLUNAS_RELATORIO.map(c => ({ value: c.titulo, fontWeight: "bold" }));
+          const corpo = linhas.map(l => COLUNAS_RELATORIO.map(c => ({ type: String, value: String(c.valor(l) ?? "") })));
+
+          await writeXlsxFile([cabecalho, ...corpo]).toFile(`inscricoes_${dataDeHoje()}.xlsx`);
+        } catch {
+          toast.error("Não foi possível gerar o arquivo Excel.");
+        }
+      }
+    }
+
+    setGerandoRelatorio(false);
   }
 
   async function verificarPagamentoInscricao(item) {
@@ -157,6 +217,12 @@ export default function AdminInscricoes() {
           <option value="Canceled">Cancelada</option>
           <option value={FILTRO_PENDENTE_PAGAMENTO}>Pendente pagamento</option>
         </select>
+
+        {!somenteConsulta &&
+          <button type="button" className="btn-exportar" disabled={gerandoRelatorio} onClick={gerarRelatorio}>
+            {gerandoRelatorio ? "Gerando…" : "Gerar Relatório"}
+          </button>
+        }
       </div>
 
       {!resultado && <Carregamento />}
@@ -274,6 +340,14 @@ export default function AdminInscricoes() {
       }
     </div>
   );
+}
+
+// AAAA-MM-DD no fuso local (toISOString viraria o dia depois das 21h em Brasília).
+function dataDeHoje() {
+  const d = new Date();
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mes}-${dia}`;
 }
 
 function IconeOlho() {

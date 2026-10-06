@@ -10,6 +10,9 @@ import ToasterContainer from '../../components/toaster_container';
 const PERFIL_FINANCEIRO = 'Financeiro';
 const ROTA_FINANCEIRO = '/admin/relatorios/financeiro';
 
+const PERFIL_SECRETARIA = 'Secretaria';
+const ROTA_SECRETARIA = '/admin/inscricoes';
+
 // Layout raiz das telas autenticadas do painel administrativo — paralelo a
 // src/pages/app/index.jsx, mas com sessão própria (chave "adminToken",
 // nunca "token") para não se misturar com a sessão do candidato.
@@ -44,6 +47,9 @@ export default function AdminApp() {
 
   if (admin?.role === PERFIL_FINANCEIRO && !location.pathname.startsWith(ROTA_FINANCEIRO))
     return <Navigate to={ROTA_FINANCEIRO} replace />
+
+  if (admin?.role === PERFIL_SECRETARIA && !location.pathname.startsWith(ROTA_SECRETARIA))
+    return <Navigate to={ROTA_SECRETARIA} replace />
 
   return (
     <div className="admin-shell">

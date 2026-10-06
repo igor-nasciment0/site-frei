@@ -15,6 +15,15 @@ export async function listarInscricoes({ search, status, pendingPayment, vestibu
     return r.data;
 }
 
+// Mesmos filtros de listarInscricoes, sem paginação — traz todas as páginas de uma vez
+// para o relatório Excel da tela de inscrições.
+export async function getRelatorioInscricoes({ search, status, pendingPayment, vestibularParametersId } = {}) {
+    const r = await adminApi().get('/admin/enrollments/report', {
+        params: { search, status, pendingPayment, vestibularParametersId }
+    });
+    return r.data;
+}
+
 export async function getInscricao(id) {
     const r = await adminApi().get('/admin/enrollments/' + id);
     return r.data;

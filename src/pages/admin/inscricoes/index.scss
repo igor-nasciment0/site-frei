@@ -167,6 +167,15 @@
             min-width: 240px;
         }
 
+        .btn-exportar {
+            @include admin.admin-btn-fantasma;
+
+            &:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+        }
+
         select {
             min-width: 170px;
         }
