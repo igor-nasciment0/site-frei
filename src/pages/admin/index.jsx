@@ -14,6 +14,7 @@ const ROTAS_FINANCEIRO = [ROTA_FINANCEIRO, '/admin/inscricoes'];
 
 const PERFIL_SECRETARIA = 'Secretaria';
 const ROTA_SECRETARIA = '/admin/inscricoes';
+const ROTAS_SECRETARIA = [ROTA_SECRETARIA, '/admin/contas'];
 
 // Layout raiz das telas autenticadas do painel administrativo — paralelo a
 // src/pages/app/index.jsx, mas com sessão própria (chave "adminToken",
@@ -50,7 +51,7 @@ export default function AdminApp() {
   if (admin?.role === PERFIL_FINANCEIRO && !ROTAS_FINANCEIRO.some(rota => location.pathname.startsWith(rota)))
     return <Navigate to={ROTA_FINANCEIRO} replace />
 
-  if (admin?.role === PERFIL_SECRETARIA && !location.pathname.startsWith(ROTA_SECRETARIA))
+  if (admin?.role === PERFIL_SECRETARIA && !ROTAS_SECRETARIA.some(rota => location.pathname.startsWith(rota)))
     return <Navigate to={ROTA_SECRETARIA} replace />
 
   return (

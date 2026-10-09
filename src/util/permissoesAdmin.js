@@ -9,13 +9,14 @@ export function permissoesAdmin(admin) {
   const ehFinanceiro = perfil === "Financeiro";
 
   return {
-    gerarRelatorioInscricoes: ehAdmin,
+    gerarRelatorioInscricoes: ehAdmin || ehSecretaria,
     verAnexoRg: ehAdmin || ehSecretaria,
     verificarPagamento: ehAdmin || ehSecretaria,
     resetarSenha: ehAdmin || ehSecretaria,
     inserirPagamentoManual: ehAdmin || ehFinanceiro,
-    resetarPagamento: ehAdmin,
+    resetarPagamento: ehAdmin || ehSecretaria,
+    reenviarEmailConfirmacao: ehAdmin || ehSecretaria,
     editarCursos: ehAdmin,
-    removerInscricao: ehAdmin,
+    removerInscricao: ehAdmin || ehSecretaria,
   };
 }

@@ -7,6 +7,7 @@ import {
   resetarSenha,
   resetarPagamento,
   inserirPagamentoManual,
+  reenviarEmailConfirmacao,
   removerInscricao,
   getOpcoesPrimeiraOpcaoAdmin,
   getOpcoesSegundaOpcaoAdmin,
@@ -39,8 +40,8 @@ export default function AdminInscricaoDetalhes() {
   const [inscricao, setInscricao] = useState(null);
   const navigate = useNavigate();
   const admin = useOutletContext();
-  // Secretaria: consulta, verifica pagamento e reseta senha. Financeiro: consulta e insere
-  // pagamento manual. Editar curso, resetar pagamento e remover inscrição são só do Admin.
+  // Secretaria: tudo, exceto editar curso e inserir pagamento manual. Financeiro: consulta e
+  // insere pagamento manual. Editar curso é só do Admin.
   const pode = permissoesAdmin(admin);
 
   useEffect(() => { carregar(); }, [id]);
@@ -88,6 +89,7 @@ export default function AdminInscricaoDetalhes() {
         aoAtualizar={carregar}
         podeResetar={pode.resetarPagamento}
         podeInserirManual={pode.inserirPagamentoManual}
+        podeReenviarEmail={pode.reenviarEmailConfirmacao}
       />
 
       {pode.resetarSenha &&
@@ -213,12 +215,13 @@ function formatarDataHora(dataStringUTC) {
 // pagamento recebido fora do PIX, sem precisar gerar QR code.
 const FORMAS_PAGAMENTO = ["Pix", "Dinheiro", "Cartão de débito", "Cartão de crédito", "Transferência", "Outro"];
 
-function Pagamento({ inscricao, aoAtualizar, podeResetar, podeInserirManual }) {
+function Pagamento({ inscricao, aoAtualizar, podeResetar, podeInserirManual, podeReenviarEmail }) {
   const [resetando, setResetando] = useState(false);
   const [valorManual, setValorManual] = useState("");
   const [dataManual, setDataManual] = useState("");
   const [formaManual, setFormaManual] = useState("");
   const [enviandoManual, setEnviandoManual] = useState(false);
+  const [reenviandoEmail, setReenviandoEmail] = useState(false);
 
   async function resetar() {
     if (!confirm("Remover as informações de pagamento desta inscrição? Uma cobrança PIX nova (com QR code novo) será gerada na próxima vez que o candidato abrir o Acompanhamento."))
@@ -240,7 +243,7 @@ function Pagamento({ inscricao, aoAtualizar, podeResetar, podeInserirManual }) {
       return;
     }
 
-    if (!confirm("Marcar esta inscrição como paga manualmente? O candidato receberá o e-mail de confirmação de inscrição.")) return;
+    if (!confirm("Marcar esta inscrição como paga manualmente? O candidato e os responsáveis cadastrados receberão o e-mail de confirmação de inscrição.")) return;
 
     setEnviandoManual(true);
     const r = await callApi(inserirPagamentoManual, true, inscricao.id, {
@@ -259,6 +262,21 @@ function Pagamento({ inscricao, aoAtualizar, podeResetar, podeInserirManual }) {
     }
   }
 
+  async function reenviarEmail() {
+    if (!confirm("Reenviar o e-mail de confirmação de inscrição para o candidato e os responsáveis cadastrados?")) return;
+
+    setReenviandoEmail(true);
+    const r = await callApi(reenviarEmailConfirmacao, true, inscricao.id);
+    setReenviandoEmail(false);
+
+    if (!r) return;
+
+    toast.success(r.sentTo?.length ? `E-mail de confirmação reenviado para ${r.sentTo.join(", ")}.` : "E-mail de confirmação reenviado.");
+    // Envio parcial: ao menos um destinatário recebeu, mas algum endereço falhou.
+    if (r.failedTo?.length)
+      toast.error(`Não foi possível enviar para ${r.failedTo.join(", ")}.`, { duration: 6000 });
+  }
+
   const status = inscricao.paymentStatus;
 
   // Mesmas recusas do backend (AdminSetManualEnrollmentPaymentCommandHandler): já paga,
@@ -269,6 +287,7 @@ function Pagamento({ inscricao, aoAtualizar, podeResetar, podeInserirManual }) {
         : !(inscricao.firstChoice?.courseCode > 0) ? "A inscrição está sem curso escolhido. O candidato precisa escolher o curso antes do pagamento."
           : null;
   const mostraManual = podeInserirManual && status !== "Paid";
+  const mostraReenvioEmail = podeReenviarEmail && status === "Paid";
 
   return (
     <div className="secao-inscricao secao-pagamento">
@@ -293,7 +312,7 @@ function Pagamento({ inscricao, aoAtualizar, podeResetar, podeInserirManual }) {
         </div>
       }
 
-      {(podeResetar || mostraManual) &&
+      {(podeResetar || mostraManual || mostraReenvioEmail) &&
         <div className="acoes-pagamento">
           {podeResetar &&
             <div className="bloco-acao">
@@ -302,6 +321,17 @@ function Pagamento({ inscricao, aoAtualizar, podeResetar, podeInserirManual }) {
               </p>
               <button type="button" className="admin-btn-perigo" disabled={resetando} onClick={resetar}>
                 {resetando ? "Removendo…" : "Remover informações de pagamento"}
+              </button>
+            </div>
+          }
+
+          {mostraReenvioEmail &&
+            <div className="bloco-acao">
+              <p className="aviso">
+                Reenvia a confirmação de inscrição (curso, data da prova e dados da inscrição) para o e-mail do candidato e dos responsáveis cadastrados.
+              </p>
+              <button type="button" className="btn-primario" disabled={reenviandoEmail} onClick={reenviarEmail}>
+                {reenviandoEmail ? "Reenviando…" : "Reenviar e-mail de confirmação"}
               </button>
             </div>
           }
@@ -316,7 +346,7 @@ function Pagamento({ inscricao, aoAtualizar, podeResetar, podeInserirManual }) {
             <div className="bloco-acao">
               <p className="aviso">
                 Marca a inscrição como paga sem gerar QR code — use para pagamentos recebidos fora do PIX.
-                O candidato recebe o e-mail de confirmação de inscrição, como no pagamento por PIX.
+                O candidato e os responsáveis cadastrados recebem o e-mail de confirmação de inscrição, como no pagamento por PIX.
               </p>
               <div className="linha-pagamento-manual">
                 <input

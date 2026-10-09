@@ -69,9 +69,12 @@ export default function AdminSidebar({ admin }) {
           <LinkLateral key={link.para} {...link} pathname={location.pathname} />
         ))}
 
-        {/* Secretaria só enxerga Inscrições; Financeiro, Inscrições e os relatórios. */}
+        {/* Secretaria enxerga Inscrições e Contas; Financeiro, Inscrições e os relatórios. */}
         {(secretaria || financeiro) &&
           <LinkLateral para="/admin/inscricoes" titulo="Inscrições" pathname={location.pathname} />
+        }
+        {secretaria &&
+          <LinkLateral para="/admin/contas" titulo="Contas" pathname={location.pathname} />
         }
 
         {!secretaria && GRUPOS.map(grupo => (

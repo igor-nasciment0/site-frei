@@ -86,6 +86,13 @@ export async function inserirPagamentoManual(id, { valor, pagoEm, forma } = {}) 
     return r.data;
 }
 
+// Reenvia o e-mail de confirmação de inscrição ao candidato e aos responsáveis com e-mail (só
+// com pagamento confirmado). Devolve { success, sentTo, failedTo }; se ninguém recebeu, erro 400.
+export async function reenviarEmailConfirmacao(id) {
+    const r = await adminApi().post('/admin/enrollments/' + id + '/confirmation-email/resend');
+    return r.data;
+}
+
 // Remove definitivamente a inscrição (curso escolhido, status, dados de prova e todos os
 // campos de pagamento — não há coleção separada de pagamento por inscrição). A conta do
 // candidato não é afetada. Irreversível.

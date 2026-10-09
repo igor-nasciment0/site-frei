@@ -49,7 +49,7 @@ export default function AdminInscricoes() {
   const [verificando, setVerificando] = useState(null); // id da inscrição com verificação de pagamento em curso
   const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
   const admin = useOutletContext();
-  // Relatório Excel só para Admin; "Verificar pagamento" e prévia do RG para Admin/Secretaria
+  // Relatório Excel, "Verificar pagamento" e prévia do RG para Admin/Secretaria
   // (Financeiro só consulta e abre os detalhes, onde insere pagamento manual).
   const pode = permissoesAdmin(admin);
   const cacheRg = useRef({});

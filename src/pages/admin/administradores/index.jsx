@@ -147,7 +147,7 @@ export default function AdminUsuarios() {
               <select {...register("role")} id="role">
                 <option value="Admin">Admin — acesso total</option>
                 <option value="Financeiro">Financeiro — relatório financeiro, consulta de inscrições e pagamento manual</option>
-                <option value="Secretaria">Secretaria — somente consulta de inscrições</option>
+                <option value="Secretaria">Secretaria — contas e inscrições (sem troca de curso nem pagamento manual)</option>
               </select>
             </div>
 
