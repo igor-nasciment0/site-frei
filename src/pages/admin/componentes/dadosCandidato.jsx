@@ -6,7 +6,8 @@ import "./dadosCandidato.scss";
 
 // Dados da conta do candidato (coleção users), somente leitura. Usado no detalhe da inscrição
 // e no modal da lista de contas.
-export default function DadosCandidato({ candidato = {} }) {
+// podeVerAnexoRg: o download do anexo é Admin/Secretaria (Financeiro vê só os dados do RG).
+export default function DadosCandidato({ candidato = {}, podeVerAnexoRg = true }) {
   return (
     <>
       <div className="secao-inscricao">
@@ -58,7 +59,7 @@ export default function DadosCandidato({ candidato = {} }) {
           />
         </div>
 
-        {candidato.rgInfo?.hasDocument && <AnexoRGCandidato userId={candidato.id} />}
+        {podeVerAnexoRg && candidato.rgInfo?.hasDocument && <AnexoRGCandidato userId={candidato.id} />}
       </div>
 
       <div className="secao-inscricao">

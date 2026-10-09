@@ -126,24 +126,61 @@ function GraficoPorDia({ linhas }) {
   );
 }
 
+const FILTROS_CURSO = [
+  { chave: "todos", titulo: "Todos", contagem: l => l.count },
+  { chave: "pagos", titulo: "Pagos", contagem: l => l.paidCount ?? 0 },
+];
+
 function GraficoPorCursoPeriodo({ linhas }) {
-  if (linhas.length === 0) {
+  const [filtro, setFiltro] = useState("todos");
+  const contagem = FILTROS_CURSO.find(f => f.chave === filtro).contagem;
+
+  // Cor atribuída sobre todas as linhas, não só as visíveis no filtro — assim
+  // um período mantém a mesma cor ao alternar entre "Todos" e "Pagos".
+  const todosPeriodos = [...new Set(linhas.map(l => l.periodName))];
+  const corDoPeriodo = (nome) => {
+    const i = todosPeriodos.indexOf(nome);
+    return i < CORES_SERIE.length ? CORES_SERIE[i] : COR_OUTROS;
+  };
+
+  const visiveis = linhas
+    .map(l => ({ ...l, count: contagem(l) }))
+    .filter(l => l.count > 0);
+
+  const cabecalho = (
+    <div className="cabecalho-grafico">
+      <h3>Inscrições por curso e período</h3>
+      <div className="seletor-filtro" role="group" aria-label="Filtrar inscrições">
+        {FILTROS_CURSO.map(f => (
+          <button
+            key={f.chave}
+            type="button"
+            aria-pressed={filtro === f.chave}
+            className={filtro === f.chave ? "ativo" : ""}
+            onClick={() => setFiltro(f.chave)}
+          >
+            {f.titulo}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (visiveis.length === 0) {
     return (
       <div className="card-grafico">
-        <h3>Inscrições por curso e período</h3>
-        <p className="vazio">Nenhuma inscrição registrada ainda.</p>
+        {cabecalho}
+        <p className="vazio">
+          {filtro === "pagos" ? "Nenhuma inscrição paga ainda." : "Nenhuma inscrição registrada ainda."}
+        </p>
       </div>
     );
   }
 
-  const periodosUnicos = [...new Set(linhas.map(l => l.periodName))];
-  const corDoPeriodo = (nome) => {
-    const i = periodosUnicos.indexOf(nome);
-    return i < CORES_SERIE.length ? CORES_SERIE[i] : COR_OUTROS;
-  };
+  const periodosVisiveis = todosPeriodos.filter(nome => visiveis.some(l => l.periodName === nome));
 
   const porCurso = new Map();
-  for (const l of linhas) {
+  for (const l of visiveis) {
     if (!porCurso.has(l.courseName)) porCurso.set(l.courseName, []);
     porCurso.get(l.courseName).push(l);
   }
@@ -158,10 +195,10 @@ function GraficoPorCursoPeriodo({ linhas }) {
 
   return (
     <div className="card-grafico">
-      <h3>Inscrições por curso e período</h3>
+      {cabecalho}
 
       <div className="legenda">
-        {periodosUnicos.map(nome => (
+        {periodosVisiveis.map(nome => (
           <span key={nome} className="item-legenda">
             <span className={"chip " + corDoPeriodo(nome)} />
             {nome}

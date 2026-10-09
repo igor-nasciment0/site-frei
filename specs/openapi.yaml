@@ -2687,6 +2687,11 @@ components:
           type: string
         count:
           type: integer
+        paidCount:
+          type: integer
+          description: >
+            Quantas destas inscrições já têm a taxa paga — usado pelo switch
+            "Todos / Pagos" do gráfico no dashboard.
 
     AdminEnrollmentListItemDto:
       type: object

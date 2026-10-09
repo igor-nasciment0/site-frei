@@ -14,6 +14,7 @@ import {
 } from "../../../../api/services/admin/inscricoes";
 import { listarCursos } from "../../../../api/services/admin/cursos";
 import { converterDataUTCParaLocalSemMudarDia } from "../../../../util/date";
+import { permissoesAdmin } from "../../../../util/permissoesAdmin";
 import Carregamento from "../../../../components/carregamento";
 import { Select, SelectItem } from "../../../../components/select";
 import DadosCandidato, { Info } from "../../componentes/dadosCandidato";
@@ -38,10 +39,9 @@ export default function AdminInscricaoDetalhes() {
   const [inscricao, setInscricao] = useState(null);
   const navigate = useNavigate();
   const admin = useOutletContext();
-  // Secretaria só consulta/vê detalhes, verifica pagamento e reseta senha — o restante
-  // (editar curso, mexer em pagamento, remover inscrição) fica restrito ao perfil Admin,
-  // que é o único que os endpoints correspondentes aceitam.
-  const somenteConsulta = admin?.role === "Secretaria";
+  // Secretaria: consulta, verifica pagamento e reseta senha. Financeiro: consulta e insere
+  // pagamento manual. Editar curso, resetar pagamento e remover inscrição são só do Admin.
+  const pode = permissoesAdmin(admin);
 
   useEffect(() => { carregar(); }, [id]);
 
@@ -80,16 +80,23 @@ export default function AdminInscricaoDetalhes() {
           <Info rotulo="Horário da prova" valor={inscricao.testTime || "—"} />
         </div>
 
-        <EscolhasCurso inscricao={inscricao} aoAtualizar={carregar} somenteConsulta={somenteConsulta} />
+        <EscolhasCurso inscricao={inscricao} aoAtualizar={carregar} somenteConsulta={!pode.editarCursos} />
       </div>
 
-      <Pagamento inscricao={inscricao} aoAtualizar={carregar} somenteConsulta={somenteConsulta} />
+      <Pagamento
+        inscricao={inscricao}
+        aoAtualizar={carregar}
+        podeResetar={pode.resetarPagamento}
+        podeInserirManual={pode.inserirPagamentoManual}
+      />
 
-      <ResetarSenha inscricaoId={inscricao.id} nomeCandidato={student.name} />
+      {pode.resetarSenha &&
+        <ResetarSenha inscricaoId={inscricao.id} nomeCandidato={student.name} />
+      }
 
-      <DadosCandidato candidato={student} />
+      <DadosCandidato candidato={student} podeVerAnexoRg={pode.verAnexoRg} />
 
-      {!somenteConsulta &&
+      {pode.removerInscricao &&
         <RemoverInscricao inscricaoId={inscricao.id} protocolo={inscricao.protocol} nomeCandidato={student.name} />
       }
     </div>
@@ -206,7 +213,7 @@ function formatarDataHora(dataStringUTC) {
 // pagamento recebido fora do PIX, sem precisar gerar QR code.
 const FORMAS_PAGAMENTO = ["Pix", "Dinheiro", "Cartão de débito", "Cartão de crédito", "Transferência", "Outro"];
 
-function Pagamento({ inscricao, aoAtualizar, somenteConsulta }) {
+function Pagamento({ inscricao, aoAtualizar, podeResetar, podeInserirManual }) {
   const [resetando, setResetando] = useState(false);
   const [valorManual, setValorManual] = useState("");
   const [dataManual, setDataManual] = useState("");
@@ -233,7 +240,7 @@ function Pagamento({ inscricao, aoAtualizar, somenteConsulta }) {
       return;
     }
 
-    if (!confirm("Marcar esta inscrição como paga manualmente?")) return;
+    if (!confirm("Marcar esta inscrição como paga manualmente? O candidato receberá o e-mail de confirmação de inscrição.")) return;
 
     setEnviandoManual(true);
     const r = await callApi(inserirPagamentoManual, true, inscricao.id, {
@@ -253,6 +260,15 @@ function Pagamento({ inscricao, aoAtualizar, somenteConsulta }) {
   }
 
   const status = inscricao.paymentStatus;
+
+  // Mesmas recusas do backend (AdminSetManualEnrollmentPaymentCommandHandler): já paga,
+  // cancelada ou sem curso escolhido não recebem pagamento manual.
+  const motivoSemManual =
+    status === "Paid" ? null
+      : inscricao.status === "Canceled" ? "Inscrição cancelada não pode receber pagamento."
+        : !(inscricao.firstChoice?.courseCode > 0) ? "A inscrição está sem curso escolhido. O candidato precisa escolher o curso antes do pagamento."
+          : null;
+  const mostraManual = podeInserirManual && status !== "Paid";
 
   return (
     <div className="secao-inscricao secao-pagamento">
@@ -277,44 +293,55 @@ function Pagamento({ inscricao, aoAtualizar, somenteConsulta }) {
         </div>
       }
 
-      {!somenteConsulta &&
+      {(podeResetar || mostraManual) &&
         <div className="acoes-pagamento">
-          <div className="bloco-acao">
-            <p className="aviso">
-              Remove a cobrança atual; o candidato recebe uma cobrança nova (com QR code novo) ao reabrir o Acompanhamento.
-            </p>
-            <button type="button" className="admin-btn-perigo" disabled={resetando} onClick={resetar}>
-              {resetando ? "Removendo…" : "Remover informações de pagamento"}
-            </button>
-          </div>
-
-          <div className="bloco-acao">
-            <p className="aviso">
-              Marca a inscrição como paga sem gerar QR code — use para pagamentos recebidos fora do PIX.
-            </p>
-            <div className="linha-pagamento-manual">
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Valor (opcional)"
-                value={valorManual}
-                onChange={e => setValorManual(e.target.value)}
-              />
-              <select value={formaManual} onChange={e => setFormaManual(e.target.value)} aria-label="Forma de pagamento">
-                <option value="">Forma de pagamento</option>
-                {FORMAS_PAGAMENTO.map(f => <option key={f} value={f}>{f}</option>)}
-              </select>
-              <input
-                type="datetime-local"
-                value={dataManual}
-                onChange={e => setDataManual(e.target.value)}
-              />
-              <button type="button" className="btn-primario" disabled={enviandoManual} onClick={inserirManual}>
-                {enviandoManual ? "Registrando…" : "Inserir pagamento manual"}
+          {podeResetar &&
+            <div className="bloco-acao">
+              <p className="aviso">
+                Remove a cobrança atual; o candidato recebe uma cobrança nova (com QR code novo) ao reabrir o Acompanhamento.
+              </p>
+              <button type="button" className="admin-btn-perigo" disabled={resetando} onClick={resetar}>
+                {resetando ? "Removendo…" : "Remover informações de pagamento"}
               </button>
             </div>
-          </div>
+          }
+
+          {mostraManual && motivoSemManual &&
+            <div className="bloco-acao">
+              <p className="aviso">Pagamento manual indisponível: {motivoSemManual}</p>
+            </div>
+          }
+
+          {mostraManual && !motivoSemManual &&
+            <div className="bloco-acao">
+              <p className="aviso">
+                Marca a inscrição como paga sem gerar QR code — use para pagamentos recebidos fora do PIX.
+                O candidato recebe o e-mail de confirmação de inscrição, como no pagamento por PIX.
+              </p>
+              <div className="linha-pagamento-manual">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="Valor (opcional)"
+                  value={valorManual}
+                  onChange={e => setValorManual(e.target.value)}
+                />
+                <select value={formaManual} onChange={e => setFormaManual(e.target.value)} aria-label="Forma de pagamento">
+                  <option value="">Forma de pagamento</option>
+                  {FORMAS_PAGAMENTO.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+                <input
+                  type="datetime-local"
+                  value={dataManual}
+                  onChange={e => setDataManual(e.target.value)}
+                />
+                <button type="button" className="btn-primario" disabled={enviandoManual} onClick={inserirManual}>
+                  {enviandoManual ? "Registrando…" : "Inserir pagamento manual"}
+                </button>
+              </div>
+            </div>
+          }
         </div>
       }
     </div>

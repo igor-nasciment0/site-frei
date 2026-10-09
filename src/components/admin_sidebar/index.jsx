@@ -69,8 +69,8 @@ export default function AdminSidebar({ admin }) {
           <LinkLateral key={link.para} {...link} pathname={location.pathname} />
         ))}
 
-        {/* Secretaria só enxerga Inscrições — as demais páginas/relatórios ficam fora do menu. */}
-        {secretaria &&
+        {/* Secretaria só enxerga Inscrições; Financeiro, Inscrições e os relatórios. */}
+        {(secretaria || financeiro) &&
           <LinkLateral para="/admin/inscricoes" titulo="Inscrições" pathname={location.pathname} />
         }
 

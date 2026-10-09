@@ -9,6 +9,8 @@ import ToasterContainer from '../../components/toaster_container';
 
 const PERFIL_FINANCEIRO = 'Financeiro';
 const ROTA_FINANCEIRO = '/admin/relatorios/financeiro';
+// Financeiro também consulta inscrições (lista + detalhes, onde insere pagamento manual).
+const ROTAS_FINANCEIRO = [ROTA_FINANCEIRO, '/admin/inscricoes'];
 
 const PERFIL_SECRETARIA = 'Secretaria';
 const ROTA_SECRETARIA = '/admin/inscricoes';
@@ -45,7 +47,7 @@ export default function AdminApp() {
   if (admin?.mustChangePassword)
     return <Navigate to="/admin/trocar-senha" replace />
 
-  if (admin?.role === PERFIL_FINANCEIRO && !location.pathname.startsWith(ROTA_FINANCEIRO))
+  if (admin?.role === PERFIL_FINANCEIRO && !ROTAS_FINANCEIRO.some(rota => location.pathname.startsWith(rota)))
     return <Navigate to={ROTA_FINANCEIRO} replace />
 
   if (admin?.role === PERFIL_SECRETARIA && !location.pathname.startsWith(ROTA_SECRETARIA))

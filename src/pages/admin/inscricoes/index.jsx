@@ -4,6 +4,7 @@ import callApi from "../../../api/callAPI";
 import toast from "react-hot-toast";
 import { listarInscricoes, getRelatorioInscricoes, getDocumentoRGCandidato, verificarPagamento } from "../../../api/services/admin/inscricoes";
 import { converterDataUTCParaLocalSemMudarDia } from "../../../util/date";
+import { permissoesAdmin } from "../../../util/permissoesAdmin";
 import Carregamento from "../../../components/carregamento";
 import "./index.scss";
 
@@ -48,9 +49,9 @@ export default function AdminInscricoes() {
   const [verificando, setVerificando] = useState(null); // id da inscrição com verificação de pagamento em curso
   const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
   const admin = useOutletContext();
-  // Secretaria só consulta/verifica pagamento/vê detalhes/reseta senha — o relatório Excel
-  // (como as demais páginas do painel) fica restrito ao perfil Admin.
-  const somenteConsulta = admin?.role === "Secretaria";
+  // Relatório Excel só para Admin; "Verificar pagamento" e prévia do RG para Admin/Secretaria
+  // (Financeiro só consulta e abre os detalhes, onde insere pagamento manual).
+  const pode = permissoesAdmin(admin);
   const cacheRg = useRef({});
   const navigate = useNavigate();
 
@@ -218,7 +219,7 @@ export default function AdminInscricoes() {
           <option value={FILTRO_PENDENTE_PAGAMENTO}>Pendente pagamento</option>
         </select>
 
-        {!somenteConsulta &&
+        {pode.gerarRelatorioInscricoes &&
           <button type="button" className="btn-exportar" disabled={gerandoRelatorio} onClick={gerarRelatorio}>
             {gerandoRelatorio ? "Gerando…" : "Gerar Relatório"}
           </button>
@@ -258,7 +259,7 @@ export default function AdminInscricoes() {
                     </td>
                     <td>{item.studentCpf}</td>
                     <td className="col-rg">
-                      {item.hasRgDocument &&
+                      {pode.verAnexoRg && item.hasRgDocument &&
                         <button
                           type="button"
                           className={"icone-ver-rg" + (fixado?.userId === item.userId ? " fixado" : "")}
@@ -288,7 +289,7 @@ export default function AdminInscricoes() {
                     </td>
                     <td>{converterDataUTCParaLocalSemMudarDia(item.createdAt)}</td>
                     <td className="acoes">
-                      {item.paymentStatus !== "Paid" && item.status !== "Canceled" &&
+                      {pode.verificarPagamento && item.paymentStatus !== "Paid" && item.status !== "Canceled" &&
                         <button
                           type="button"
                           className="acao-verificar-pagamento"
