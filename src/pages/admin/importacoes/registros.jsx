@@ -245,13 +245,15 @@ export default function RegistrosImportados() {
               <th>Responsável</th>
               <th>Endereço</th>
               <th>Bairro</th>
+              <th>Curso</th>
+              <th>Ano</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {resultado.items.length === 0 &&
               <tr className="vazio">
-                <td colSpan={7}>Nenhum registro encontrado.</td>
+                <td colSpan={9}>Nenhum registro encontrado.</td>
               </tr>
             }
 
@@ -263,6 +265,8 @@ export default function RegistrosImportados() {
                 <td>{item.responsibleName || "—"}</td>
                 <td>{item.address || "—"}</td>
                 <td>{item.neighborhood || "—"}</td>
+                <td>{item.courseCode ?? "—"}</td>
+                <td>{item.year ?? "—"}</td>
                 <td className="acoes">
                   <button type="button" onClick={() => abrirForm(item)}>Editar</button>
                   <button type="button" onClick={() => excluir(item)}>Remover</button>

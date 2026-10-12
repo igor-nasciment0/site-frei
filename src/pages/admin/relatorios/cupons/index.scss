@@ -1,0 +1,10 @@
+@use '../relatorio' as r;
+
+.admin-relatorio-cupons {
+    @include r.relatorio-page;
+}
+
+// A largura padrão do conteúdo do painel (1120px) é estreita para esta tabela.
+.pad:has(.admin-relatorio-cupons) {
+    max-width: none;
+}

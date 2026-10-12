@@ -1809,8 +1809,9 @@ paths:
       summary: Importa a base de ex-alunos (CSV)
       x-roles: [Admin]
       description: >
-        Colunas: `nm_aluno, ds_cpf, ds_email, nm_responsavel, ds_endereco, ds_bairro`
-        (obrigatórias: `nm_aluno` e `ds_cpf`). A base não tem ano: a importação é um **upsert
+        Colunas: `nm_aluno, ds_cpf, ds_email, nm_responsavel, ds_endereco, ds_bairro, id_curso, nr_ano`
+        (obrigatórias: `nm_aluno` e `ds_cpf`; `id_curso` e `nr_ano` são o curso e o ano que o
+        ex-aluno cursou). Um registro por CPF: CPF repetido no arquivo vale a última linha. A base não tem ano: a importação é um **upsert
         pelo CPF normalizado** — atualiza quem já existe, insere quem é novo e não remove quem
         não veio no arquivo. Linha sem CPF ou sem nome é pulada com o motivo. Alimenta a regra
         do cupom de desconto (vale só para quem nunca foi aluno).
@@ -2484,6 +2485,60 @@ paths:
                   $ref: '#/components/schemas/AdminFinancialReportItemDto'
         '400':
           description: Datas ausentes ou data final anterior à inicial
+
+  /api/admin/reports/referrals:
+    get:
+      tags: [AdminPanel]
+      summary: Relatório de indicações — quem foi indicado, por quem, e a inscrição de cada um
+      x-roles: [Admin, Secretaria]
+      description: >
+        Uma linha por conta que informou quem a indicou (etapa 8). Traz a inscrição do indicado
+        e, quando o CPF informado é o de uma conta do portal, a de quem indicou — ambas na edição
+        ativa. Sem paginação.
+      parameters:
+        - name: search
+          in: query
+          description: Nome, CPF ou protocolo, do indicado ou de quem indicou
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Indicações
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminReferralReportItemDto'
+
+  /api/admin/reports/coupons:
+    get:
+      tags: [AdminPanel]
+      summary: Relatório de cupons — inscrições da edição ativa com desconto, valor cheio e valor pago
+      x-roles: [Admin, Secretaria]
+      description: >
+        Inscrições em que o desconto do cupom entrou numa cobrança ou num pagamento (cupom só
+        aplicado na etapa 8, sem cobrança emitida, não aparece). Sem paginação.
+      parameters:
+        - name: search
+          in: query
+          description: Nome, CPF ou protocolo
+          schema:
+            type: string
+        - name: code
+          in: query
+          description: Código do cupom
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Inscrições com cupom
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminCouponReportItemDto'
 
 components:
   securitySchemes:
@@ -4068,6 +4123,52 @@ components:
         sentTo: { type: array, items: { type: string } }
         failedTo: { type: array, items: { type: string } }
 
+    AdminReferralReportItemDto:
+      type: object
+      description: >
+        Campos de inscrição nulos = sem inscrição na edição ativa. Os campos `referrer*` de conta
+        e de inscrição só vêm preenchidos quando o CPF informado é o de uma conta do portal.
+      properties:
+        userId: { type: string }
+        name: { type: string, description: Indicado }
+        cpf: { type: string }
+        enrollmentId: { type: string, nullable: true }
+        protocol: { type: string, nullable: true }
+        firstChoiceCourseName: { type: string, nullable: true }
+        status: { type: string, nullable: true, enum: [Open, Validated, Canceled] }
+        paymentStatus: { type: string, nullable: true, enum: [Pending, Paid, Expired, Failed, Canceled] }
+        enrolledAt: { type: string, format: date-time, nullable: true }
+        paidAt: { type: string, format: date-time, nullable: true }
+        referrerName: { type: string, description: Como o candidato digitou }
+        referrerCpf: { type: string, description: Só dígitos }
+        referrerHasAccount: { type: boolean }
+        referrerAccountName: { type: string, nullable: true, description: Nome no cadastro de quem indicou }
+        referrerEnrollmentId: { type: string, nullable: true }
+        referrerProtocol: { type: string, nullable: true }
+        referrerStatus: { type: string, nullable: true, enum: [Open, Validated, Canceled] }
+        referrerPaymentStatus: { type: string, nullable: true, enum: [Pending, Paid, Expired, Failed, Canceled] }
+        referrerEnrolledAt: { type: string, format: date-time, nullable: true }
+        referrerPaidAt: { type: string, format: date-time, nullable: true }
+
+    AdminCouponReportItemDto:
+      type: object
+      properties:
+        enrollmentId: { type: string }
+        protocol: { type: string }
+        name: { type: string }
+        cpf: { type: string }
+        firstChoiceCourseName: { type: string }
+        couponCode: { type: string }
+        originalFee: { type: number, format: double, description: Valor cheio da taxa quando o desconto foi aplicado }
+        discount: { type: number, format: double }
+        amountDue: { type: number, format: double, description: Valor cheio menos o desconto }
+        amountPaid: { type: number, format: double, nullable: true, description: Valor efetivamente pago; nulo enquanto não confirmado }
+        paymentType: { type: string, description: '"QR Code", "Cupom" ou a forma do pagamento manual; vazio enquanto não pago' }
+        status: { type: string, enum: [Open, Validated, Canceled] }
+        paymentStatus: { $ref: '#/components/schemas/PaymentStatusName' }
+        enrolledAt: { type: string, format: date-time }
+        paidAt: { type: string, format: date-time, nullable: true }
+
     AdminFinancialReportItemDto:
       type: object
       properties:
@@ -4185,6 +4286,8 @@ components:
         responsibleName: { type: string }
         address: { type: string }
         neighborhood: { type: string }
+        courseCode: { type: integer, nullable: true, description: Curso que o ex-aluno cursou }
+        year: { type: integer, nullable: true, description: Ano em que cursou }
 
     AdminCreateOrUpdateFormerStudentDto:
       type: object
@@ -4196,6 +4299,8 @@ components:
         responsibleName: { type: string, nullable: true }
         address: { type: string, nullable: true }
         neighborhood: { type: string, nullable: true }
+        courseCode: { type: integer, nullable: true }
+        year: { type: integer, nullable: true }
 
     FormerStudentListResultDto:
       type: object

@@ -14,7 +14,8 @@ const ROTAS_FINANCEIRO = [ROTA_FINANCEIRO, '/admin/inscricoes'];
 
 const PERFIL_SECRETARIA = 'Secretaria';
 const ROTA_SECRETARIA = '/admin/inscricoes';
-const ROTAS_SECRETARIA = [ROTA_SECRETARIA, '/admin/contas'];
+// Secretaria também tem os relatórios de indicações e de cupons (o financeiro, não).
+const ROTAS_SECRETARIA = [ROTA_SECRETARIA, '/admin/contas', '/admin/relatorios/indicacoes', '/admin/relatorios/cupons'];
 
 // Layout raiz das telas autenticadas do painel administrativo — paralelo a
 // src/pages/app/index.jsx, mas com sessão própria (chave "adminToken",

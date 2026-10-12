@@ -34,11 +34,11 @@ const IMPORTACOES = [
   {
     chave: "formerStudents",
     titulo: "Ex-Alunos",
-    colunas: "nm_aluno, ds_cpf, ds_email, nm_responsavel, ds_endereco, ds_bairro",
+    colunas: "nm_aluno, ds_cpf, ds_email, nm_responsavel, ds_endereco, ds_bairro, id_curso, nr_ano",
     servico: importarExAlunos,
     descricao:
-      "Base de quem já foi aluno do Instituto. O cupom de desconto da taxa de inscrição vale só para quem nunca foi aluno: o CPF do candidato é conferido nesta base e na de alunos matriculados. Obrigatórias: nm_aluno e ds_cpf.",
-    efeito: "Esta base não tem ano: a importação atualiza quem já existe (pelo CPF) e inclui quem é novo. Quem não veio no arquivo continua na base.",
+      "Base de quem já foi aluno do Instituto. O cupom de desconto da taxa de inscrição vale só para quem nunca foi aluno: o CPF do candidato é conferido nesta base e na de alunos matriculados. Obrigatórias: nm_aluno e ds_cpf; id_curso e nr_ano são o curso e o ano que o ex-aluno cursou.",
+    efeito: "Esta base não tem ano: a importação atualiza quem já existe (pelo CPF) e inclui quem é novo. Quem não veio no arquivo continua na base. É um registro por CPF: se o CPF se repetir no arquivo, vale sempre a última linha.",
   },
 ];
 

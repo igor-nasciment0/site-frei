@@ -27,6 +27,8 @@ const CAMPOS = {
     { nome: "responsibleName", rotulo: "Responsável", tipo: "text", opcional: true },
     { nome: "address", rotulo: "Endereço", tipo: "text", opcional: true },
     { nome: "neighborhood", rotulo: "Bairro", tipo: "text", opcional: true },
+    { nome: "courseCode", rotulo: "Código do curso que cursou", tipo: "number", opcional: true },
+    { nome: "year", rotulo: "Ano em que cursou", tipo: "number", opcional: true },
   ],
 };
 
@@ -35,14 +37,17 @@ export default function RegistroForm({ tipo, registro, anoPadrao, onSalvar, fech
   const editando = !!registro;
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
-    defaultValues: registro || (campos.some(c => c.nome === "year") ? { year: anoPadrao } : {}),
+    defaultValues: registro || (campos.some(c => c.nome === "year" && !c.opcional) ? { year: anoPadrao } : {}),
   });
 
   async function submit(dados) {
     const payload = { ...dados };
     for (const campo of campos)
-      if (campo.tipo === "number")
-        payload[campo.nome] = Number(payload[campo.nome]);
+      if (campo.tipo === "number") {
+        // Número opcional em branco vai como nulo, não como 0.
+        const vazio = payload[campo.nome] === "" || payload[campo.nome] == null;
+        payload[campo.nome] = campo.opcional && vazio ? null : Number(payload[campo.nome]);
+      }
 
     await onSalvar(payload);
   }

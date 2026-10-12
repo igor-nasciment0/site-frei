@@ -263,7 +263,7 @@ detalhes de cada regra em `nsf-app-v3/specs/features-usecases.md` (seções 13 a
 | Perfil | Menu | O que faz |
 |---|---|---|
 | **Admin** | tudo | tudo |
-| **Secretaria** | Inscrições, Contas | tudo dessas duas telas, exceto trocar curso e inserir pagamento manual |
+| **Secretaria** | Inscrições, Contas, Relatórios › Indicações e Cupons | tudo de Inscrições e Contas, exceto trocar curso e inserir pagamento manual; consulta e exporta os dois relatórios |
 | **Financeiro** | Inscrições, Relatórios › Financeiro | consulta inscrições, insere pagamento manual, gera o relatório financeiro |
 
 | Tela | Função |
@@ -277,8 +277,10 @@ detalhes de cada regra em `nsf-app-v3/specs/features-usecases.md` (seções 13 a
 | **Dúvidas frequentes** | CRUD de perguntas, com `key` para link direto. |
 | **Vestibular** | Edições: ano, taxa, datas (inscrição, prorrogação, prova, resultado, resultado do externo, e-mail de sala), vídeo, interruptor "Permitir novas inscrições", **"Permite indicação"** e **"Permite cupom"** (ligam as seções da etapa 8; desligados por padrão) e **e-mails de teste**; ativar edição. |
 | **Cupons** (`/admin/cupons`) | CRUD de cupons de desconto da taxa de inscrição: código (único, gravado em maiúsculas), descrição, tipo (percentual ou valor fixo), valor, validade inicial/final e limite de usos opcionais, ativo, contador de usos. "Desativar" é soft-delete. Só Admin. |
-| **Importações** | Upload dos CSVs de **alunos matriculados** e **alunos inadimplentes** (substituem só os anos do arquivo) e de **ex-alunos** (sem ano: atualiza/insere pelo CPF, não remove ninguém) e, abaixo, os registros importados em três abas — Matrículas, Inadimplentes e Ex-Alunos (nome completo, CPF, e-mail, responsável, endereço, bairro; busca por nome e CPF) — com criação, edição e remoção. |
+| **Importações** | Upload dos CSVs de **alunos matriculados** e **alunos inadimplentes** (substituem só os anos do arquivo) e de **ex-alunos** (com `id_curso` e `nr_ano` do curso cursado; um registro por CPF — CPF repetido no arquivo vale a última linha; atualiza/insere pelo CPF, não remove ninguém) e, abaixo, os registros importados em três abas — Matrículas, Inadimplentes e Ex-Alunos (nome completo, CPF, e-mail, responsável, endereço, bairro; busca por nome e CPF) — com criação, edição e remoção. |
 | **Relatórios › Financeiro** | Inscrições pagas da edição ativa por período de pagamento, com filtro por nome e exportação para Excel. Traz a coluna **Cupom** (código e desconto); inscrição quitada por cupom de 100% aparece com valor R$ 0,00 e tipo "Cupom". |
+| **Relatórios › Indicações** (Admin e Secretaria) | Uma linha por candidato que informou quem o indicou. Tabela em dois grupos — **Indicado** e **Quem indicou** —, cada um com nome e CPF, nº de inscrição (link para o detalhe), datas de inscrição e de pagamento e situação (status da inscrição + pagamento). Quem indicou é localizado pelo CPF informado: se não tem conta aparece "Sem cadastro no portal"; se tem conta mas não se inscreveu, "Sem inscrição"; se o nome no cadastro difere do digitado, os dois são mostrados. Resumo no topo (indicações, indicados pagos, pessoas que indicaram, quantas delas inscritas), busca por nome/CPF/inscrição de qualquer um dos dois e exportação para Excel. |
+| **Relatórios › Cupons** (Admin e Secretaria) | Inscrições da edição ativa que usaram cupom: nº de inscrição, candidato, cupom, **valor cheio**, desconto, valor com desconto, **valor pago** e forma, datas de inscrição e de pagamento e situação. Resumo no topo (inscrições com cupom, pagas, valor cheio das pagas, desconto concedido, total pago), filtros por nome/CPF/inscrição e por código do cupom, exportação para Excel. Só entra a inscrição cujo desconto já foi para uma cobrança ou pagamento. |
 | **Administradores** | Lista, criação com perfil e reset de senha de administradores. |
 
 Quem tem a senha resetada (candidato ou admin) é obrigado a trocá-la no próximo acesso.

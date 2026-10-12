@@ -21,8 +21,11 @@ const GRUPOS = [
   {
     titulo: 'Relatórios',
     base: '/admin/relatorios',
+    // Espelho dos [Authorize(Roles)] do AdminReportsController (nsf-app-v3).
     links: [
-      { para: '/admin/relatorios/financeiro', titulo: 'Financeiro' },
+      { para: '/admin/relatorios/financeiro', titulo: 'Financeiro', perfis: ['Admin', 'Financeiro'] },
+      { para: '/admin/relatorios/indicacoes', titulo: 'Indicações', perfis: ['Admin', 'Secretaria'] },
+      { para: '/admin/relatorios/cupons', titulo: 'Cupons', perfis: ['Admin', 'Secretaria'] },
     ],
   },
 ];
@@ -70,7 +73,7 @@ export default function AdminSidebar({ admin }) {
           <LinkLateral key={link.para} {...link} pathname={location.pathname} />
         ))}
 
-        {/* Secretaria enxerga Inscrições e Contas; Financeiro, Inscrições e os relatórios. */}
+        {/* Secretaria enxerga Inscrições e Contas; Financeiro, Inscrições. Relatórios: ver GRUPOS. */}
         {(secretaria || financeiro) &&
           <LinkLateral para="/admin/inscricoes" titulo="Inscrições" pathname={location.pathname} />
         }
@@ -78,8 +81,14 @@ export default function AdminSidebar({ admin }) {
           <LinkLateral para="/admin/contas" titulo="Contas" pathname={location.pathname} />
         }
 
-        {!secretaria && GRUPOS.map(grupo => (
-          <GrupoLateral key={grupo.base} {...grupo} pathname={location.pathname} />
+        {/* Cada perfil vê só os relatórios que pode abrir. Sessão antiga, sem "role", é de Admin. */}
+        {GRUPOS.map(grupo => (
+          <GrupoLateral
+            key={grupo.base}
+            {...grupo}
+            links={grupo.links.filter(link => link.perfis.includes(admin?.role || 'Admin'))}
+            pathname={location.pathname}
+          />
         ))}
       </nav>
 
