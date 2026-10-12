@@ -57,7 +57,8 @@ export function Pagamento({ pago, onConfirmado }) {
     const r = await callApi(geraCobrancaInscricao, true);
     if (!montado.current) return;
 
-    if (r?.correlationId) {
+    // Cupom que zera a taxa: a API devolve a inscrição já paga, sem cobrança PIX (sem correlationId).
+    if (r?.correlationId || r?.status === PAGAMENTO_PAGO) {
       setCobranca(r);
       setQrIndisponivel(false);
     } else {
@@ -130,7 +131,9 @@ export function Pagamento({ pago, onConfirmado }) {
     return (
       <div className="conteudo realizado">
         <p>
-          Pagamento da taxa de inscrição confirmado
+          {cobranca?.couponCode && cobranca.amount === 0
+            ? `Taxa de inscrição quitada pelo cupom ${cobranca.couponCode} — não é preciso pagar`
+            : "Pagamento da taxa de inscrição confirmado"}
           {cobranca?.paidAt && ` em ${converterDataUTCParaLocalSemMudarDia(cobranca.paidAt)}`}.
         </p>
       </div>
@@ -160,10 +163,23 @@ export function Pagamento({ pago, onConfirmado }) {
     <div className="conteudo pagamento">
       <p>
         Pague a taxa de inscrição
-        {cobranca.amount > 0 && ` de ${cobranca.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}
+        {cobranca.amount > 0 && ` de ${formatarMoeda(cobranca.amount)}`}
         {' '}via PIX, lendo o QR Code ou usando o código copia e cola. Assim que o pagamento for
         confirmado, esta etapa é concluída automaticamente.
       </p>
+
+      {/* Cobrança emitida com cupom: valor original riscado + valor com desconto. */}
+      {cobranca.couponCode && cobranca.originalAmount > 0 &&
+        <p className="desconto-cupom">
+          Cupom <strong>{cobranca.couponCode}</strong> aplicado:{' '}
+          <s>{formatarMoeda(cobranca.originalAmount)}</s>{' '}
+          <strong>{formatarMoeda(cobranca.amount)}</strong>
+          {cobranca.discountAmount > 0 && ` (desconto de ${formatarMoeda(cobranca.discountAmount)})`}
+        </p>
+      }
+
+      {/* O cupom do candidato deixou de valer na emissão: a cobrança saiu pelo valor cheio. */}
+      {cobranca.couponNotice && <p className="aviso-cupom">{cobranca.couponNotice}</p>}
 
       {cobranca.qrCodeImageUrl && !qrIndisponivel &&
         <img
@@ -187,6 +203,10 @@ export function Pagamento({ pago, onConfirmado }) {
       </div>
     </div>
   );
+}
+
+function formatarMoeda(valor) {
+  return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 export function EtapaBloqueada() {

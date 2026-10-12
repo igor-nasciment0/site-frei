@@ -1,0 +1,6 @@
+@use '../../../styles/tokens' as t;
+@use '../../../styles/admin' as admin;
+
+.admin-lista {
+    @include admin.admin-lista-page;
+}

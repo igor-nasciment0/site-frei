@@ -7,7 +7,9 @@ import { getEnderecoCompleto } from "../../../../../api/services/enderecos";
 import { useCallback, useState } from "react";
 import callApi from "../../../../../api/callAPI";
 import AnexoRG from "./anexoRG";
+import CupomDesconto from "./cupomDesconto";
 import toast from "react-hot-toast";
+import { useOutletContext } from "react-router";
 
 export function FormularioDadosPessoais({ avancar }) {
   const { register, control, formState: { errors } } = useFormContext();
@@ -636,7 +638,15 @@ export function FormularioEscolar({ avancar, retornar }) {
 }
 
 export function FormularioInformacoesGerais({ avancar, retornar }) {
-  const { register, control, formState: { errors } } = useFormContext();
+  const { register, control, getValues, formState: { errors } } = useFormContext();
+
+  // As duas seções opcionais desta etapa dependem da edição ativa ("Permite indicação" e
+  // "Permite cupom", no cadastro da edição). O backend confere as mesmas flags.
+  const statusVestibular = useOutletContext();
+  const permiteIndicacao = !!statusVestibular?.allowReferral;
+  const permiteCupom = !!statusVestibular?.allowCoupon;
+
+  const digitos = valor => String(valor ?? "").replace(/\D/g, "");
 
   return (
     <table className="tabela-form">
@@ -708,6 +718,58 @@ export function FormularioInformacoesGerais({ avancar, retornar }) {
           <td className="label obrigatorio">Pessoas trabalhando</td>
           <Input name="generalInfo.peopleWorking" type="number" placeholder="Informe o número de pessoas trabalhando" {...register("generalInfo.peopleWorking", { required: "Campo obrigatório" })} />
         </tr>
+
+        {/* Indicação: opcional, mas nome e CPF andam juntos — preencheu um, exige o outro. */}
+        {permiteIndicacao && <>
+          <tr className="group-label"><td colSpan={2}>Indicação</td></tr>
+          <tr className="texto-secao">
+            <td colSpan={2}>
+              Alguém indicou você para o Frei? Informe o nome completo e o CPF dessa pessoa. O preenchimento é opcional.
+            </td>
+          </tr>
+          <tr>
+            <td className="label">Nome completo de quem indicou</td>
+            <Input
+              name="referral.name"
+              type="text"
+              maxLength={100}
+              placeholder="Informe o nome completo"
+              {...register("referral.name", {
+                deps: ["referral.cpf"],
+                validate: valor => !!String(valor ?? "").trim() || !digitos(getValues("referral.cpf"))
+                  || "Informe o nome de quem indicou (ou apague o CPF)",
+              })}
+            />
+          </tr>
+          <tr>
+            <td className="label">CPF de quem indicou</td>
+            <Controller
+              name="referral.cpf"
+              control={control}
+              rules={{
+                deps: ["referral.name"],
+                validate: valor => {
+                  const cpf = digitos(valor);
+                  if (!cpf)
+                    return !String(getValues("referral.name") ?? "").trim() || "Informe o CPF de quem indicou (ou apague o nome)";
+                  return cpf.length === 11 || "CPF incompleto";
+                },
+              }}
+              render={({ field }) => (
+                <Input
+                  as={IMaskInput}
+                  {...field}
+                  onAccept={(value) => field.onChange(value)}
+                  name="referral.cpf"
+                  placeholder="000.000.000-00"
+                  mask="000.000.000-00"
+                />
+              )}
+            />
+          </tr>
+        </>}
+
+        {permiteCupom && <CupomDesconto somenteLeitura={statusVestibular?.currentPhase >= 3} />}
       </tbody>
       <tfoot>
         <tr className="submit"><td>
@@ -716,7 +778,8 @@ export function FormularioInformacoesGerais({ avancar, retornar }) {
             "generalInfo.howDidYouKnow",
             "generalInfo.income",
             "generalInfo.peopleAtHome",
-            "generalInfo.peopleWorking"
+            "generalInfo.peopleWorking",
+            ...(permiteIndicacao ? ["referral.name", "referral.cpf"] : [])
           ])}>
             Salvar e avançar
           </button>

@@ -299,11 +299,19 @@ function Pagamento({ inscricao, aoAtualizar, podeResetar, podeInserirManual, pod
           valor={<span className={"admin-badge status-" + (status || "").toLowerCase()}>{PAYMENT_STATUS_LABEL[status] || status}</span>}
         />
         <Info rotulo="Valor" valor={formatarMoeda(inscricao.paymentAmount)} />
+        {inscricao.couponCode && <>
+          <Info rotulo="Cupom" valor={inscricao.couponCode} />
+          <Info rotulo="Taxa original" valor={formatarMoeda(inscricao.couponOriginalFee)} />
+          <Info rotulo="Desconto do cupom" valor={formatarMoeda(inscricao.couponDiscount)} />
+        </>}
         <Info rotulo="Pago em" valor={formatarDataHora(inscricao.paymentPaidAt)} />
         {status === "Paid" && <Info rotulo="Forma de pagamento" valor={inscricao.paymentMethod || "QR Code"} />}
         <Info rotulo="Cobrança vence em" valor={formatarDataHora(inscricao.paymentExpiresAt)} />
         <Info rotulo="Correlation ID (PIX)" valor={inscricao.paymentCorrelationId || "—"} />
       </div>
+
+      {/* O candidato tinha cupom, mas ele não valia mais na emissão: cobrança pelo valor cheio. */}
+      {inscricao.couponRejection && <p className="aviso">{inscricao.couponRejection}</p>}
 
       {inscricao.paymentCopyPasteCode &&
         <div className="campo-copia-cola">
@@ -354,6 +362,7 @@ function Pagamento({ inscricao, aoAtualizar, podeResetar, podeInserirManual, pod
                   step="0.01"
                   min="0"
                   placeholder="Valor (opcional)"
+                  title="Em branco, usa a taxa da edição com o desconto do cupom do candidato, se houver."
                   value={valorManual}
                   onChange={e => setValorManual(e.target.value)}
                 />

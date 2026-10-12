@@ -19,6 +19,15 @@ const CAMPOS = {
     { nome: "courseName", rotulo: "Nome do curso", tipo: "text" },
     { nome: "pendingCount", rotulo: "Meses pendentes", tipo: "number" },
   ],
+  // Só nome e CPF são obrigatórios (como no CSV); o CPF é único na base.
+  exAlunos: [
+    { nome: "name", rotulo: "Nome completo", tipo: "text" },
+    { nome: "cpf", rotulo: "CPF", tipo: "text" },
+    { nome: "email", rotulo: "E-mail", tipo: "text", opcional: true },
+    { nome: "responsibleName", rotulo: "Responsável", tipo: "text", opcional: true },
+    { nome: "address", rotulo: "Endereço", tipo: "text", opcional: true },
+    { nome: "neighborhood", rotulo: "Bairro", tipo: "text", opcional: true },
+  ],
 };
 
 export default function RegistroForm({ tipo, registro, anoPadrao, onSalvar, fechar }) {
@@ -26,7 +35,7 @@ export default function RegistroForm({ tipo, registro, anoPadrao, onSalvar, fech
   const editando = !!registro;
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
-    defaultValues: registro || { year: anoPadrao },
+    defaultValues: registro || (campos.some(c => c.nome === "year") ? { year: anoPadrao } : {}),
   });
 
   async function submit(dados) {
@@ -54,7 +63,7 @@ export default function RegistroForm({ tipo, registro, anoPadrao, onSalvar, fech
                 id={campo.nome}
                 type={campo.tipo}
                 step={campo.tipo === "number" ? "1" : undefined}
-                {...register(campo.nome, { required: "Campo obrigatório" })}
+                {...register(campo.nome, campo.opcional ? {} : { required: "Campo obrigatório" })}
               />
               {errors[campo.nome] && <span className="mensagem-erro">{errors[campo.nome].message}</span>}
             </div>

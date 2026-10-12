@@ -11,6 +11,7 @@ const LINKS = [
   { para: '/admin/compatibilidades', titulo: 'Compatibilidades' },
   { para: '/admin/faq', titulo: 'Dúvidas frequentes' },
   { para: '/admin/vestibular', titulo: 'Vestibular' },
+  { para: '/admin/cupons', titulo: 'Cupons' },
   { para: '/admin/importacoes', titulo: 'Importações' },
   { para: '/admin/administradores', titulo: 'Administradores' },
 ];

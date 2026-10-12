@@ -102,6 +102,18 @@ export default function DadosCandidato({ candidato = {}, podeVerAnexoRg = true }
           <Info rotulo="Pessoas trabalhando" valor={candidato.generalInfo?.peopleWorking} />
         </div>
       </div>
+
+      {/* Indicação e cupom são opcionais (etapa 8) e ficam visíveis mesmo com as flags da
+          edição desligadas — o que já foi gravado é histórico. */}
+      <div className="secao-inscricao">
+        <h2>Indicação e cupom</h2>
+        <div className="grade-info">
+          <Info rotulo="Indicado por" valor={candidato.referral?.name} />
+          <Info rotulo="CPF de quem indicou" valor={formatarCpf(candidato.referral?.cpf)} />
+          <Info rotulo="Cupom de desconto" valor={candidato.coupon?.code} />
+          <Info rotulo="Cupom aplicado em" valor={candidato.coupon?.appliedAt ? new Date(candidato.coupon.appliedAt).toLocaleString("pt-BR") : "—"} />
+        </div>
+      </div>
     </>
   );
 }
@@ -136,6 +148,12 @@ export function Info({ rotulo, valor }) {
       <span className="valor">{valor === "" || valor == null ? "—" : valor}</span>
     </div>
   );
+}
+
+// A indicação guarda o CPF só com dígitos.
+function formatarCpf(cpf) {
+  const d = String(cpf ?? "").replace(/\D/g, "");
+  return d.length === 11 ? `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}` : cpf;
 }
 
 function formatarMoeda(valor) {

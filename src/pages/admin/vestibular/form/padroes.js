@@ -6,6 +6,8 @@ export default {
   endDate: "",
   extensionDate: "",
   allowRegistration: true,
+  allowReferral: false,
+  allowCoupon: false,
   testerEmails: [],
   resultPublicationDate: "",
   resultPublicationDateExternal: "",

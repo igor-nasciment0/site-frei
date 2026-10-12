@@ -215,6 +215,18 @@ export default function AdminVestibularForm() {
               <input {...register("allowRegistration")} type="checkbox" id="allowRegistration" />
               <label htmlFor="allowRegistration">Permitir novas inscrições nesta edição</label>
             </div>
+
+            {/* Ligam as seções "Indicação" e "Cupom de desconto" da etapa 8 do formulário do
+                candidato — e o backend só aceita/aplica esses dados com a flag ligada. */}
+            <div className="campo checkbox">
+              <input {...register("allowReferral")} type="checkbox" id="allowReferral" />
+              <label htmlFor="allowReferral">Permite indicação</label>
+            </div>
+
+            <div className="campo checkbox">
+              <input {...register("allowCoupon")} type="checkbox" id="allowCoupon" />
+              <label htmlFor="allowCoupon">Permite cupom</label>
+            </div>
           </div>
 
           <div className="divisor" />

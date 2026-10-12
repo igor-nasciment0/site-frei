@@ -52,3 +52,21 @@ export async function getDocumentoRG() {
     const r = await api().get('/users/rg-document', { responseType: 'blob' });
     return r.data;
 }
+
+// Cupom de desconto da taxa de inscrição (etapa 8). A validação é toda do backend: cupom
+// recusado volta 200 com { valid: false, message } — o motivo aparece na tela, não em toast.
+export async function aplicaCupom(codigo) {
+    const r = await api().post('/users/coupon', { code: codigo });
+    return r.data;
+}
+
+// Situação do cupom já aplicado, revalidado agora. 204 (sem cupom) chega como string vazia.
+export async function getCupomAplicado() {
+    const r = await api().get('/users/coupon');
+    return r.data || { valid: false, code: null, message: "" };
+}
+
+export async function removeCupom() {
+    const r = await api().delete('/users/coupon');
+    return r.data;
+}

@@ -35,6 +35,8 @@ import AdminVestibularForm from './pages/admin/vestibular/form';
 import AdminUsuarios from './pages/admin/administradores';
 import AdminTrocarSenha from './pages/admin/trocar-senha';
 import AdminImportacoes from './pages/admin/importacoes';
+import AdminCupons from './pages/admin/cupons';
+import AdminCupomForm from './pages/admin/cupons/form';
 import AdminRelatorioFinanceiro from './pages/admin/relatorios/financeiro';
 
 createRoot(document.getElementById('root')).render(
@@ -73,6 +75,9 @@ createRoot(document.getElementById('root')).render(
               <Route path='vestibular' element={<AdminVestibular />} />
               <Route path='vestibular/novo' element={<AdminVestibularForm />} />
               <Route path='vestibular/:id' element={<AdminVestibularForm />} />
+              <Route path='cupons' element={<AdminCupons />} />
+              <Route path='cupons/novo' element={<AdminCupomForm />} />
+              <Route path='cupons/:id' element={<AdminCupomForm />} />
               <Route path='importacoes' element={<AdminImportacoes />} />
               <Route path='relatorios/financeiro' element={<AdminRelatorioFinanceiro />} />
               <Route path='administradores' element={<AdminUsuarios />} />

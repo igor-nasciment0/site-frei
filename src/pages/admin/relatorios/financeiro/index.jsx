@@ -18,6 +18,7 @@ const COLUNAS = [
   { titulo: "Data de Pagamento", valor: l => formatarDataHora(l.paidAt) },
   { titulo: "Valor Pago", valor: l => formatarMoeda(l.amount) },
   { titulo: "Tipo do Pagamento", valor: l => l.paymentType },
+  { titulo: "Cupom", valor: l => l.couponCode ? `${l.couponCode} (−${formatarMoeda(l.couponDiscount)})` : "" },
 ];
 
 export default function AdminRelatorioFinanceiro() {

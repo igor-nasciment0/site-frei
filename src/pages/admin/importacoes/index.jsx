@@ -6,6 +6,7 @@ import {
   getStatusImportacoes,
   importarMatriculados,
   importarInadimplentes,
+  importarExAlunos,
 } from "../../../api/services/admin/importacoes";
 import Carregamento from "../../../components/carregamento";
 import RegistrosImportados from "./registros";
@@ -29,6 +30,15 @@ const IMPORTACOES = [
     descricao:
       "Bloqueia a inscrição de quem tem 2 ou mais mensalidades pendentes no ano de referência (ano da edição ativa do vestibular menos 1).",
     efeito: "Substitui apenas os anos presentes no arquivo. Anos anteriores são preservados.",
+  },
+  {
+    chave: "formerStudents",
+    titulo: "Ex-Alunos",
+    colunas: "nm_aluno, ds_cpf, ds_email, nm_responsavel, ds_endereco, ds_bairro",
+    servico: importarExAlunos,
+    descricao:
+      "Base de quem já foi aluno do Instituto. O cupom de desconto da taxa de inscrição vale só para quem nunca foi aluno: o CPF do candidato é conferido nesta base e na de alunos matriculados. Obrigatórias: nm_aluno e ds_cpf.",
+    efeito: "Esta base não tem ano: a importação atualiza quem já existe (pelo CPF) e inclui quem é novo. Quem não veio no arquivo continua na base.",
   },
 ];
 

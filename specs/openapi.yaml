@@ -1,10 +1,14 @@
+# CÓPIA — a fonte da verdade é nsf-app-v3/specs/openapi.yaml (repositório da API).
+# Não edite aqui: altere lá e copie de novo (cp nsf-app-v3/specs/openapi.yaml frei/specs/openapi.yaml,
+# mantendo este cabeçalho). Última sincronização: 2026-10-12.
 openapi: 3.0.3
 info:
   title: NSF API v3
   description: >
     API REST do Instituto Social N.S.Fátima para gestão de usuários, cursos,
     inscrições (matrículas) e agendamentos do vestibular.
-    Gerado a partir do código-fonte real (`src/NsfApi/Controllers`); atualizado em 2026-09-11.
+    Gerado a partir do código-fonte real (`src/NsfApi/Controllers`); conferido contra o código em 2026-10-12.
+    Enums são serializados como número, salvo onde o schema diz o contrário.
     Ver também `specs/architecture.md`, `specs/features-usecases.md` e `specs/modeling.md`
     para detalhes de arquitetura, regras de negócio e modelagem de dados.
   version: "3.0.0"
@@ -31,20 +35,14 @@ tags:
     description: Cobrança PIX da taxa de inscrição (EduTech PIX API) e consulta do pagamento
   - name: Parameters
     description: Status/parâmetros do vestibular vigente
-  - name: Admin
-    description: >
-      Endpoints administrativos/legado, autenticados por senha fixa em
-      querystring (`?password=`) — NÃO usam JWT. Não devem ser chamados a
-      partir do app do usuário final; documentados aqui apenas por
-      completude e para uso por sistemas administrativos internos.
   - name: AdminPanel
     description: >
       Painel administrativo (`/api/admin`): autenticação de administradores
-      via coleção própria (`admins`, separada de `users`) e CRUD de Cursos,
-      FAQs e Parâmetros do vestibular. Autenticado por JWT com claim
-      `Role="Admin"` (distinto do token de usuário final, que sempre recebe
-      `Role="User"`). Ver `POST /api/admin/auth/login` e
-      `POST /api/admin/auth/bootstrap`.
+      via coleção própria (`admins`, separada de `users`). JWT próprio, com
+      validade de 8 horas e claim `Role` = `Admin`, `Secretaria` ou
+      `Financeiro` (distinto do token de usuário final, que sempre recebe
+      `Role="User"`). Cada operação informa em `x-roles` os perfis aceitos;
+      fora deles a resposta é `403`. Ver `POST /api/admin/auth/login`.
 
 security:
   - bearerAuth: []
@@ -83,6 +81,23 @@ paths:
           description: Email ou CPF já existente
         '500':
           description: Erro interno do servidor
+    delete:
+      tags: [Users]
+      summary: Desativa a própria conta (soft-delete)
+      description: >
+        O id nunca vem do cliente — é sempre o do usuário autenticado (extraído do JWT),
+        para que ninguém possa desativar a conta de outro candidato.
+      responses:
+        '200':
+          description: Usuário desativado com sucesso
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '401':
+          description: Token inválido ou ausente
+        '404':
+          description: Usuário não encontrado
 
   /api/users/login:
     post:
@@ -92,7 +107,10 @@ paths:
         Recebe as credenciais como `multipart/form-data` (ou
         `application/x-www-form-urlencoded`), **não** como JSON.
         Mensagem de erro genérica para email inexistente/inativo ou senha
-        incorreta, evitando enumeração de contas.
+        incorreta, evitando enumeração de contas. Com as inscrições desligadas
+        na edição ativa (`allowRegistration = false`), só e-mails de teste
+        (`testerEmails`) conseguem entrar — os demais recebem `400` com
+        "As inscrições ainda não começaram. Volte no dia {data}.".
       security: []
       requestBody:
         required: true
@@ -111,9 +129,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthResponseDto'
         '400':
-          description: Credenciais inválidas
-        '401':
-          description: Usuário inativo
+          description: Credenciais inválidas, usuário inativo ou inscrições ainda não liberadas
 
   /api/users/profile:
     get:
@@ -131,7 +147,14 @@ paths:
     put:
       tags: [Users]
       summary: Atualiza o perfil do usuário autenticado
-      description: Atualização parcial — apenas campos não nulos de `UpdateUserDto` são alterados.
+      description: >
+        Atualização parcial — apenas campos não nulos de `UpdateUserDto` são alterados. Alterar
+        nascimento ou escolaridade com inscrição na edição ativa **zera as opções de curso**
+        (inscrição aberta e não paga) ou é **recusado com 400** (inscrição validada ou paga).
+        `referral` (indicação, etapa 8) é opcional: nome e CPF vazios limpam a indicação;
+        preenchendo um, os dois são obrigatórios e o CPF precisa ter 11 dígitos (`400`). Com
+        `allowReferral` desligado na edição ativa (ou sem edição ativa) o campo é ignorado, sem
+        erro. O cupom de desconto não passa por aqui — ver `/api/users/coupon`.
       requestBody:
         required: true
         content:
@@ -226,6 +249,35 @@ paths:
         '400':
           description: Dados inválidos, código inválido ou expirado
 
+  /api/users/change-password:
+    post:
+      tags: [Users]
+      summary: Troca a senha do candidato autenticado
+      description: >
+        Exige a senha atual. Serve à troca voluntária e à obrigatória depois de um reset feito
+        pelo painel (`UserDto.mustChangePassword = true`); em sucesso a flag é limpa.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordDto'
+      responses:
+        '200':
+          description: Senha alterada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordRecoveryResponseDto'
+        '400':
+          description: Senha atual incorreta ou usuário não encontrado (`success = false` no corpo)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordRecoveryResponseDto'
+        '401':
+          description: Token inválido ou ausente
+
   /api/users/rg-document:
     post:
       tags: [Users]
@@ -277,23 +329,89 @@ paths:
         '404':
           description: Nenhum anexo enviado
 
-  /api/users/{id}:
-    delete:
+  /api/users/coupon:
+    get:
       tags: [Users]
-      summary: Desativa um usuário (soft-delete)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+      summary: Situação do cupom de desconto aplicado pelo candidato
+      description: >
+        Revalida agora o cupom gravado no usuário e devolve desconto e valor final da taxa — ou
+        `valid = false` com o motivo, se ele deixou de valer. Não altera nada. Usado pela etapa 8
+        do formulário para recarregar o estado.
+      security:
+        - bearerAuth: []
       responses:
         '200':
-          description: Usuário desativado com sucesso
+          description: Cupom aplicado e a situação dele
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CouponValidationDto'
+        '204':
+          description: O candidato não tem cupom aplicado
+        '401':
+          description: Token inválido ou ausente
+    post:
+      tags: [Users]
+      summary: Valida e aplica um cupom de desconto na taxa de inscrição
+      description: >
+        A validação é toda do backend. Cupom aceito fica gravado no usuário (`UserDto.coupon`) e o
+        desconto entra na emissão da cobrança (`POST /api/enrollments/my-enrollment/payment`), que
+        revalida o cupom. **Recusa não é erro HTTP**: responde `200` com `valid = false` e o
+        motivo em `message`, e nada é alterado (um cupom aplicado antes continua valendo).
+        Recusas, nesta ordem: edição ativa sem `allowCoupon` (ou sem edição ativa), código vazio,
+        cupom inexistente, inativo, fora da validade, limite de usos atingido, candidato sem CPF
+        e candidato que já foi aluno (CPF em `formerStudents` ou em `enrolledStudents`, qualquer
+        ano) — "Este cupom é válido apenas para quem nunca foi aluno do Instituto.". Se já havia
+        cobrança **pendente** emitida com outro cupom (ou sem cupom), ela é cancelada como no
+        reset do painel (o `paymentCorrelationId` fica, e a próxima sai com sufixo e valor novo).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplyCouponDto'
+      responses:
+        '200':
+          description: Resultado da validação (`valid` true ou false)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CouponValidationDto'
+        '400':
+          description: Pagamento da inscrição já confirmado — o cupom não pode mais ser alterado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token inválido ou ausente
+        '404':
+          description: Usuário não encontrado
+    delete:
+      tags: [Users]
+      summary: Remove o cupom de desconto do candidato
+      description: >
+        Permitido mesmo com `allowCoupon` desligado. Cobrança pendente emitida com desconto é
+        cancelada (a próxima sai pelo valor cheio) e o uso contado do cupom é devolvido.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cupom removido (ou não havia cupom)
           content:
             application/json:
               schema:
                 type: boolean
+        '400':
+          description: Pagamento da inscrição já confirmado — o cupom não pode mais ser alterado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token inválido ou ausente
         '404':
           description: Usuário não encontrado
 
@@ -357,7 +475,11 @@ paths:
     get:
       tags: [Courses]
       summary: Obtém a imagem do curso
-      description: Imagem servida a partir de arquivo em disco (`templates/images/{id}`), não do banco de dados.
+      description: >
+        Imagem servida a partir de arquivo em disco, não do banco de dados. Procura primeiro
+        no storage em volume (`Storage:RootPath/course-images`, onde caem as imagens enviadas
+        via `POST /api/admin/courses/{id}/image`) e, se não achar, cai para o arquivo legado
+        colado na imagem Docker em build (`templates/images/{id}`).
       security: []
       parameters:
         - name: id
@@ -405,10 +527,14 @@ paths:
       summary: Cria ou atualiza a inscrição do usuário no vestibular ativo
       description: >
         Se o usuário já possui inscrição no vestibular ativo e o status é
-        `Open`, atualiza as escolhas; caso contrário retorna erro (inscrição
-        já validada/cancelada não pode ser editada). Na primeira inscrição,
-        gera um protocolo único no formato `{ano}{numeroSequencial:D4}`.
-        Cursos de código 1016/1018 (Inglês Teens I/II) dispensam segunda opção.
+        `Open` **e** o pagamento da taxa ainda não foi confirmado, atualiza as escolhas; caso
+        contrário retorna erro (inscrição já validada/cancelada, ou com pagamento já confirmado,
+        não pode ser editada). Na primeira inscrição,
+        gera um protocolo único no formato `{ano}{numeroSequencial:D4}` (`{ano}` = ano corrente
+        do servidor, não o `year` da edição). Se a segunda opção é obrigatória, opcional ou não
+        permitida — e quais cursos ela aceita — depende da primeira, pela matriz de compatibilidade
+        do painel (`specs/rules/inscricao.md` seção 3.1). Com `allowRegistration = false`, só
+        e-mails de teste criam ou editam inscrição.
       requestBody:
         required: true
         content:
@@ -427,10 +553,81 @@ paths:
         '500':
           description: Erro interno do servidor
 
+  /api/enrollments/validate-choices:
+    post:
+      tags: [Enrollments]
+      summary: Pré-valida 1ª/2ª opção (e demais requisitos da inscrição) sem persistir nada
+      description: >
+        Roda o mesmo `CreateEnrollmentDtoValidator` usado em `POST /api/enrollments` — via
+        injeção direta do `IValidator<T>`, sem passar pelo `IMediator`/handler — então nada é
+        criado ou alterado. Existe pra o frontend avisar o candidato de incompatibilidade entre
+        1ª/2ª opção (ou qualquer outro requisito: RG não anexado, mensalidades em aberto, idade,
+        etc.) antes de ele clicar em "Concluir Inscrição", sem duplicar as regras em JS. O
+        formulário de inscrição chama este endpoint com debounce a cada mudança de curso/período.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEnrollmentDto'
+      responses:
+        '200':
+          description: Resultado da validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentChoicesValidationDto'
+
+  /api/enrollments/first-choice-options:
+    get:
+      tags: [Enrollments]
+      summary: Cursos e períodos que o candidato pode usar como 1ª opção
+      description: >
+        Curso ativo, com linha na matriz de compatibilidade e com o nascimento do candidato dentro
+        da faixa do cadastro; se a 2ª opção é obrigatória, só os períodos em que sobra alguma 2ª
+        opção possível para ele.
+      responses:
+        '200':
+          description: Opções de 1ª opção
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChoiceCourseOptionDto'
+
+  /api/enrollments/second-choice-options:
+    get:
+      tags: [Enrollments]
+      summary: O que a 1ª opção (curso e período) permite como 2ª, para o candidato
+      parameters:
+        - name: firstChoiceCourseCode
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: firstChoicePeriodCode
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Opções de 2ª opção
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecondChoiceOptionsDto'
+
   /api/enrollments/protocol/{protocol}:
     get:
       tags: [Enrollments]
-      summary: Obtém uma inscrição pelo protocolo
+      summary: Obtém uma inscrição pelo protocolo — só a do próprio candidato
+      description: >
+        Exige JWT e só devolve a inscrição se ela pertencer ao usuário autenticado
+        (comparação por `UserId`). Protocolo é sequencial e previsível
+        (`{ano}{sequencial:D4}`), então sem essa checagem qualquer candidato logado
+        poderia varrer protocolos e ler a inscrição de outra pessoa.
       parameters:
         - name: protocol
           in: path
@@ -444,8 +641,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EnrollmentDto'
+        '401':
+          description: Token inválido ou ausente
         '404':
-          description: Inscrição não encontrada
+          description: Inscrição não encontrada (ou não pertence ao usuário autenticado)
         '500':
           description: Erro interno do servidor
 
@@ -473,10 +672,10 @@ paths:
       tags: [Enrollments]
       summary: Valida uma inscrição por protocolo
       description: >
-        ⚠️ **Endpoint inacessível na prática**: exige `[Authorize(Roles="Admin")]`,
-        mas nenhum token emitido pelo sistema possui a role "Admin"
-        (`JwtService` sempre atribui `Role="User"`). Não integrar no
-        frontend enquanto essa limitação não for corrigida no backend.
+        ⚠️ **Sem uso**: exige `[Authorize(Roles="Admin")]`. O token do candidato
+        nunca tem essa role; o token do painel com perfil Admin tecnicamente passa,
+        mas nenhuma tela chama este endpoint. É o único caminho no código que leva
+        uma inscrição a `Validated`.
       responses:
         '200':
           description: Inscrição validada com sucesso
@@ -487,110 +686,6 @@ paths:
         '500':
           description: Erro interno do servidor
 
-  /api/enrollments/getCompleteEnrollment/{year}/{cpf}/{motherName}/{studentName}:
-    get:
-      tags: [Admin]
-      summary: Obtém dados completos de uma inscrição (uso administrativo/legado)
-      security: []
-      parameters:
-        - name: year
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: cpf
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Use "-1" para buscar por nome do aluno + ano, ou por nome da mãe + ano.
-        - name: motherName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: studentName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: password
-          in: query
-          required: true
-          schema:
-            type: string
-          description: Senha administrativa fixa.
-      responses:
-        '200':
-          description: Inscrição encontrada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CompleteEnrollmentDto'
-        '401':
-          description: Senha inválida
-        '404':
-          description: Inscrição não encontrada
-        '500':
-          description: Erro interno do servidor
-
-  /api/enrollments/change-status/{protocol}/{newStatus}:
-    post:
-      tags: [Admin]
-      summary: Altera o status de uma inscrição (uso administrativo/legado)
-      description: >
-        Usado por integração externa/sistema legado. Aceita qualquer valor
-        inteiro para `newStatus` sem validação de faixa do enum `EnrollmentStatus`
-        (1=Open, 2=Validated, 3=Canceled).
-      security: []
-      parameters:
-        - name: protocol
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: newStatus
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: password
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: idCurso1
-          in: query
-          schema:
-            type: integer
-        - name: dsTurno1
-          in: query
-          schema:
-            type: string
-        - name: idCurso2
-          in: query
-          schema:
-            type: integer
-        - name: dsTurno2
-          in: query
-          schema:
-            type: string
-        - name: sala
-          in: query
-          schema:
-            type: string
-        - name: horario
-          in: query
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Status alterado com sucesso
-        '400':
-          description: Protocolo não encontrado / falha ao alterar
-        '401':
-          description: Senha inválida
-
   /api/enrollments/my-enrollment/payment:
     post:
       tags: [Payments]
@@ -600,6 +695,10 @@ paths:
         configurado na edição ativa. Enquanto a cobrança estiver pendente e válida, devolve a
         mesma; reemite (com sufixo `_2`, `_3`…) só quando ela venceu ou foi cancelada — e,
         antes disso, confirma no provedor que ela não foi paga. Depois de paga, nunca reemite.
+        O valor é `enrollmentFee` menos o desconto do cupom do candidato, revalidado na emissão
+        (cupom que deixou de valer, ou edição com `allowCoupon` desligado: valor cheio, com o
+        motivo em `couponNotice`). Cupom que zera a taxa não gera PIX: a inscrição volta já paga
+        (`status = 2`, `amount = 0`, sem `correlationId` novo) e o e-mail de confirmação é enviado.
       security:
         - bearerAuth: []
       responses:
@@ -610,7 +709,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/EnrollmentPaymentDto'
         '400':
-          description: Ano ou taxa de inscrição não configurados na edição ativa
+          description: Ano ou taxa de inscrição não configurados na edição ativa, ou inscrição sem curso escolhido
         '404':
           description: Sem vestibular ativo ou sem inscrição
         '502':
@@ -637,30 +736,6 @@ paths:
           description: Sem vestibular ativo ou sem inscrição
         '502':
           description: Provedor de pagamento indisponível ou sem configuração
-
-  /api/enrollments/count-by-course-period:
-    get:
-      tags: [Admin]
-      summary: Contagem de inscrições agrupadas por curso e período (relatório)
-      security: []
-      parameters:
-        - name: password
-          in: query
-          required: true
-          schema:
-            type: string
-          description: Senha de relatório fixa.
-      responses:
-        '200':
-          description: Lista de contagens
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/EnrollmentCountByCoursePeriodDto'
-        '401':
-          description: Senha inválida
 
   # ===================== APPOINTMENTS =====================
   /api/appointments:
@@ -718,30 +793,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/AvailableAppointmentDatesDto'
 
-  /api/appointments/count-by-date:
-    get:
-      tags: [Admin]
-      summary: Contagem de agendamentos agrupados por data (relatório)
-      security: []
-      parameters:
-        - name: password
-          in: query
-          required: true
-          schema:
-            type: string
-          description: Senha de relatório fixa.
-      responses:
-        '200':
-          description: Lista de contagens por data
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/AppointmentCountByDateDto'
-        '401':
-          description: Senha inválida
-
   # ===================== FAQS =====================
   /api/faqs:
     get:
@@ -765,8 +816,9 @@ paths:
       tags: [Parameters]
       summary: Obtém o status atual do vestibular
       description: >
-        Retorna a fase corrente (`NotStarted`/`RegistrationOpen`/`Finished`),
-        mensagens contextuais e se as inscrições/resultado estão liberados.
+        Retorna a fase corrente, mensagens contextuais e se as inscrições/resultado estão
+        liberados. **Exige JWT** — a tela de login do frontend chama sem token e recebe 401
+        (pendência registrada em `specs/divergencias.md`). Sem edição ativa → 400.
       responses:
         '200':
           description: Status do vestibular
@@ -803,9 +855,10 @@ paths:
       summary: Cria o primeiro administrador do sistema
       description: >
         Só funciona enquanto a coleção `admins` estiver vazia (verifica via
-        `IAdminUserRepository.AnyAsync`); exige a senha administrativa fixa
-        (`AccessPassword.Admin`, a mesma usada pelos demais endpoints
-        administrativos/legado) como segredo de bootstrap. Após o primeiro
+        `IAdminUserRepository.AnyAsync`); exige a senha fixa `AccessPassword.Admin`
+        (`NsfApi.Domain/AccessPassword.cs`) como segredo de bootstrap — único uso
+        restante dessa senha fixa desde que os endpoints legados/admin por
+        querystring foram removidos (2026-09-28). Após o primeiro
         administrador existir, use `POST /api/admin/users` (autenticado)
         para criar os demais.
       security: []
@@ -827,10 +880,41 @@ paths:
         '409':
           description: Já existe um administrador cadastrado
 
-  /api/admin/users:
+  /api/admin/auth/change-password:
     post:
       tags: [AdminPanel]
-      summary: Cria um novo administrador (requer administrador autenticado)
+      summary: O administrador logado troca a própria senha
+      x-roles: [Admin, Secretaria, Financeiro]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminChangePasswordDto'
+      responses:
+        '200':
+          description: "Senha alterada (`{ success: true }`)"
+        '400':
+          description: Senha atual incorreta, nova senha com menos de 8 caracteres ou igual à atual
+
+  /api/admin/users:
+    get:
+      tags: [AdminPanel]
+      summary: Lista os administradores, por nome
+      x-roles: [Admin]
+      responses:
+        '200':
+          description: Administradores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminUserDto'
+    post:
+      tags: [AdminPanel]
+      summary: Cria um novo administrador, com perfil
+      x-roles: [Admin]
       requestBody:
         required: true
         content:
@@ -851,10 +935,33 @@ paths:
         '403':
           description: Token sem Role="Admin"
 
+  /api/admin/users/{id}/reset-password:
+    post:
+      tags: [AdminPanel]
+      summary: Gera uma senha aleatória para outro administrador
+      description: Senha de 12 caracteres, devolvida uma única vez; obriga a troca no próximo login.
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Senha resetada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminResetUserPasswordResultDto'
+        '404':
+          description: Administrador não encontrado
+
   /api/admin/courses:
     get:
       tags: [AdminPanel]
       summary: Lista todos os cursos, incluindo inativos
+      x-roles: [Admin]
       responses:
         '200':
           description: Cursos retornados com sucesso
@@ -871,6 +978,7 @@ paths:
     post:
       tags: [AdminPanel]
       summary: Cria um novo curso
+      x-roles: [Admin]
       requestBody:
         required: true
         content:
@@ -893,6 +1001,7 @@ paths:
     get:
       tags: [AdminPanel]
       summary: Obtém um curso por ID, incluindo inativos
+      x-roles: [Admin]
       parameters:
         - name: id
           in: path
@@ -911,6 +1020,7 @@ paths:
     put:
       tags: [AdminPanel]
       summary: Atualiza um curso existente
+      x-roles: [Admin]
       parameters:
         - name: id
           in: path
@@ -935,6 +1045,7 @@ paths:
     delete:
       tags: [AdminPanel]
       summary: Desativa um curso (soft-delete)
+      x-roles: [Admin]
       parameters:
         - name: id
           in: path
@@ -951,10 +1062,50 @@ paths:
         '404':
           description: Curso não encontrado
 
+  /api/admin/courses/{id}/image:
+    post:
+      tags: [AdminPanel]
+      summary: Envia (ou substitui) a imagem de capa do curso
+      x-roles: [Admin]
+      description: >
+        Grava o arquivo no storage em volume (mesma base usada pelo anexo do RG —
+        `Storage:RootPath`, subpasta `course-images`), diferente das 18 imagens
+        originais coladas na imagem Docker em build (`templates/images/`). `GET
+        /api/courses/{id}/image` passa a servir da nova pasta primeiro, com
+        fallback para o arquivo legado em disco — sem precisar migrar nada.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Imagem salva; curso atualizado com o novo identificador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminCourseDto'
+        '400':
+          description: Arquivo ausente, grande demais (limite `Storage:MaxUploadBytes`, 4MB por padrão) ou em formato não aceito (JPG/PNG/WEBP)
+        '404':
+          description: Curso não encontrado
+
   /api/admin/faqs:
     get:
       tags: [AdminPanel]
       summary: Lista todas as FAQs, incluindo inativas
+      x-roles: [Admin]
       responses:
         '200':
           description: FAQs retornadas com sucesso
@@ -967,6 +1118,7 @@ paths:
     post:
       tags: [AdminPanel]
       summary: Cria uma nova FAQ
+      x-roles: [Admin]
       requestBody:
         required: true
         content:
@@ -985,6 +1137,7 @@ paths:
     get:
       tags: [AdminPanel]
       summary: Obtém uma FAQ por ID, incluindo inativas
+      x-roles: [Admin]
       parameters:
         - name: id
           in: path
@@ -1003,6 +1156,7 @@ paths:
     put:
       tags: [AdminPanel]
       summary: Atualiza uma FAQ existente
+      x-roles: [Admin]
       parameters:
         - name: id
           in: path
@@ -1027,6 +1181,7 @@ paths:
     delete:
       tags: [AdminPanel]
       summary: Desativa uma FAQ (soft-delete)
+      x-roles: [Admin]
       parameters:
         - name: id
           in: path
@@ -1043,10 +1198,46 @@ paths:
         '404':
           description: FAQ não encontrada
 
+  /api/admin/compatibilities:
+    get:
+      tags: [AdminPanel]
+      summary: Matriz de compatibilidade entre 1ª opção (linhas) e 2ª opção (colunas)
+      x-roles: [Admin]
+      responses:
+        '200':
+          description: Matriz, cursos ativos e escala de escolaridade
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminCourseCompatibilityMatrixDto'
+    put:
+      tags: [AdminPanel]
+      summary: Grava (upsert) as linhas enviadas da matriz e devolve a matriz atualizada
+      description: >
+        Linhas não enviadas ficam como estão. Célula sem nenhuma das flags interno/externo é
+        descartada; linha "não permitida" perde as células.
+      x-roles: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveCourseCompatibilityMatrixDto'
+      responses:
+        '200':
+          description: Matriz atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminCourseCompatibilityMatrixDto'
+        '400':
+          description: Curso inexistente, linha/célula/período repetido, condição sem as duas datas, data inicial depois da final ou escolaridade fora da escala
+
   /api/admin/parameters:
     get:
       tags: [AdminPanel]
       summary: Lista todas as edições do vestibular cadastradas
+      x-roles: [Admin]
       responses:
         '200':
           description: Edições retornadas com sucesso
@@ -1059,6 +1250,7 @@ paths:
     post:
       tags: [AdminPanel]
       summary: Cria uma nova edição do vestibular (datas, textos, etc.)
+      x-roles: [Admin]
       description: >
         A edição nasce inativa (`isActive=false`); use
         `POST /api/admin/parameters/{id}/activate` para torná-la a edição
@@ -1082,6 +1274,7 @@ paths:
     get:
       tags: [AdminPanel]
       summary: Obtém uma edição do vestibular por ID
+      x-roles: [Admin]
       parameters:
         - name: id
           in: path
@@ -1100,6 +1293,7 @@ paths:
     put:
       tags: [AdminPanel]
       summary: Atualiza datas, textos e demais parâmetros de uma edição
+      x-roles: [Admin]
       description: >
         `isActive` e `nextEnrollmentNumber` não são editáveis por este
         endpoint — a ativação é feita via
@@ -1131,6 +1325,7 @@ paths:
     post:
       tags: [AdminPanel]
       summary: Marca a edição informada como ativa, desativando as demais
+      x-roles: [Admin]
       description: >
         Garante que apenas uma edição do vestibular esteja ativa por vez
         (regra implícita documentada em `specs/modeling.md`).
@@ -1154,10 +1349,10 @@ paths:
     get:
       tags: [AdminPanel]
       summary: Estatísticas do dashboard de inscrições
+      x-roles: [Admin]
       description: >
         Total de inscritos, contagem por status, série diária de inscritos e
-        contagem por curso/período (considerando apenas a primeira opção,
-        mesmo critério de `GET /api/enrollments/count-by-course-period`).
+        contagem por curso/período (considerando apenas a primeira opção).
         Sem `vestibularParametersId`, usa a edição ativa do vestibular.
       parameters:
         - name: vestibularParametersId
@@ -1181,10 +1376,11 @@ paths:
     get:
       tags: [AdminPanel]
       summary: Busca/lista inscrições com paginação
+      x-roles: [Admin, Secretaria, Financeiro]
       description: >
-        O termo em `search` casa com protocolo, nome, CPF ou e-mail do
-        candidato. Sem `vestibularParametersId`, busca em todas as edições
-        do vestibular (permite achar protocolos de anos anteriores).
+        O termo em `search` casa com protocolo, nome, CPF (com ou sem máscara) ou e-mail do
+        candidato. Sem `vestibularParametersId`, considera **a edição ativa** (todas as edições
+        só quando não há nenhuma ativa).
       parameters:
         - name: search
           in: query
@@ -1198,6 +1394,12 @@ paths:
           schema:
             type: string
             enum: [Open, Validated, Canceled]
+        - name: pendingPayment
+          in: query
+          required: false
+          description: true traz só inscrições não canceladas com pagamento ainda não confirmado
+          schema:
+            type: boolean
         - name: vestibularParametersId
           in: query
           required: false
@@ -1228,10 +1430,66 @@ paths:
         '403':
           description: Token sem Role="Admin"
 
+  /api/admin/enrollments/report:
+    get:
+      tags: [AdminPanel]
+      summary: Mesma busca da listagem, sem paginação, com telefones (relatório Excel)
+      x-roles: [Admin, Secretaria]
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Open, Validated, Canceled]
+        - name: pendingPayment
+          in: query
+          schema:
+            type: boolean
+        - name: vestibularParametersId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Linhas do relatório
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminEnrollmentReportItemDto'
+
   /api/admin/enrollments/{id}:
+    delete:
+      tags: [AdminPanel]
+      summary: Remove definitivamente a inscrição (irreversível)
+      description: >
+        Apaga o documento — curso, status, dados de prova e campos de pagamento. A conta do
+        candidato não é afetada.
+      x-roles: [Admin, Secretaria]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Inscrição removida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDeleteEnrollmentResultDto'
+        '404':
+          description: Inscrição não encontrada
     get:
       tags: [AdminPanel]
       summary: Obtém os detalhes completos de uma inscrição
+      x-roles: [Admin, Secretaria, Financeiro]
       description: >
         Inclui escolhas de curso, status, sala/horário de prova e os dados
         cadastrais completos do candidato dono da inscrição.
@@ -1259,10 +1517,11 @@ paths:
     post:
       tags: [AdminPanel]
       summary: Reseta a senha do candidato dono da inscrição
+      x-roles: [Admin, Secretaria]
       description: >
         Se `newPassword` vier vazio/ausente, uma senha aleatória de 10
         caracteres é gerada e devolvida em `newPassword` na resposta, para o
-        admin repassar ao candidato.
+        admin repassar ao candidato. Liga `mustChangePassword` na conta.
       parameters:
         - name: id
           in: path
@@ -1290,11 +1549,202 @@ paths:
         '403':
           description: Token sem Role="Admin"
 
+  /api/admin/enrollments/{id}/payment/refresh:
+    post:
+      tags: [AdminPanel]
+      summary: Força a consulta da cobrança PIX no provedor
+      description: >
+        Mesma consulta da tela do candidato; se confirmar o pagamento, envia o e-mail de confirmação.
+      x-roles: [Admin, Secretaria]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Situação atual da cobrança
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentPaymentDto'
+        '404':
+          description: Inscrição não encontrada
+        '502':
+          description: Provedor de pagamento indisponível
+
+  /api/admin/enrollments/{id}/payment/reset:
+    post:
+      tags: [AdminPanel]
+      summary: Cancela a cobrança PIX vigente
+      description: >
+        Limpa os campos de pagamento e mantém o correlationID, para a próxima cobrança sair com sufixo. Não confere se a inscrição já está paga.
+      x-roles: [Admin, Secretaria]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Inscrição atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminEnrollmentDetailDto'
+        '404':
+          description: Inscrição não encontrada
+
+  /api/admin/enrollments/{id}/payment/manual:
+    post:
+      tags: [AdminPanel]
+      summary: Registra pagamento recebido fora do PIX
+      description: >
+        Marca como paga e envia o e-mail de confirmação. Sem `amount`, usa a taxa da edição da
+        inscrição já com o desconto do cupom do candidato (mesmas regras da cobrança PIX).
+      x-roles: [Admin, Financeiro]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminManualPaymentDto'
+      responses:
+        '200':
+          description: Inscrição atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminEnrollmentDetailDto'
+        '400':
+          description: Forma de pagamento inválida, inscrição já paga, cancelada ou sem curso escolhido
+        '404':
+          description: Inscrição não encontrada
+
+  /api/admin/enrollments/{id}/confirmation-email/resend:
+    post:
+      tags: [AdminPanel]
+      summary: Reenvia o e-mail de confirmação de inscrição
+      description: >
+        Só com pagamento confirmado. Vai para o candidato e os responsáveis com e-mail válido.
+      x-roles: [Admin, Secretaria]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ao menos um destinatário recebeu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminResendConfirmationEmailResultDto'
+        '400':
+          description: Pagamento não confirmado ou nenhum envio deu certo
+        '404':
+          description: Inscrição não encontrada
+
+  /api/admin/enrollments/{id}/first-choice-options:
+    get:
+      tags: [AdminPanel]
+      summary: Cursos e períodos que o dono da inscrição pode usar como 1ª opção
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Opções
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChoiceCourseOptionDto'
+        '404':
+          description: Inscrição não encontrada
+
+  /api/admin/enrollments/{id}/second-choice-options:
+    get:
+      tags: [AdminPanel]
+      summary: O que a 1ª opção informada permite como 2ª, para o dono da inscrição
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: firstChoiceCourseCode
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: firstChoicePeriodCode
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Opções
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecondChoiceOptionsDto'
+        '404':
+          description: Inscrição não encontrada
+
+  /api/admin/enrollments/{id}/choices:
+    put:
+      tags: [AdminPanel]
+      summary: Troca a 1ª/2ª opção de curso e período
+      description: >
+        Roda o mesmo validador do candidato sobre o dono da inscrição, mas funciona com inscrição já validada ou paga. Em inscrição paga, reenvia o e-mail de confirmação se o curso ou período mudou.
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateEnrollmentChoicesDto'
+      responses:
+        '200':
+          description: Inscrição atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminEnrollmentDetailDto'
+        '400':
+          description: Recusado pelas regras de inscrição (mesmas mensagens do candidato)
+        '404':
+          description: Inscrição não encontrada
+
   # ===================== ADMIN — IMPORTAÇÕES =====================
   /api/admin/imports/enrolled-students:
     post:
       tags: [AdminPanel]
       summary: Importa alunos matriculados (CSV)
+      x-roles: [Admin]
       description: >
         Colunas: `nr_ano, id_aluno, ds_cpf, ds_rg, id_curso`. Substitui os anos presentes
         no arquivo; anos ausentes permanecem intactos. O separador é detectado
@@ -1321,14 +1771,16 @@ paths:
         '400':
           description: Arquivo ausente ou colunas obrigatórias faltando
 
-  /api/admin/imports/tuition-payments:
+  /api/admin/imports/delinquent-students:
     post:
       tags: [AdminPanel]
-      summary: Importa pagamentos de mensalidade (CSV)
+      summary: Importa alunos inadimplentes (CSV)
+      x-roles: [Admin]
       description: >
-        Colunas: `nr_ano, id_aluno, ds_cpf, ds_rg, dt_referencia, bt_pago`.
-        **Substitui a coleção inteira** a cada envio, via coleção temporária + swap.
-        Arquivo vazio ou sem nenhuma linha válida é recusado antes de tocar na base.
+        Colunas: `nr_ano, id_aluno, ds_cpf, ds_rg, id_curso, nm_curso, qtd_pendentes`
+        (`nm_aluno` opcional). Substitui os anos presentes no arquivo; anos ausentes
+        permanecem intactos. Alimenta o bloqueio de inscrição por inadimplência (2 ou mais
+        pendências no ano da edição ativa menos 1).
       security:
         - bearerAuth: []
       requestBody:
@@ -1349,12 +1801,46 @@ paths:
               schema:
                 $ref: '#/components/schemas/ImportResultDto'
         '400':
-          description: Arquivo vazio, inválido ou com colunas faltando
+          description: Arquivo ausente ou colunas obrigatórias faltando
+
+  /api/admin/imports/former-students:
+    post:
+      tags: [AdminPanel]
+      summary: Importa a base de ex-alunos (CSV)
+      x-roles: [Admin]
+      description: >
+        Colunas: `nm_aluno, ds_cpf, ds_email, nm_responsavel, ds_endereco, ds_bairro`
+        (obrigatórias: `nm_aluno` e `ds_cpf`). A base não tem ano: a importação é um **upsert
+        pelo CPF normalizado** — atualiza quem já existe, insere quem é novo e não remove quem
+        não veio no arquivo. Linha sem CPF ou sem nome é pulada com o motivo. Alimenta a regra
+        do cupom de desconto (vale só para quem nunca foi aluno).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Resultado da importação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResultDto'
+        '400':
+          description: Arquivo ausente ou colunas obrigatórias faltando
 
   /api/admin/imports/status:
     get:
       tags: [AdminPanel]
       summary: Situação das coleções importadas
+      x-roles: [Admin]
       security:
         - bearerAuth: []
       responses:
@@ -1365,10 +1851,426 @@ paths:
               schema:
                 $ref: '#/components/schemas/ImportStatusDto'
 
+  /api/admin/enrolled-students:
+    get:
+      tags: [AdminPanel]
+      summary: Lista paginada de alunos matriculados
+      x-roles: [Admin]
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: cpf
+          in: query
+          schema:
+            type: string
+        - name: rg
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 200
+      responses:
+        '200':
+          description: Lista
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrolledStudentListResultDto'
+    post:
+      tags: [AdminPanel]
+      summary: Cria um registro de alunos matriculados pelo painel
+      x-roles: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateOrUpdateEnrolledStudentDto'
+      responses:
+        '201':
+          description: Registro criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrolledStudentDto'
+
+  /api/admin/enrolled-students/{id}:
+    put:
+      tags: [AdminPanel]
+      summary: Atualiza um registro de alunos matriculados
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateOrUpdateEnrolledStudentDto'
+      responses:
+        '200':
+          description: Registro atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrolledStudentDto'
+        '404':
+          description: Registro não encontrado
+    delete:
+      tags: [AdminPanel]
+      summary: Remove um registro de alunos matriculados
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Registro removido
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '404':
+          description: Registro não encontrado
+
+  /api/admin/delinquent-students:
+    get:
+      tags: [AdminPanel]
+      summary: Lista paginada de alunos inadimplentes
+      x-roles: [Admin]
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: cpf
+          in: query
+          schema:
+            type: string
+        - name: rg
+          in: query
+          schema:
+            type: string
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 200
+      responses:
+        '200':
+          description: Lista
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DelinquentStudentListResultDto'
+    post:
+      tags: [AdminPanel]
+      summary: Cria um registro de alunos inadimplentes pelo painel
+      x-roles: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateOrUpdateDelinquentStudentDto'
+      responses:
+        '201':
+          description: Registro criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DelinquentStudentDto'
+
+  /api/admin/delinquent-students/{id}:
+    put:
+      tags: [AdminPanel]
+      summary: Atualiza um registro de alunos inadimplentes
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateOrUpdateDelinquentStudentDto'
+      responses:
+        '200':
+          description: Registro atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DelinquentStudentDto'
+        '404':
+          description: Registro não encontrado
+    delete:
+      tags: [AdminPanel]
+      summary: Remove um registro de alunos inadimplentes
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Registro removido
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '404':
+          description: Registro não encontrado
+
+  /api/admin/former-students:
+    get:
+      tags: [AdminPanel]
+      summary: Lista os ex-alunos importados
+      x-roles: [Admin]
+      parameters:
+        - name: name
+          in: query
+          schema:
+            type: string
+          description: Trecho do nome, sem diferenciar maiúsculas.
+        - name: cpf
+          in: query
+          schema:
+            type: string
+          description: Trecho do CPF, com ou sem máscara (normalizado antes de comparar).
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 200
+      responses:
+        '200':
+          description: Página de registros, por nome
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FormerStudentListResultDto'
+    post:
+      tags: [AdminPanel]
+      summary: Cria um registro de ex-aluno
+      x-roles: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateOrUpdateFormerStudentDto'
+      responses:
+        '201':
+          description: Registro criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FormerStudentDto'
+        '400':
+          description: Nome ou CPF ausente, ou CPF já cadastrado na base
+
+  /api/admin/former-students/{id}:
+    put:
+      tags: [AdminPanel]
+      summary: Atualiza um registro de ex-aluno
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateOrUpdateFormerStudentDto'
+      responses:
+        '200':
+          description: Registro atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FormerStudentDto'
+        '400':
+          description: Nome ou CPF ausente, ou CPF já cadastrado em outro registro
+        '404':
+          description: Registro não encontrado
+    delete:
+      tags: [AdminPanel]
+      summary: Remove um registro de ex-aluno
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Registro removido
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '404':
+          description: Registro não encontrado
+
+  /api/admin/coupons:
+    get:
+      tags: [AdminPanel]
+      summary: Lista todos os cupons de desconto, incluindo inativos
+      x-roles: [Admin]
+      responses:
+        '200':
+          description: Cupons, do mais recente para o mais antigo
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CouponDto'
+    post:
+      tags: [AdminPanel]
+      summary: Cria um cupom de desconto
+      x-roles: [Admin]
+      description: >
+        O código é gravado normalizado (maiúsculas, sem espaços) e é único, sem diferenciar
+        maiúsculas. Percentual: maior que 0 e no máximo 100. Valor fixo: maior que 0.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateOrUpdateCouponDto'
+      responses:
+        '201':
+          description: Cupom criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CouponDto'
+        '400':
+          description: >
+            Código vazio, com mais de 40 caracteres ou repetido; tipo ou valor do desconto
+            inválido; validade inicial depois da final; limite de usos menor que 1
+
+  /api/admin/coupons/{id}:
+    get:
+      tags: [AdminPanel]
+      summary: Obtém um cupom por ID, incluindo inativos
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cupom retornado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CouponDto'
+        '404':
+          description: Cupom não encontrado
+    put:
+      tags: [AdminPanel]
+      summary: Atualiza um cupom de desconto
+      x-roles: [Admin]
+      description: >
+        `usedCount` não é editável, e o código não pode mudar depois que o cupom já foi usado.
+        Cobranças já emitidas não mudam; a alteração vale para as próximas emissões.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateOrUpdateCouponDto'
+      responses:
+        '200':
+          description: Cupom atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CouponDto'
+        '400':
+          description: Mesmas validações da criação, ou troca de código de cupom já usado
+        '404':
+          description: Cupom não encontrado
+    delete:
+      tags: [AdminPanel]
+      summary: Desativa um cupom (soft-delete)
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cupom desativado
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '404':
+          description: Cupom não encontrado
+
   /api/admin/users/{userId}/rg-document:
     get:
       tags: [AdminPanel]
       summary: Baixa o anexo do RG de um candidato (conferência da secretaria)
+      x-roles: [Admin, Secretaria]
       security:
         - bearerAuth: []
       parameters:
@@ -1393,8 +2295,9 @@ paths:
     get:
       tags: [AdminPanel]
       summary: Lista as contas de candidatos (coleção users), com busca e paginação
+      x-roles: [Admin, Secretaria]
       description: >
-        Somente leitura. O termo em `search` casa com nome, e-mail ou CPF — o CPF é gravado
+        O termo em `search` casa com nome, e-mail ou CPF — o CPF é gravado
         com máscara, mas a busca só por dígitos também encontra. Ordenado pela criação da
         conta, da mais recente para a mais antiga.
       parameters:
@@ -1432,7 +2335,8 @@ paths:
     get:
       tags: [AdminPanel]
       summary: Dados completos de uma conta de candidato e as inscrições dela
-      description: Somente leitura — o painel não edita contas.
+      x-roles: [Admin, Secretaria]
+      description: Inclui o histórico de trocas de e-mail e de CPF feitas pelo painel.
       parameters:
         - name: id
           in: path
@@ -1453,6 +2357,134 @@ paths:
         '403':
           description: Token sem Role="Admin"
 
+  /api/admin/accounts/{id}/reset-password:
+    post:
+      tags: [AdminPanel]
+      summary: Reseta a senha de uma conta de candidato
+      x-roles: [Admin, Secretaria]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminResetUserPasswordDto'
+      responses:
+        '200':
+          description: Senha resetada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminResetUserPasswordResultDto'
+        '404':
+          description: Conta não encontrada
+
+  /api/admin/accounts/{id}/email:
+    put:
+      tags: [AdminPanel]
+      summary: Troca o e-mail de login da conta
+      description: >
+        Grava normalizado (minúsculas), recusa e-mail de outra conta (ativa ou inativa),
+        invalida códigos de recuperação pendentes do e-mail antigo e registra o histórico.
+      x-roles: [Admin, Secretaria]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminChangeAccountEmailDto'
+      responses:
+        '200':
+          description: Conta atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDto'
+        '400':
+          description: E-mail inválido, igual ao atual ou já usado por outra conta
+        '404':
+          description: Conta não encontrada
+
+  /api/admin/accounts/{id}/cpf:
+    put:
+      tags: [AdminPanel]
+      summary: Troca o CPF da conta
+      description: >
+        Não valida formato nem dígito verificador, de propósito. Recusa CPF de outra conta
+        (ativa ou inativa) e registra o histórico.
+      x-roles: [Admin, Secretaria]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminChangeAccountCpfDto'
+      responses:
+        '200':
+          description: Conta atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDto'
+        '400':
+          description: CPF vazio, igual ao atual ou já usado por outra conta
+        '404':
+          description: Conta não encontrada
+
+  # ===================== ADMIN — RELATÓRIOS =====================
+  /api/admin/reports/financial:
+    get:
+      tags: [AdminPanel]
+      summary: Relatório financeiro — inscrições pagas da edição ativa, por data de pagamento
+      x-roles: [Admin, Financeiro]
+      parameters:
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          required: true
+          description: yyyy-MM-dd, inclusivo, no horário de Brasília
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: true
+          description: yyyy-MM-dd, inclusivo, no horário de Brasília
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Pagamentos do período
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminFinancialReportItemDto'
+        '400':
+          description: Datas ausentes ou data final anterior à inicial
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1460,10 +2492,10 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: >
-        Token JWT obtido em `POST /api/users/login`. Enviar como
-        `Authorization: Bearer <token>`. Validade de 4 meses. A claim
-        `Role` é sempre "User" — não existe emissão de tokens com role
-        "Admin" no sistema atual.
+        Enviar como `Authorization: Bearer <token>`. Candidato: token de
+        `POST /api/users/login`, validade de 4 meses, claim `Role="User"`.
+        Painel: token de `POST /api/admin/auth/login`, validade de 8 horas,
+        claim `Role` = `Admin`, `Secretaria` ou `Financeiro`.
 
   schemas:
     ErrorResponse:
@@ -1557,6 +2589,96 @@ components:
           $ref: '#/components/schemas/SchoolInfoDto'
         deviceInfo:
           $ref: '#/components/schemas/DeviceInfoDto'
+        watchInstitutionVideo:
+          type: boolean
+          nullable: true
+          description: Só grava quando enviado. Marca que o candidato assistiu o vídeo institucional até o fim.
+        referral:
+          allOf:
+            - $ref: '#/components/schemas/ReferralDto'
+          nullable: true
+          description: >
+            Indicação (etapa 8). Nulo = não mexe; nome e CPF vazios = limpa; preenchendo um, os
+            dois são obrigatórios. Ignorado com `allowReferral` desligado na edição ativa.
+
+    ReferralDto:
+      type: object
+      description: Quem indicou o candidato para o Instituto.
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        cpf:
+          type: string
+          description: Aceito com ou sem máscara (11 dígitos); gravado e devolvido só com dígitos.
+          example: '12345678901'
+
+    AppliedCouponDto:
+      type: object
+      description: Cupom gravado no usuário. Desconto e valor final vêm de `GET /api/users/coupon`.
+      properties:
+        code:
+          type: string
+        appliedAt:
+          type: string
+          format: date-time
+
+    ApplyCouponDto:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          description: Código do cupom; maiúsculas/minúsculas e espaços são ignorados.
+
+    CouponDiscountType:
+      type: integer
+      enum: [1, 2]
+      description: 1 = percentual sobre a taxa; 2 = valor fixo em reais. Serializado como número.
+
+    CouponValidationDto:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        message:
+          type: string
+          description: Motivo da recusa, ou a confirmação quando `valid = true`.
+        code:
+          type: string
+          nullable: true
+        discountType:
+          allOf:
+            - $ref: '#/components/schemas/CouponDiscountType'
+          nullable: true
+        discountValue:
+          type: number
+          format: double
+          nullable: true
+          description: Percentual ou valor fixo cadastrado no cupom.
+        originalFee:
+          type: number
+          format: double
+          nullable: true
+          description: Taxa de inscrição da edição ativa.
+        discountAmount:
+          type: number
+          format: double
+          nullable: true
+          description: Desconto em reais (2 casas; nunca maior que a taxa).
+        finalFee:
+          type: number
+          format: double
+          nullable: true
+
+    ChangePasswordDto:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
 
     UpdateDeviceInfoDto:
       type: object
@@ -1644,6 +2766,21 @@ components:
           format: date-time
         isActive:
           type: boolean
+        mustChangePassword:
+          type: boolean
+          description: Senha resetada pelo painel — o candidato precisa trocá-la antes de usar o portal.
+        watchInstitutionVideo:
+          type: boolean
+        referral:
+          allOf:
+            - $ref: '#/components/schemas/ReferralDto'
+          nullable: true
+          description: Quem indicou o candidato. Nulo quando não informado.
+        coupon:
+          allOf:
+            - $ref: '#/components/schemas/AppliedCouponDto'
+          nullable: true
+          description: Cupom de desconto aplicado pelo candidato. Nulo quando não há.
 
     AddressDto:
       type: object
@@ -1781,6 +2918,9 @@ components:
           description: Default "Livre" quando nulo na base.
         code:
           type: integer
+        ordenacao:
+          type: integer
+          description: Posição nas listagens (menor primeiro; empate pelo nome).
 
     CourseCountDto:
       type: object
@@ -1872,13 +3012,58 @@ components:
         secondChoiceCourseCode:
           type: string
           description: >
-            Enviado como string; vazio/omitido quando o curso da primeira
-            opção dispensa segunda opção (ex.: códigos 1004, 1016, 1018).
+            Enviado como string; vazio/omitido quando o candidato não escolhe
+            segunda opção (só aceito se a matriz de compatibilidade não a exigir).
         secondChoicePeriodCode:
           type: string
 
+    EnrollmentChoicesValidationDto:
+      type: object
+      properties:
+        compativel:
+          type: boolean
+        mensagem:
+          type: string
+          nullable: true
+          description: Primeira mensagem de validação que falhou, ou nulo se `compativel = true`.
+
+    ChoiceCourseOptionDto:
+      type: object
+      description: Curso e os períodos dele que o candidato pode escolher (1ª ou 2ª opção).
+      properties:
+        courseCode:
+          type: integer
+        periodCodes:
+          type: array
+          items:
+            type: integer
+
+    SecondChoiceRequirement:
+      type: integer
+      enum: [1, 2, 3]
+      description: "1=Required (obrigatória), 2=Optional (opcional), 3=NotAllowed (não permitida)"
+
+    SecondChoiceOptionsDto:
+      type: object
+      properties:
+        configured:
+          type: boolean
+          description: Falso quando a 1ª opção ainda não tem linha na matriz — curso bloqueado.
+        secondChoiceRequirement:
+          $ref: '#/components/schemas/SecondChoiceRequirement'
+        options:
+          type: array
+          description: Inclui o próprio curso da 1ª opção quando a diagonal libera outro período dele.
+          items:
+            $ref: '#/components/schemas/ChoiceCourseOptionDto'
+
     EnrollmentDto:
       type: object
+      description: >
+        `isInternalStudent`, `resultPublicationDate`, `roomNoticeEmailDate`, `paymentStatus`,
+        `paymentPaidAt` e os campos de prova só vêm preenchidos em `GET /my-enrollment`; as
+        respostas de `POST /enrollments` e `GET /protocol/{protocol}` trazem só os dados básicos.
+        `firstChoice.courseCode = 0` indica opções de curso canceladas (o candidato precisa escolher de novo).
       properties:
         id:
           type: string
@@ -1969,6 +3154,24 @@ components:
           type: string
           format: date-time
           nullable: true
+        couponCode:
+          type: string
+          nullable: true
+          description: Cupom aplicado a esta cobrança. Nulo = valor cheio.
+        originalAmount:
+          type: number
+          format: double
+          nullable: true
+          description: Taxa antes do desconto. Só vem com `couponCode`.
+        discountAmount:
+          type: number
+          format: double
+          nullable: true
+          description: Desconto do cupom. Só vem com `couponCode`.
+        couponNotice:
+          type: string
+          nullable: true
+          description: O cupom do candidato deixou de valer na emissão e a cobrança saiu pelo valor cheio (código e motivo).
 
     ImportResultDto:
       type: object
@@ -1999,7 +3202,9 @@ components:
       properties:
         enrolledStudents:
           $ref: '#/components/schemas/ImportCollectionStatusDto'
-        tuitionPayments:
+        delinquentStudents:
+          $ref: '#/components/schemas/ImportCollectionStatusDto'
+        formerStudents:
           $ref: '#/components/schemas/ImportCollectionStatusDto'
 
     ImportCollectionStatusDto:
@@ -2029,114 +3234,6 @@ components:
       type: integer
       enum: [1, 2, 3]
       description: "1=Open (editável), 2=Validated (imutável), 3=Canceled (imutável)"
-
-    EnrollmentCountByCoursePeriodDto:
-      type: object
-      properties:
-        courseName:
-          type: string
-        periodName:
-          type: string
-        totalInscritos:
-          type: integer
-
-    CompleteEnrollmentDto:
-      type: object
-      description: DTO de interoperabilidade com sistema legado (nomenclatura em português).
-      properties:
-        nmUsuario:
-          type: string
-        dsEmailCandidato:
-          type: string
-        dsTelefoneCandidato:
-          type: string
-        dsResponsavelParentesco:
-          type: string
-        dsResponsavelSecundarioParentesco:
-          type: string
-        dtNascimento:
-          type: string
-          format: date-time
-        nrRg:
-          type: string
-        dsCpf:
-          type: string
-        dtEmissaoRg:
-          type: string
-          format: date-time
-          nullable: true
-        dsOrgaoRg:
-          type: string
-        dsSexo:
-          type: string
-        dsCodigoInscricao:
-          type: integer
-        dsEscolaridade:
-          type: string
-        tpEscola:
-          type: string
-        dsEscola:
-          type: string
-        dsComoConheceu:
-          type: string
-        dsRenda:
-          type: number
-          nullable: true
-        qtdPessoasResidentesCasa:
-          type: integer
-        qtdPessoasTrabalhando:
-          type: integer
-        dsCidadeNascimento:
-          type: string
-        dsUfNascimento:
-          type: string
-        dsNascionalidade:
-          type: string
-        idPrimeiroCurso:
-          type: integer
-        dsPrimeiroCurso:
-          type: string
-        dsTurnoPrimeiroCurso:
-          type: string
-        idSegundoCurso:
-          type: integer
-          nullable: true
-        dsSegundoCurso:
-          type: string
-        dsTurnoSegundoCurso:
-          type: string
-        nrCep:
-          type: string
-        dsEndereco:
-          type: string
-        nrResidencia:
-          type: string
-        dsComplemento:
-          type: string
-        dsBairro:
-          type: string
-        dsUfResidencia:
-          type: string
-        dsCidadeResidencia:
-          type: string
-        nmResponsavel:
-          type: string
-        nrTelefoneResp:
-          type: string
-        nrTelefoneRespSec:
-          type: string
-        dsEmailResp:
-          type: string
-        nmResponsavelSecundario:
-          type: string
-        nrTelefoneRespSecundario:
-          type: string
-        nrTelefoneRespSecSecundario:
-          type: string
-        dsEmailRespSecundario:
-          type: string
-        dsAnoInscricao:
-          type: integer
 
     # -------- Appointments --------
     CreateOrUpdateAppointmentCommand:
@@ -2195,15 +3292,6 @@ components:
           format: date-time
           nullable: true
 
-    AppointmentCountByDateDto:
-      type: object
-      properties:
-        date:
-          type: string
-          example: "10/08/2026"
-        totalAgendamentos:
-          type: integer
-
     # -------- FAQs --------
     FAQDto:
       type: object
@@ -2235,6 +3323,18 @@ components:
     VestibularStatusDto:
       type: object
       properties:
+        year:
+          type: integer
+          description: Ano da edição ativa.
+        allowRegistration:
+          type: boolean
+          description: Valor bruto do interruptor do admin, sem considerar a janela de datas.
+        allowReferral:
+          type: boolean
+          description: A edição ativa aceita indicação — o front mostra a seção "Indicação" na etapa 8.
+        allowCoupon:
+          type: boolean
+          description: A edição ativa aceita cupom — o front mostra a seção "Cupom de desconto" na etapa 8.
         startDate:
           type: string
           format: date-time
@@ -2268,8 +3368,12 @@ components:
           $ref: '#/components/schemas/VestibularPhase'
 
     VestibularPhase:
-      type: string
-      enum: [NotStarted, RegistrationOpen, RegistrationClosed, Finished]
+      type: integer
+      enum: [0, 1, 2, 3]
+      description: >
+        Serializado como número: 0=NotStarted, 1=RegistrationOpen, 2=RegistrationClosed,
+        3=Finished. O serviço só devolve 0, 1 e 3 — o valor 2 existe no enum mas nunca é
+        atribuído. O frontend trava o formulário de dados pessoais com `currentPhase >= 3`.
 
     # -------- Admin Panel --------
     AdminLoginCommand:
@@ -2300,7 +3404,7 @@ components:
           minLength: 8
         accessPassword:
           type: string
-          description: Senha administrativa fixa (mesma usada nos demais endpoints com tag Admin).
+          description: Segredo de bootstrap (`AccessPassword.Admin`).
 
     CreateAdminUserCommand:
       type: object
@@ -2319,6 +3423,23 @@ components:
         password:
           type: string
           minLength: 8
+        role:
+          $ref: '#/components/schemas/AdminRole'
+
+    AdminRole:
+      type: string
+      enum: [Admin, Financeiro, Secretaria]
+      default: Admin
+
+    AdminChangePasswordDto:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
 
     AdminUserDto:
       type: object
@@ -2331,6 +3452,10 @@ components:
           type: string
         name:
           type: string
+        role:
+          $ref: '#/components/schemas/AdminRole'
+        mustChangePassword:
+          type: boolean
         isActive:
           type: boolean
         createdAt:
@@ -2406,10 +3531,24 @@ components:
           type: string
           format: date-time
           description: Data de nascimento máxima permitida (semântica invertida do nome — ver specs/modeling.md).
+        enrollmentPeriodDescription:
+          type: string
+          description: Período de matrícula (texto/HTML) — usado no e-mail de confirmação.
+        classesStartDescription:
+          type: string
+          description: Reunião de pais e início das aulas (texto/HTML) — usado no e-mail de confirmação.
+        installmentsCount:
+          type: integer
+        installmentValue:
+          type: number
+          format: double
+        ordenacao:
+          type: integer
+          description: Posição nas listagens (menor primeiro).
 
     AdminCreateOrUpdateCourseDto:
       type: object
-      required: [name, code]
+      required: [name, code, maxBirtDate, minBirthDate]
       properties:
         name:
           type: string
@@ -2444,21 +3583,43 @@ components:
           type: string
         image:
           type: string
-          description: Identificador usado em `GET /api/courses/{id}/image` (arquivo em `templates/images/{id}`, fora deste payload).
+          description: >
+            Identificador usado em `GET /api/courses/{id}/image` (nome do arquivo no storage,
+            fora deste payload). Normalmente não deve ser editado à mão aqui — é preenchido
+            automaticamente por `POST /api/admin/courses/{id}/image` ao enviar uma imagem.
         type:
           type: string
           nullable: true
         maxBirtDate:
           type: string
           format: date-time
+          description: Obrigatória (com `minBirthDate`); não pode ser posterior a ela.
         minBirthDate:
           type: string
           format: date-time
+        enrollmentPeriodDescription:
+          type: string
+          description: Período de matrícula (texto/HTML) — usado no e-mail de confirmação.
+        classesStartDescription:
+          type: string
+          description: Reunião de pais e início das aulas (texto/HTML) — usado no e-mail de confirmação.
+        installmentsCount:
+          type: integer
+        installmentValue:
+          type: number
+          format: double
+        ordenacao:
+          type: integer
+          description: Posição nas listagens (menor primeiro).
 
     AdminCreateOrUpdateFAQDto:
       type: object
       required: [question, answer]
       properties:
+        key:
+          type: string
+          nullable: true
+          description: Slug para link direto; gravado em minúsculas, vazio vira nulo.
         question:
           type: string
         answer:
@@ -2499,6 +3660,23 @@ components:
           type: boolean
         allowRegistration:
           type: boolean
+        allowReferral:
+          type: boolean
+          default: false
+          description: >
+            "Permite indicação". Desligado (padrão, inclusive em edição antiga sem o campo),
+            `PUT /api/users/profile` ignora `referral`.
+        allowCoupon:
+          type: boolean
+          default: false
+          description: >
+            "Permite cupom". Desligado (padrão), o candidato não aplica cupom e um cupom já gravado
+            não gera desconto nas próximas emissões; cobrança pendente já emitida não muda.
+        testerEmails:
+          type: array
+          description: E-mails que logam e se inscrevem mesmo com `allowRegistration` desligado.
+          items:
+            type: string
         resultPublicationDate:
           type: string
           format: date-time
@@ -2560,6 +3738,23 @@ components:
         allowRegistration:
           type: boolean
           default: true
+        allowReferral:
+          type: boolean
+          default: false
+          description: >
+            "Permite indicação". Desligado (padrão, inclusive em edição antiga sem o campo),
+            `PUT /api/users/profile` ignora `referral`.
+        allowCoupon:
+          type: boolean
+          default: false
+          description: >
+            "Permite cupom". Desligado (padrão), o candidato não aplica cupom e um cupom já gravado
+            não gera desconto nas próximas emissões; cobrança pendente já emitida não muda.
+        testerEmails:
+          type: array
+          description: E-mails que logam e se inscrevem mesmo com `allowRegistration` desligado.
+          items:
+            type: string
         resultPublicationDate:
           type: string
           format: date-time
@@ -2615,6 +3810,23 @@ components:
           nullable: true
         allowRegistration:
           type: boolean
+        allowReferral:
+          type: boolean
+          default: false
+          description: >
+            "Permite indicação". Desligado (padrão, inclusive em edição antiga sem o campo),
+            `PUT /api/users/profile` ignora `referral`.
+        allowCoupon:
+          type: boolean
+          default: false
+          description: >
+            "Permite cupom". Desligado (padrão), o candidato não aplica cupom e um cupom já gravado
+            não gera desconto nas próximas emissões; cobrança pendente já emitida não muda.
+        testerEmails:
+          type: array
+          description: E-mails que logam e se inscrevem mesmo com `allowRegistration` desligado.
+          items:
+            type: string
         resultPublicationDate:
           type: string
           format: date-time
@@ -2643,6 +3855,8 @@ components:
       type: object
       properties:
         total:
+          type: integer
+        paidCount:
           type: integer
         byStatus:
           type: array
@@ -2700,10 +3914,16 @@ components:
           type: string
         protocol:
           type: string
+        userId:
+          type: string
         studentName:
           type: string
         studentCpf:
           type: string
+        studentRg:
+          type: string
+        hasRgDocument:
+          type: boolean
         studentEmail:
           type: string
         firstChoiceCourseName:
@@ -2713,9 +3933,38 @@ components:
         status:
           type: string
           enum: [Open, Validated, Canceled]
+        paymentStatus:
+          $ref: '#/components/schemas/PaymentStatusName'
         createdAt:
           type: string
           format: date-time
+
+    PaymentStatusName:
+      type: string
+      enum: [Pending, Paid, Expired, Failed, Canceled]
+      description: Nome do enum `PaymentStatus` — os DTOs do painel usam o nome, os do candidato o número.
+
+    AdminEnrollmentReportItemDto:
+      type: object
+      properties:
+        protocol: { type: string }
+        studentName: { type: string }
+        studentCpf: { type: string }
+        studentEmail: { type: string }
+        studentPhone: { type: string }
+        primaryResponsibleName: { type: string }
+        primaryResponsiblePhone: { type: string }
+        primaryResponsiblePhoneSecondary: { type: string }
+        secondaryResponsibleName: { type: string }
+        secondaryResponsiblePhone: { type: string }
+        secondaryResponsiblePhoneSecondary: { type: string }
+        firstChoiceCourseName: { type: string }
+        firstChoicePeriodName: { type: string }
+        secondChoiceCourseName: { type: string }
+        secondChoicePeriodName: { type: string }
+        status: { type: string, enum: [Open, Validated, Canceled] }
+        paymentStatus: { $ref: '#/components/schemas/PaymentStatusName' }
+        createdAt: { type: string, format: date-time }
 
     AdminEnrollmentListResultDto:
       type: object
@@ -2758,6 +4007,317 @@ components:
           nullable: true
         student:
           $ref: '#/components/schemas/UserDto'
+        paymentStatus:
+          $ref: '#/components/schemas/PaymentStatusName'
+        paymentCorrelationId: { type: string, nullable: true }
+        paymentCopyPasteCode: { type: string, nullable: true }
+        paymentQrCodeImageUrl: { type: string, nullable: true }
+        paymentAmount: { type: number, format: double }
+        paymentExpiresAt: { type: string, format: date-time, nullable: true }
+        paymentPaidAt: { type: string, format: date-time, nullable: true }
+        paymentMethod:
+          type: string
+          nullable: true
+          description: Forma do pagamento manual; `Cupom` quando o cupom zerou a taxa; nulo quando pago pela cobrança PIX.
+        couponCode: { type: string, nullable: true, description: Cupom aplicado à cobrança ou ao pagamento }
+        couponOriginalFee: { type: number, format: double, nullable: true, description: Taxa da edição quando o desconto foi aplicado }
+        couponDiscount: { type: number, format: double, nullable: true }
+        couponRejection:
+          type: string
+          nullable: true
+          description: Cupom do candidato que deixou de valer na emissão (cobrança pelo valor cheio) e o motivo.
+
+    AdminManualPaymentDto:
+      type: object
+      required: [method]
+      properties:
+        amount:
+          type: number
+          format: double
+          nullable: true
+          description: Vazio ou zero usa a taxa de inscrição da edição, com o desconto do cupom do candidato se ele ainda valer.
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Vazio usa o momento atual.
+        method:
+          type: string
+          enum: [Pix, Dinheiro, Cartão de débito, Cartão de crédito, Transferência, Outro]
+
+    AdminUpdateEnrollmentChoicesDto:
+      type: object
+      required: [firstChoiceCourseCode, firstChoicePeriodCode]
+      description: Códigos como inteiros (no DTO do candidato a 2ª opção vai como string).
+      properties:
+        firstChoiceCourseCode: { type: integer }
+        firstChoicePeriodCode: { type: integer }
+        secondChoiceCourseCode: { type: integer, description: "<= 0 = sem 2ª opção" }
+        secondChoicePeriodCode: { type: integer }
+
+    AdminDeleteEnrollmentResultDto:
+      type: object
+      properties:
+        success: { type: boolean }
+        protocol: { type: string }
+
+    AdminResendConfirmationEmailResultDto:
+      type: object
+      properties:
+        success: { type: boolean }
+        sentTo: { type: array, items: { type: string } }
+        failedTo: { type: array, items: { type: string } }
+
+    AdminFinancialReportItemDto:
+      type: object
+      properties:
+        enrollmentId: { type: string }
+        protocol: { type: string }
+        name: { type: string }
+        cpf: { type: string }
+        email: { type: string }
+        firstChoiceCourseName: { type: string }
+        firstChoicePeriodName: { type: string }
+        secondChoiceCourseName: { type: string }
+        secondChoicePeriodName: { type: string }
+        paidAt: { type: string, format: date-time, nullable: true }
+        amount: { type: number, format: double }
+        paymentType: { type: string, description: '"QR Code", "Cupom" (taxa zerada pelo cupom) ou a forma informada no pagamento manual' }
+        couponCode: { type: string, nullable: true }
+        couponDiscount: { type: number, format: double, nullable: true }
+
+    AdminChangeAccountEmailDto:
+      type: object
+      required: [newEmail]
+      properties:
+        newEmail: { type: string, format: email, maxLength: 150 }
+
+    AdminChangeAccountCpfDto:
+      type: object
+      required: [newCpf]
+      properties:
+        newCpf: { type: string }
+
+    AdminEmailChangeDto:
+      type: object
+      properties:
+        oldEmail: { type: string }
+        newEmail: { type: string }
+        changedByAdmin: { type: string }
+        changedAt: { type: string, format: date-time }
+
+    AdminCpfChangeDto:
+      type: object
+      properties:
+        oldCpf: { type: string }
+        newCpf: { type: string }
+        changedByAdmin: { type: string }
+        changedAt: { type: string, format: date-time }
+
+    # -------- Registros importados --------
+    EnrolledStudentDto:
+      type: object
+      properties:
+        id: { type: string }
+        year: { type: integer }
+        studentId: { type: string }
+        cpf: { type: string, description: Só dígitos }
+        rg: { type: string, description: Só dígitos }
+        courseCode: { type: integer }
+
+    AdminCreateOrUpdateEnrolledStudentDto:
+      type: object
+      properties:
+        year: { type: integer }
+        studentId: { type: string }
+        cpf: { type: string }
+        rg: { type: string }
+        courseCode: { type: integer }
+
+    EnrolledStudentListResultDto:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/EnrolledStudentDto' } }
+        total: { type: integer, format: int64 }
+        page: { type: integer }
+        pageSize: { type: integer }
+
+    DelinquentStudentDto:
+      type: object
+      properties:
+        id: { type: string }
+        year: { type: integer }
+        studentId: { type: string }
+        studentName: { type: string }
+        cpf: { type: string, description: Só dígitos }
+        rg: { type: string, description: Só dígitos }
+        courseCode: { type: integer }
+        courseName: { type: string }
+        pendingCount: { type: integer, description: Mensalidades pendentes }
+
+    AdminCreateOrUpdateDelinquentStudentDto:
+      type: object
+      properties:
+        year: { type: integer }
+        studentId: { type: string }
+        studentName: { type: string }
+        cpf: { type: string }
+        rg: { type: string }
+        courseCode: { type: integer }
+        courseName: { type: string }
+        pendingCount: { type: integer }
+
+    DelinquentStudentListResultDto:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/DelinquentStudentDto' } }
+        total: { type: integer, format: int64 }
+        page: { type: integer }
+        pageSize: { type: integer }
+
+    FormerStudentDto:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        cpf: { type: string, description: Só dígitos }
+        email: { type: string }
+        responsibleName: { type: string }
+        address: { type: string }
+        neighborhood: { type: string }
+
+    AdminCreateOrUpdateFormerStudentDto:
+      type: object
+      required: [name, cpf]
+      properties:
+        name: { type: string }
+        cpf: { type: string, description: Com ou sem máscara; único na base }
+        email: { type: string, nullable: true }
+        responsibleName: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        neighborhood: { type: string, nullable: true }
+
+    FormerStudentListResultDto:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/FormerStudentDto' } }
+        total: { type: integer, format: int64 }
+        page: { type: integer }
+        pageSize: { type: integer }
+
+    # -------- Cupons de desconto --------
+    CouponDto:
+      type: object
+      properties:
+        id: { type: string }
+        code: { type: string, description: 'Maiúsculas, sem espaços' }
+        description: { type: string }
+        discountType:
+          $ref: '#/components/schemas/CouponDiscountType'
+        discountValue: { type: number, format: double }
+        validFrom: { type: string, format: date-time, nullable: true }
+        validUntil: { type: string, format: date-time, nullable: true }
+        isActive: { type: boolean }
+        maxUses: { type: integer, nullable: true, description: Nulo = ilimitado }
+        usedCount: { type: integer, description: Inscrições com cobrança emitida ou pagamento registrado com o cupom }
+        createdAt: { type: string, format: date-time }
+        modifiedAt: { type: string, format: date-time }
+
+    AdminCreateOrUpdateCouponDto:
+      type: object
+      required: [code, discountType, discountValue]
+      properties:
+        code: { type: string, maxLength: 40 }
+        description: { type: string, nullable: true }
+        discountType:
+          $ref: '#/components/schemas/CouponDiscountType'
+        discountValue:
+          type: number
+          format: double
+          description: 'Percentual: maior que 0 e até 100. Valor fixo: maior que 0, em reais.'
+        validFrom: { type: string, format: date-time, nullable: true, description: 'Inclusive; comparado por dia' }
+        validUntil: { type: string, format: date-time, nullable: true, description: 'Inclusive; comparado por dia' }
+        isActive: { type: boolean, default: true }
+        maxUses: { type: integer, nullable: true, minimum: 1 }
+
+    # -------- Matriz de compatibilidade --------
+    AdminCourseCompatibilityMatrixDto:
+      type: object
+      properties:
+        courses:
+          type: array
+          description: Cursos ativos (linhas = 1ª opção, colunas = 2ª opção).
+          items: { $ref: '#/components/schemas/CompatibilityCourseDto' }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/CourseCompatibilityRowDto' }
+        schoolLevels:
+          type: array
+          description: Escolaridades aceitas nas condições, em ordem crescente.
+          items: { type: string }
+        continuityCourseCodes:
+          type: array
+          description: Cursos com continuidade — só neles alguém pode ser "aluno interno".
+          items: { type: integer }
+
+    CompatibilityCourseDto:
+      type: object
+      properties:
+        code: { type: integer }
+        name: { type: string }
+        type: { type: string, nullable: true }
+        periods:
+          type: array
+          items:
+            type: object
+            properties:
+              code: { type: integer }
+              name: { type: string }
+        defaultEarliestBirthDate: { type: string, format: date-time, nullable: true }
+        defaultLatestBirthDate: { type: string, format: date-time, nullable: true }
+        defaultMinSchoolLevel: { type: string, nullable: true }
+        courseSchoolLevelText: { type: string, description: "Texto livre de escolaridade do cadastro, para conferência." }
+
+    CourseCompatibilityRowDto:
+      type: object
+      properties:
+        firstCourseCode: { type: integer }
+        secondChoiceRequirement: { $ref: '#/components/schemas/SecondChoiceRequirement' }
+        allowedSecondChoices:
+          type: array
+          items: { $ref: '#/components/schemas/SecondChoiceRuleDto' }
+        modifiedAt: { type: string, format: date-time, nullable: true }
+        modifiedBy: { type: string, nullable: true }
+
+    SecondChoiceRuleDto:
+      type: object
+      description: Célula liberada. `courseCode` igual ao da linha = mesmo curso em outro período.
+      properties:
+        courseCode: { type: integer }
+        allowInternal: { type: boolean, default: true }
+        allowExternal: { type: boolean, default: true }
+        periodRules:
+          type: array
+          items: { $ref: '#/components/schemas/CellPeriodRuleDto' }
+
+    CellPeriodRuleDto:
+      type: object
+      description: Condição da célula para um período do curso da 1ª opção.
+      properties:
+        firstPeriodCode: { type: integer }
+        earliestBirthDate: { type: string, format: date-time, description: "Nascido a partir de (inclusiva). Obrigatória ao salvar." }
+        latestBirthDate: { type: string, format: date-time, description: "Nascido até (inclusiva). Obrigatória ao salvar." }
+        minSchoolLevel: { type: string, nullable: true }
+        disabledSecondPeriodCodes:
+          type: array
+          items: { type: integer }
+
+    SaveCourseCompatibilityMatrixDto:
+      type: object
+      properties:
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/CourseCompatibilityRowDto' }
 
     AdminResetUserPasswordDto:
       type: object
@@ -2845,3 +4405,11 @@ components:
           description: Inscrições da conta, da mais recente para a mais antiga.
           items:
             $ref: '#/components/schemas/AdminAccountEnrollmentDto'
+        emailChanges:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminEmailChangeDto'
+        cpfChanges:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminCpfChangeDto'

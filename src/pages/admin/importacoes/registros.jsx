@@ -5,6 +5,7 @@ import callApi from "../../../api/callAPI";
 import {
   listarMatriculados, criarMatriculado, atualizarMatriculado, removerMatriculado,
   listarInadimplentes, criarInadimplente, atualizarInadimplente, removerInadimplente,
+  listarExAlunos, criarExAluno, atualizarExAluno, removerExAluno,
 } from "../../../api/services/admin/registrosImportados";
 import { listarEdicoes } from "../../../api/services/admin/vestibular";
 import useModal from "../../../util/useModal";
@@ -30,6 +31,16 @@ const TIPOS = {
     criar: criarInadimplente,
     atualizar: atualizarInadimplente,
     remover: removerInadimplente,
+  },
+  // Base sem ano nem RG: busca só por nome e CPF, e a tabela tem colunas próprias.
+  exAlunos: {
+    titulo: "Ex-Alunos",
+    temNome: true,
+    semAno: true,
+    listar: listarExAlunos,
+    criar: criarExAluno,
+    atualizar: atualizarExAluno,
+    remover: removerExAluno,
   },
 };
 
@@ -94,9 +105,9 @@ export default function RegistrosImportados() {
 
     (async () => {
       const params = {
-        year: filtros.ano,
+        year: config.semAno ? undefined : filtros.ano,
         cpf: filtros.cpf || undefined,
-        rg: filtros.rg || undefined,
+        rg: config.semAno ? undefined : (filtros.rg || undefined),
         page: pagina,
         pageSize: PAGE_SIZE,
       };
@@ -160,7 +171,8 @@ export default function RegistrosImportados() {
   }
 
   async function excluir(registro) {
-    if (!confirm(`Remover o registro do aluno ${registro.studentId}?`)) return;
+    const quem = config.semAno ? `do ex-aluno ${registro.name}` : `do aluno ${registro.studentId}`;
+    if (!confirm(`Remover o registro ${quem}?`)) return;
 
     const r = await callApi(config.remover, true, registro.id);
     if (r !== undefined) recarregar();
@@ -190,20 +202,24 @@ export default function RegistrosImportados() {
       </div>
 
       <div className="filtros">
-        <div className="campo">
-          <label htmlFor="filtro-ano">Ano</label>
-          <input id="filtro-ano" type="number" value={anoInput} onChange={editarFiltro(setAnoInput)} />
-        </div>
+        {!config.semAno &&
+          <div className="campo">
+            <label htmlFor="filtro-ano">Ano</label>
+            <input id="filtro-ano" type="number" value={anoInput} onChange={editarFiltro(setAnoInput)} />
+          </div>
+        }
 
         <div className="campo">
           <label htmlFor="filtro-cpf">CPF</label>
           <input id="filtro-cpf" type="text" placeholder="Somente números ou com máscara" value={cpfInput} onChange={editarFiltro(setCpfInput)} />
         </div>
 
-        <div className="campo">
-          <label htmlFor="filtro-rg">RG</label>
-          <input id="filtro-rg" type="text" value={rgInput} onChange={editarFiltro(setRgInput)} />
-        </div>
+        {!config.semAno &&
+          <div className="campo">
+            <label htmlFor="filtro-rg">RG</label>
+            <input id="filtro-rg" type="text" value={rgInput} onChange={editarFiltro(setRgInput)} />
+          </div>
+        }
 
         {config.temNome &&
           <div className="campo">
@@ -219,7 +235,45 @@ export default function RegistrosImportados() {
 
       {!resultado && <Carregamento />}
 
-      {resultado &&
+      {resultado && config.semAno &&
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Nome completo</th>
+              <th>CPF</th>
+              <th>E-mail</th>
+              <th>Responsável</th>
+              <th>Endereço</th>
+              <th>Bairro</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {resultado.items.length === 0 &&
+              <tr className="vazio">
+                <td colSpan={7}>Nenhum registro encontrado.</td>
+              </tr>
+            }
+
+            {resultado.items.map(item =>
+              <tr key={item.id}>
+                <td>{item.name}</td>
+                <td>{item.cpf}</td>
+                <td>{item.email || "—"}</td>
+                <td>{item.responsibleName || "—"}</td>
+                <td>{item.address || "—"}</td>
+                <td>{item.neighborhood || "—"}</td>
+                <td className="acoes">
+                  <button type="button" onClick={() => abrirForm(item)}>Editar</button>
+                  <button type="button" onClick={() => excluir(item)}>Remover</button>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      }
+
+      {resultado && !config.semAno &&
         <table className="admin-table">
           <thead>
             <tr>

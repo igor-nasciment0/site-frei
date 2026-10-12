@@ -302,6 +302,73 @@
             }
         }
 
+        // Texto de apresentação das seções opcionais da etapa 8 (Indicação e Cupom de desconto).
+        tr.texto-secao td {
+            flex: 1;
+            padding-top: 0;
+            font-size: 13.5px;
+            line-height: 1.55;
+            color: t.$c-slate;
+        }
+
+        .campo-cupom {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+
+            input {
+                flex: 1 1 200px;
+                width: auto;
+                text-transform: uppercase;
+            }
+
+            .btn-cupom {
+                padding: 12px 22px;
+                font-size: 13px;
+                font-weight: 600;
+                color: t.$c-white;
+                background: t.$c-navy;
+                transition: background t.$transition;
+
+                &:hover:not(:disabled) {
+                    background: t.$c-navy-hover;
+                }
+
+                &:disabled {
+                    opacity: .6;
+                    cursor: default;
+                }
+
+                &.remover {
+                    color: t.$c-navy;
+                    background: transparent;
+                    border: 1px solid t.$c-border;
+
+                    &:hover:not(:disabled) {
+                        background: t.$c-input-bg;
+                    }
+                }
+            }
+        }
+
+        .cupom-resultado {
+            margin-top: 10px;
+            padding: 12px 14px;
+            font-size: 13.5px;
+            line-height: 1.55;
+            border-left: 3px solid t.$c-navy;
+            background: t.$c-input-bg;
+
+            s {
+                color: t.$c-text-muted;
+            }
+
+            &.recusado {
+                border-left-color: t.$c-clay;
+                color: t.$c-clay;
+            }
+        }
+
         tfoot {
             display: flex;
             border-top: 1px solid t.$c-divider-soft;

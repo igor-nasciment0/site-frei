@@ -18,6 +18,10 @@ export async function importarInadimplentes(arquivo) {
   return enviarCsv('/admin/imports/delinquent-students', arquivo);
 }
 
+export async function importarExAlunos(arquivo) {
+  return enviarCsv('/admin/imports/former-students', arquivo);
+}
+
 export async function getStatusImportacoes() {
   const r = await adminApi().get('/admin/imports/status');
   return r.data;

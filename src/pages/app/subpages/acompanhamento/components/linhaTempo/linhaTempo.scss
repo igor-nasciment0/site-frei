@@ -104,6 +104,19 @@
                 }
 
                 &.pagamento {
+                    .desconto-cupom {
+                        margin-top: 8px;
+
+                        s {
+                            color: t.$c-text-muted;
+                        }
+                    }
+
+                    .aviso-cupom {
+                        margin-top: 8px;
+                        color: t.$c-clay;
+                    }
+
                     .qrcode {
                         display: block;
                         width: 168px;

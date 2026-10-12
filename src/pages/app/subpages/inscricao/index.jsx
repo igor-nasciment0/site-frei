@@ -33,6 +33,10 @@ const secoesPorPasso = [
   ["schoolInfo"],
 ]
 
+// Indicação (etapa 8): opcional, por isso fica fora de padroes.js — o testState do envio final
+// exige tudo que está naquele modelo. Entra só nos valores iniciais do formulário.
+const padroesIndicacao = { referral: { name: "", cpf: "" } };
+
 // Etapas 3 (nascimento) e 7 (escolaridade): alterá-las cancela as opções de curso já escolhidas,
 // porque idade e escolaridade mínima dependem delas (regra aplicada no backend, no PUT /users/profile).
 const CAMPOS_QUE_CANCELAM_CURSOS = {
@@ -92,10 +96,10 @@ export default function Inscricao() {
     return infoAtual;
   }
 
-  const methods = useForm({ defaultValues: mergeObjects({ ...padroes }, getInfoAtual()) });
+  const methods = useForm({ defaultValues: mergeObjects({ ...padroes, ...padroesIndicacao }, getInfoAtual()) });
 
   useEffect(() => {
-    const values = mergeObjects({ ...padroes }, getInfoAtual())
+    const values = mergeObjects({ ...padroes, ...padroesIndicacao }, getInfoAtual())
 
     methods.reset(values)
   }, [window.location.pathname])
@@ -138,6 +142,17 @@ export default function Inscricao() {
     }
 
     if (!confirmaCancelamentoDosCursos(novosDados)) return;
+
+    // Indicação: só vai quando a edição permite. Vazia, vai como { name: "", cpf: "" } — é o
+    // que limpa uma indicação já gravada (o PUT é parcial: omitir o campo não apaga nada).
+    // O cupom não entra aqui: é aplicado/removido na hora, pelos endpoints próprios.
+    if (statusVestibular.allowReferral)
+      novosDados.referral = {
+        name: (novosDados.referral?.name ?? "").trim(),
+        cpf: (novosDados.referral?.cpf ?? "").replace(/\D/g, ""),
+      };
+    else
+      delete novosDados.referral;
 
     novosDados.generalInfo.income = Number(novosDados.generalInfo.income.toString().replaceAll("R$ ", "").replaceAll(".", "").replaceAll(",", "."));
 

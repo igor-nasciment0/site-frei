@@ -1,10 +1,11 @@
 # Funcionalidades e Casos de Uso — Frei Online
 
-> **Nota:** este documento cobre o **portal do candidato**. O projeto também tem uma área
-> administrativa em `/admin` (login próprio, dashboard, CRUD de cursos/FAQ/edições do vestibular,
-> consulta de inscrições e **importações de CSV**) que ainda não está documentada em detalhe aqui.
+> Conferido contra o código em **2026-10-12**. Cobre o **portal do candidato** (seções 1–9) e, em
+> resumo, a **área administrativa** (seção 10). As regras de negócio do backend estão em
+> `nsf-app-v3/specs/` (`features-usecases.md` e `rules/inscricao.md`); as divergências encontradas
+> nesta revisão, em `nsf-app-v3/specs/divergencias.md`.
 
-Portal onde candidatos (menores de idade, representados por um responsável cadastrante) fazem toda a jornada de inscrição no vestibular do Instituto Social Nossa Senhora de Fátima: criar conta, preencher ficha completa, escolher curso/horário, agendar e acompanhar a prova presencial, e ver o resultado.
+Portal onde candidatos (menores de idade, representados por um responsável cadastrante) fazem toda a jornada de inscrição no vestibular do Instituto Social Nossa Senhora de Fátima: criar conta, preencher ficha completa, escolher curso/horário, pagar a taxa de inscrição por PIX, acompanhar a convocação para a prova presencial e ver o resultado.
 
 ## 1. Cadastro de conta (`/cadastro`)
 
@@ -23,6 +24,13 @@ Portal onde candidatos (menores de idade, representados por um responsável cada
 - Formulário: e-mail, senha. Envio como `FormData` (`Email`, `Password`).
 - Sucesso (`POST /users/login` retorna `token`): salva sessão, barra de progresso, redireciona para `/`.
 - Erro (credenciais inválidas etc.): toast de erro (mensagem vinda da API).
+- **Inscrições desligadas** (`allowRegistration = false` na edição ativa): a API recusa o login de
+  quem não é e-mail de teste, com *"As inscrições ainda não começaram. Volte no dia {data}."*. A
+  tela também tenta mostrar esse aviso antes do envio, lendo `GET /parameters` — mas o endpoint
+  exige token, então **o aviso só aparece para quem ainda tem uma sessão antiga salva**; o visitante
+  comum só vê a mensagem depois de tentar entrar (pendência em `nsf-app-v3/specs/divergencias.md`).
+- Usuário com `mustChangePassword` (senha resetada pela secretaria) vai para
+  `/trocar-senha-obrigatoria` em vez da Início (seção 3.1).
 - Links: "Esqueci a senha" (`/recuperar-senha`) e "Cadastre-se" (`/cadastro`).
 
 ## 3. Recuperação de senha (`/recuperar-senha` → `/trocar-senha`)
@@ -35,29 +43,53 @@ Portal onde candidatos (menores de idade, representados por um responsável cada
    - `POST /users/reset-password` com `{ code, newPassword, confirmPassword, email }`.
    - Sucesso: toast e redirecionamento para `/login` após 2s. Falha: toast com mensagem de erro (da API ou fallback genérico).
 
+### 3.1 Troca de senha obrigatória (`/trocar-senha-obrigatoria`)
+
+**Ator:** candidato cuja senha foi resetada pelo painel admin.
+
+- Aberta automaticamente no login e a cada carregamento do `App` enquanto `user.mustChangePassword`
+  for verdadeiro — nada do portal abre antes.
+- Pede a senha atual (a que a secretaria repassou), a nova e a confirmação;
+  `POST /users/change-password`. Em sucesso, limpa a flag no `user` local e vai para `/`.
+- Tem "Sair da conta" para quem não tem a senha em mãos.
+
 ## 4. Home / Início (`/`)
 
 **Ator:** usuário autenticado.
 
 - Saudação personalizada com o nome do usuário.
-- **Aviso de agendamento pendente**: se o usuário já concluiu a inscrição (`getInscricao` retorna `firstChoice`) mas ainda não tem agendamento (`getAgendamento` retorna vazio), mostra um banner de aviso com link direto para `/acompanhamento`.
-- **Anúncio do status do vestibular**, dependendo de `statusVestibular.isRegistrationOpen`:
-  - Fechado: "As inscrições irão começar em {startDate}".
-  - Aberto: "As inscrições estarão abertas até {endDate}".
-  - O botão de ação muda conforme o usuário já esteja inscrito ou não: "Realizar inscrição" (→ `/inscricao`) ou "Acompanhar minha inscrição" (→ `/acompanhamento`).
-- **Card de vídeo**: quando `statusVestibular.presentationVideoUrl` está preenchido, exibe o vídeo de
-  apresentação num `iframe` 16:9 (a URL passa por `corrigeURLVideo`, que normaliza links do YouTube
-  para o formato `embed`).
+- **Alerta "Falta escolher seu curso"**: enquanto não há inscrição com curso escolhido (nunca se
+  inscreveu, ou teve as opções canceladas por alterar nascimento/escolaridade).
+- **Card "Vestibular {ano}"** (ano vindo de `statusVestibular.year`), com barra de progresso de 9
+  etapas e um botão que muda conforme a situação:
+  - sem curso escolhido → "Sua inscrição está em andamento" · **Continuar inscrição** (→ `/inscricao`);
+  - curso escolhido, taxa não paga → "Faça o pagamento para concluir a inscrição" · **Fazer
+    pagamento** (→ `/acompanhamento`);
+  - taxa paga (`paymentStatus === 2`) → "Sua inscrição está concluída" · **Ver acompanhamento**.
+- **Card "Datas"**: abertura (`startDate`) e fim das inscrições (`endDate`).
+- **Vídeo de apresentação**: quando `statusVestibular.presentationVideoUrl` está preenchido, o
+  vídeo aparece num `iframe` (URL normalizada por `corrigeURLVideo`) e é **pré-requisito da
+  inscrição**: o botão "Continuar inscrição" e o link "Minha inscrição" da sidebar ficam
+  bloqueados até o vídeo ser assistido **até o fim**. Ao terminar, o front grava
+  `watchInstitutionVideo: true` no perfil (vale em qualquer aparelho) e troca o vídeo, naquela
+  visita, por um convite "Conheça nossos cursos". Sem vídeo cadastrado, nada é bloqueado. O
+  bloqueio é só de front — a API não o exige.
 - **Informações gerais**: quatro atalhos que abrem uma pergunta específica do FAQ por `key` —
   Edital de Bolsa (`edital-bolsa`), Uso de Uniforme (`uso-uniforme`), Material Didático
   (`material-didatico`) e Resultado da prova (`resultado-prova`). As perguntas são cadastradas pela
   secretaria no admin; se a `key` não existir, o link apenas não abre nada.
-- **Ações rápidas**: atalhos para Inscrição, Cursos e Contato (abre cliente de e-mail com `mailto:secretaria@acaonsfatima.org.br`).
-- **FAQ resumido**: até 5 perguntas mais frequentes (via `AcordeaoPerguntas max={5}`), com link "Ver todas" para `/faq`.
+- **Ações rápidas**: Ver convocação da prova (→ `/acompanhamento`), Conhecer os cursos (com a
+  contagem de `GET /courses/count`) e Falar com a secretaria (abre `mailto:secretaria@acaonsfatima.org.br`;
+  a legenda mostra o WhatsApp).
+- **Dúvidas frequentes**: as 3 primeiras perguntas (`AcordeaoPerguntas max={3}`), como atalhos —
+  clicar leva a `/faq?q=<key>` com a pergunta aberta; link "Ver todas".
+
+> O antigo aviso de "agendamento pendente" e o anúncio de inscrições abertas/fechadas não existem
+> mais nesta tela.
 
 ## 5. Inscrição (`/inscricao`)
 
-**Ator:** usuário autenticado, ainda dentro do prazo de inscrição.
+**Ator:** usuário autenticado, ainda dentro do prazo de inscrição e — se houver vídeo de apresentação cadastrado — que já o assistiu até o fim (acesso direto pela URL sem ter assistido volta para a Início com um aviso).
 
 Fluxo em duas grandes partes:
 
@@ -70,7 +102,7 @@ Fluxo em duas grandes partes:
 5. Dados da mãe (responsável primário — nome, e-mail, telefone, telefone secundário; parentesco fixo "Mãe")
 6. Responsável Secundário (mesmos campos, parentesco livre)
 7. Escolaridade (escola atual, série atual, tipo de escola)
-8. Informações Gerais (como conheceu o instituto — Amigos, Família, Cônjuge, Filho/Filha, Ex-Aluno, Redes Sociais, Internet, Outro —, renda mensal familiar, pessoas em casa, pessoas trabalhando)
+8. Informações Gerais (como conheceu o instituto — Amigos, Família, Cônjuge, Filho/Filha, Ex-Aluno, Redes Sociais, Internet, Outro —, renda mensal familiar, pessoas em casa, pessoas trabalhando) e, quando a edição permite, as seções opcionais **Indicação** e **Cupom de desconto** (5.1.1)
 
 Regras:
 - **Anexo do RG (passo 4)**: o arquivo sobe em requisição própria (`POST /users/rg-document`) assim que
@@ -85,7 +117,46 @@ Regras:
   passo com `PUT /users/profile` (o endpoint é parcial), então o candidato não perde o que já
   preencheu se sair no meio. Se a gravação falha, o passo não avança.
 - No último passo, "Avançar" envia o formulário inteiro: valida preenchimento completo do objeto contra o modelo `padroes.js` (permitindo `complement` do endereço vazio), formata a renda mensal para número puro e chama `PUT /users/profile`. Em sucesso, atualiza o usuário salvo localmente e libera a aba "Escolha do Curso".
-- **Se o processo já avançou de fase** (`statusVestibular.currentPhase >= 3`), todos os campos do formulário ficam desabilitados (somente leitura) — o candidato não pode mais editar dados pessoais.
+- **Alterar nascimento (passo 3) ou escolaridade (passo 7) cancela as opções de curso** já
+  escolhidas, porque idade e escolaridade mínima dependem delas. Com inscrição aberta e não paga,
+  o front pede confirmação antes de salvar e avisa que será preciso escolher os cursos de novo;
+  com inscrição validada ou paga, a alteração é recusada (pelo front e pela API) — *"Procure a
+  secretaria"*.
+- **Se o período de inscrição terminou** (`statusVestibular.currentPhase >= 3`, fase `Finished` —
+  hoje depois de `extensionDate ?? endDate`), todos os campos do wizard ficam desabilitados
+  (somente leitura). `currentPhase` é numérico: `0` não iniciado, `1` aberto, `3` encerrado. Uma
+  `extensionDate` no passado é a causa clássica de "o formulário não avança" em produção.
+
+### 5.1.1 Indicação e cupom de desconto (etapa 8) — desde 2026-10-12
+
+As duas seções ficam no fim da etapa 8 e **só aparecem se a edição ativa permitir**
+(`statusVestibular.allowReferral` e `allowCoupon`, os checkboxes "Permite indicação" e "Permite
+cupom" do cadastro da edição). Com a flag desligada a seção não é exibida e o dado não é enviado;
+a API confere a mesma flag. As duas são **opcionais** e não cancelam as opções de curso.
+
+**Indicação** — quem indicou o candidato para o Frei.
+- Campos: nome completo e CPF (máscara `000.000.000-00`) da pessoa que indicou.
+- Preencheu um, precisa preencher o outro; o CPF precisa estar completo (11 dígitos). A API
+  repete a validação.
+- Vai junto com o envio final do perfil (`PUT /users/profile`, campo `referral`). Para **apagar**
+  uma indicação já salva, basta limpar os dois campos e salvar — o front envia os dois vazios.
+- O modelo `padroes.js` não inclui a indicação, então ela nunca trava o "Preencha todos os campos
+  obrigatórios" do envio final.
+
+**Cupom de desconto** — desconto na taxa de inscrição.
+- A seção traz escrito: **o cupom vale apenas para quem nunca foi aluno do Instituto**.
+- Campo de código + botão **Aplicar**. A validação é feita na hora, **no backend**
+  (`POST /users/coupon`), e o resultado aparece na tela:
+  - aceito → "Cupom X aplicado", o desconto e a taxa (valor original riscado + valor final);
+  - recusado → o motivo, em linha: cupom não encontrado, inativo, fora da validade, limite de usos
+    atingido, candidato sem CPF, *"Este cupom é válido apenas para quem nunca foi aluno do
+    Instituto."* ou *"Cupons de desconto não estão disponíveis nesta edição."*
+- Fica gravado na conta assim que é aplicado (independente de "Salvar e avançar") e é recarregado
+  ao voltar à etapa. **Remover cupom** desfaz.
+- O desconto vira valor na etapa de Pagamento do Acompanhamento (7.1). Se o candidato já tinha uma
+  cobrança pendente, aplicar, trocar ou remover o cupom a cancela e a próxima sai com o valor novo.
+- Depois do pagamento confirmado, o cupom não pode mais ser aplicado nem removido (erro da API,
+  por toast).
 
 ### 5.2 Escolha de curso (aba "Escolha do Curso")
 
@@ -93,19 +164,23 @@ Regras:
 - Traz um link "Conheça os cursos disponíveis" (abre `/cursos` em **nova aba**, para não descartar o
   estado do wizard).
 - Seleciona 1ª opção de curso (obrigatória) + período/horário daquele curso (obrigatório), e a 2ª opção de curso + horário.
+- **A lista da 1ª opção já vem filtrada** (`GET /enrollments/first-choice-options`): só cursos e períodos que o candidato consegue usar, pelos mesmos critérios da validação. Lista vazia mostra *"Nenhum curso está disponível para o seu perfil…"*.
+- **Aviso antecipado**: a cada mudança, com debounce, o front chama `POST /enrollments/validate-choices` e mostra na página o motivo de recusa (incompatibilidade, RG não anexado, mensalidades em aberto, idade…), desabilitando "Concluir Inscrição" enquanto durar.
 - **A 2ª opção depende da 1ª**, pela matriz de compatibilidade configurada no painel admin (menu Compatibilidades): a lista só traz os cursos liberados para aquela 1ª opção — já descontadas as condições de idade/escolaridade que o candidato não atende —, e a 2ª pode ser obrigatória, opcional ou não permitida. O mesmo curso em outro período aparece como "(outro período)" quando liberado.
 - Se o usuário já tiver uma inscrição enviada, o formulário vem pré-preenchido com as escolhas atuais (permitindo alteração, dentro da fase permitida).
 - **Regra de conflito:** 1ª e 2ª opção não podem ser o mesmo par curso+horário — ao detectar, o sistema limpa a opção conflitante e mostra mensagem de erro inline.
 - Ao concluir: `POST /enrollments` com os códigos escolhidos. Sucesso → barra de progresso, toast "Sucesso!", redirecionamento para `/acompanhamento`.
-- **Bloqueio por mensalidades em aberto**: candidato que já é aluno e tem 3 ou mais mensalidades em
-  aberto recebe erro do backend — *"Você possui N mensalidades em aberto. Regularize os pagamentos;
-  após a quitação, aguarde 2 dias para realizar a inscrição."*
+- **Bloqueio por mensalidades em aberto**: candidato que já é aluno e tem **2 ou mais** mensalidades
+  pendentes no ano de referência (ano da edição menos 1) recebe erro do backend — *"Você possui N
+  mensalidades em aberto referentes a {ano}. Regularize os pagamentos para realizar a inscrição."*
+- **Depois do pagamento confirmado o candidato não troca mais de curso** (erro da API ao concluir);
+  a secretaria pode trocar pelo painel.
 
 ## 6. Cursos (`/cursos` e `/cursos/:id`)
 
 **Ator:** usuário autenticado (navegando livremente, mesmo sem estar no processo de inscrição).
 
-- **Listagem** (`/cursos`): grid de cards com imagem (carregada sob demanda como blob autenticado), nome, tipo e carga horária.
+- **Listagem** (`/cursos`): grid de cards com imagem (carregada como blob), nome, tipo e carga horária, na ordem definida pela secretaria (`ordenacao`). Os cards só aparecem quando todas as imagens terminaram de carregar.
   - Filtro por tipo de curso (chips clicáveis, toggle — clicar de novo no filtro ativo o remove), com um filtro adicional especial "Inglês" que busca por nome contendo "inglês" em vez de por `type`.
   - Cursos com `type === "Técnico"` exibem um selo **"Edital de Bolsas"** que abre
     `acaonsfatima.org.br/bolsa-educacional` em nova aba (com `stopPropagation`, já que o card inteiro
@@ -117,7 +192,8 @@ Regras:
 **Ator:** usuário autenticado.
 
 - Se o usuário **não tem inscrição** (`getInscricao` → 404): mostra mensagem "Você ainda não possui inscrição." com botão para ir para `/inscricao`.
-- Se tem inscrição: mostra resumo (1ª opção e, se houver, 2ª opção de curso/horário) e a **linha do tempo** do processo seletivo com 5 etapas.
+- Se tem inscrição **com as opções de curso canceladas** (alterou nascimento ou escolaridade): mostra "Escolha seus cursos novamente." com botão para `/inscricao`.
+- Se tem inscrição: mostra o protocolo, o resumo (1ª opção e, se houver, 2ª opção de curso/horário, com link "Ver o curso") e a **linha do tempo** do processo seletivo com 5 etapas. Enquanto a taxa não está paga, um aviso pulsante pede o pagamento.
 
 ### 7.1 Linha do tempo
 
@@ -128,9 +204,16 @@ Regras:
    Enquanto pendente, consulta `GET /enrollments/my-enrollment/payment/status` ao abrir e a cada 5s (e na hora,
    pelo botão "Já paguei — verificar pagamento"); a API consulta o provedor, que não tem webhook. A
    etapa vira sem recarregar a página. Cobrança vencida ou cancelada é reemitida automaticamente.
+   **Com cupom de desconto** (5.1.1) a cobrança já sai com o valor reduzido e a tela mostra
+   "Cupom X aplicado: ~~valor original~~ valor com desconto"; se o cupom deixou de valer na
+   emissão, a cobrança sai pelo valor cheio com um aviso do motivo. **Cupom que zera a taxa**
+   (100% ou valor fixo ≥ taxa): não há QR code — a etapa é concluída na hora ("Taxa de inscrição
+   quitada pelo cupom X — não é preciso pagar") e o e-mail de confirmação é enviado.
    Concluída quando `paymentStatus === 2`. **As etapas 4 e 5 ficam bloqueadas até o pagamento ser
    confirmado.**
-4. **Prova presencial** — ramifica por `isInternalStudent`:
+4. **Prova presencial** — ramifica por `isInternalStudent` (aluno da casa na continuidade do
+   próprio curso de inglês **e** sem 2ª opção fora do inglês — com um técnico como 2ª opção ele
+   faz a prova normalmente):
    - **aluno interno**: *"a prova será o nivelamento do próprio curso, portanto não é necessário
      realizar a prova no dia do vestibular"*, sem endereço nem data.
    - **externo**: endereço do instituto, data da prova e o aviso de que **horário e sala são enviados
@@ -161,20 +244,59 @@ há prova a informar, e antes do pagamento a prova ainda não é a etapa atual.
 
 ## 9. Sessão e navegação global
 
-- **Header** (todas as páginas do layout `App`): nome do usuário, indicador "Online", menu com opção de logout. Em mobile, botão de menu abre a sidebar como drawer.
-- **Sidebar**: navegação entre Início, Inscrição, Acompanhamento, Cursos, FAQ — visível em toda a área autenticada, colapsa para drawer em telas ≤768px. O rodapé traz o horário de atendimento e o **WhatsApp (11) 96398-6252** (`wa.me/5511963986252`).
+- **Header**: breadcrumb "Portal do candidato / {página}", nome do usuário e, se houver, o protocolo da inscrição; avatar com as iniciais.
+- **Sidebar**: navegação entre Início, Minha inscrição (com selo de progresso `n/9`; bloqueada enquanto o vídeo de apresentação não foi assistido), Acompanhamento, Cursos e Dúvidas frequentes — visível em toda a área autenticada; em telas estreitas vira faixa superior com botão hambúrguer. O rodapé traz o horário de atendimento e o **WhatsApp (11) 96398-6252** (`wa.me/5511963986252`).
 
-> **Telefones em uso hoje:** WhatsApp **(11) 96398-6252** no rodapé da sidebar; **(11) 3798-5037** no
-> card "Falar com a secretaria" da Início. A faixa de contato do FAQ ("Não encontrou sua dúvida?")
-> usa o WhatsApp **(11) 96398-6252**, no texto e no botão "Falar no WhatsApp". O rodapé da tela de
-> login ainda exibe **(11) 4362-1000**.
+> **Contato em uso hoje:** WhatsApp **(11) 96398-6252** em todos os pontos — rodapé da sidebar,
+> card "Falar com a secretaria" da Início, faixa "Não encontrou sua dúvida?" do FAQ e rodapé da
+> tela de login. Os números antigos (11) 3798-5037 e (11) 4362-1000 não aparecem mais no código
+> (o segundo só no protótipo de design em `specs/prototypes/`).
 - **Logout**: disponível no menu do usuário no cabeçalho; limpa sessão local e redireciona para `/login`.
 - **Guarda de sessão**: qualquer acesso às rotas dentro do layout `App` sem sessão válida (token ausente/expirado) redireciona para `/login`.
-- **Bloqueio por fase do processo**: o formulário de inscrição fica travado (somente leitura) quando a fase atual do vestibular avança além da fase de preenchimento de dados (`currentPhase >= 3`), impedindo edição de dados após a fase ter avançado — mas a leitura/acompanhamento continua disponível normalmente.
+- **Bloqueio por fase do processo**: o formulário de dados pessoais fica travado (somente leitura) quando o período de inscrição termina (`currentPhase >= 3`) — a leitura/acompanhamento continua disponível normalmente.
 
-## Casos de uso ainda não implementados / pontos em aberto observados no código
+## 10. Área administrativa (`/admin`)
 
-- Recuperação de senha depende inteiramente do backend enviar e o usuário digitar corretamente um "código" — não há reenvio de código nem contagem regressiva na tela `/trocar-senha`.
-- ~~A regra "2ª opção obrigatória, exceto para cursos Teens" comentada em `formCursos.jsx`~~ — a obrigatoriedade passou para a matriz de compatibilidade do admin (2026-09-26).
-- O componente `Select` tem uma implementação alternativa mais rica (Radix UI) comentada, indicando um redesign visual de select pendente.
-- `perguntas.js` (mock de FAQ) está presente mas não é mais usado — a fonte de verdade é a API.
+Sessão própria (`adminToken`/`admin`), login por usuário e senha, token de 8 horas. Três perfis —
+detalhes de cada regra em `nsf-app-v3/specs/features-usecases.md` (seções 13 a 19):
+
+| Perfil | Menu | O que faz |
+|---|---|---|
+| **Admin** | tudo | tudo |
+| **Secretaria** | Inscrições, Contas | tudo dessas duas telas, exceto trocar curso e inserir pagamento manual |
+| **Financeiro** | Inscrições, Relatórios › Financeiro | consulta inscrições, insere pagamento manual, gera o relatório financeiro |
+
+| Tela | Função |
+|---|---|
+| **Painel** (`/admin`) | Totais da edição ativa: inscritos, pagos, por status, por dia e por curso/período (com alternância Todos/Pagos). |
+| **Inscrições** | Lista paginada com busca (protocolo, nome, CPF, e-mail) e filtro de status, incluindo "Pendente pagamento". Por linha: situação do pagamento, "Verificar pagamento" e prévia do anexo do RG. "Gerar Relatório" exporta o resultado filtrado para Excel, com telefones. |
+| **Detalhe da inscrição** | Dados da inscrição e do candidato (inclusive **indicação** e **cupom aplicado**, visíveis mesmo com as flags da edição desligadas); bloco Pagamento com **cupom, taxa original e desconto** quando houver; editar opções de curso (só Admin — funciona mesmo com inscrição paga); pagamento: remover cobrança, registrar pagamento manual (forma, valor, data), reenviar e-mail de confirmação; resetar senha do candidato; remover a inscrição (irreversível). |
+| **Contas** | Lista de contas (inscritas ou não). O modal mostra os dados cadastrais (com indicação e cupom), as inscrições e os históricos, e permite trocar e-mail, trocar CPF (sem validação de formato) e resetar a senha. |
+| **Cursos** | CRUD com períodos, disciplinas, faixa de nascimento (obrigatória), ordem de exibição, textos do e-mail de confirmação (matrícula, início das aulas, parcelas) e upload da capa. |
+| **Compatibilidades** | Matriz 1ª × 2ª opção: obrigatoriedade da 2ª opção por linha, células por perfil (interno/externo) e condições por período. |
+| **Dúvidas frequentes** | CRUD de perguntas, com `key` para link direto. |
+| **Vestibular** | Edições: ano, taxa, datas (inscrição, prorrogação, prova, resultado, resultado do externo, e-mail de sala), vídeo, interruptor "Permitir novas inscrições", **"Permite indicação"** e **"Permite cupom"** (ligam as seções da etapa 8; desligados por padrão) e **e-mails de teste**; ativar edição. |
+| **Cupons** (`/admin/cupons`) | CRUD de cupons de desconto da taxa de inscrição: código (único, gravado em maiúsculas), descrição, tipo (percentual ou valor fixo), valor, validade inicial/final e limite de usos opcionais, ativo, contador de usos. "Desativar" é soft-delete. Só Admin. |
+| **Importações** | Upload dos CSVs de **alunos matriculados** e **alunos inadimplentes** (substituem só os anos do arquivo) e de **ex-alunos** (sem ano: atualiza/insere pelo CPF, não remove ninguém) e, abaixo, os registros importados em três abas — Matrículas, Inadimplentes e Ex-Alunos (nome completo, CPF, e-mail, responsável, endereço, bairro; busca por nome e CPF) — com criação, edição e remoção. |
+| **Relatórios › Financeiro** | Inscrições pagas da edição ativa por período de pagamento, com filtro por nome e exportação para Excel. Traz a coluna **Cupom** (código e desconto); inscrição quitada por cupom de 100% aparece com valor R$ 0,00 e tipo "Cupom". |
+| **Administradores** | Lista, criação com perfil e reset de senha de administradores. |
+
+Quem tem a senha resetada (candidato ou admin) é obrigado a trocá-la no próximo acesso.
+
+## Pontos em aberto observados no código
+
+- **Aviso de inscrições fechadas no Login não aparece para o visitante**: `GET /parameters` exige
+  token (seção 2).
+- **"Vestibular 2027" fixo** no cabeçalho de `/inscricao` (`inscricao/index.jsx`) — a Início já usa
+  `statusVestibular.year`.
+- O link "FAQ" do rodapé do Login aponta para `/faq`, rota autenticada — sem sessão, volta para o Login.
+- Recuperação de senha depende de o usuário digitar o código recebido por e-mail — não há reenvio
+  de código nem contagem regressiva na tela `/trocar-senha`.
+- ~~A regra "2ª opção obrigatória, exceto para cursos Teens" comentada em `formCursos.jsx`~~ — a
+  obrigatoriedade passou para a matriz de compatibilidade do admin (2026-09-26).
+- Código sem uso que continua no repositório: `api/services/agendamento.js`,
+  `util/useMediaQuery.js`, `components/acordeao_perguntas/perguntas.js` (mock de FAQ) e as
+  dependências `react-day-picker`, `@radix-ui/react-select` e Tailwind.
+- O comentário de `util/progresso.js` ainda diz que os 8 passos são enviados de uma vez só; desde
+  o salvamento passo a passo isso não é mais verdade (o cálculo, baseado em `howDidYouKnow`,
+  continua valendo porque esse campo só é gravado no último passo).
