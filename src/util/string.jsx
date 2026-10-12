@@ -11,6 +11,17 @@ const REGEX_URL = /((?:https?:\/\/|www\.)[^\s<]+[^\s<.,;:!?)'"])/gi;
 export function formatarComoHTML(texto) {
   const html = new DOMParser().parseFromString(texto ?? "", "text/html");
   linkificar(html.body);
+
+  // Tabela larga rola de lado dentro do próprio bloco, em vez de estourar a página no celular
+  // (mesma classe que o editor do admin usa — estilos no mixin texto-rico).
+  for (const tabela of Array.from(html.body.querySelectorAll("table"))) {
+    if (tabela.parentElement?.classList.contains("tableWrapper")) continue;
+    const moldura = html.createElement("div");
+    moldura.className = "tableWrapper";
+    tabela.replaceWith(moldura);
+    moldura.appendChild(tabela);
+  }
+
   return <span dangerouslySetInnerHTML={{ __html: html.body.innerHTML }} />;
 }
 

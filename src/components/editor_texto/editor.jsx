@@ -1,9 +1,10 @@
 import { useEffect, useRef } from "react";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { TableKit } from "@tiptap/extension-table";
 
 // Só a formatação que as telas do candidato sabem exibir (mixin texto-rico): negrito, itálico,
-// sublinhado, listas e links. Títulos, citações, código etc. ficam desligados.
+// sublinhado, listas, links e tabelas. Títulos, citações, código etc. ficam desligados.
 const EXTENSOES = [
   StarterKit.configure({
     heading: false,
@@ -18,7 +19,17 @@ const EXTENSOES = [
       HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
     },
   }),
+  // Tabelas (ex.: valores de material didático na descrição do curso). Sem redimensionar coluna:
+  // a largura é do CSS, igual para o editor e para a tela do candidato.
+  TableKit.configure({ table: { resizable: false } }),
 ];
+
+// O editor guarda só a estrutura (linhas, colunas, cabeçalho) — cores e bordas vêm do CSS. Textos
+// antigos montavam "R$ … 123,00" com dois <span> lado a lado dentro da célula; sem este espaço
+// eles colariam ("R$123,00") quando o editor descartasse os <span>.
+function prepararHtml(html) {
+  return (html ?? "").replace(/<\/span>\s*<span/gi, "</span> <span");
+}
 
 // Editor vazio devolve "<p></p>": para o formulário (e para o "campo obrigatório") isso é vazio.
 function htmlOuVazio(editor) {
@@ -32,7 +43,7 @@ export default function Editor({ id, value, onChange, onBlur, alturaMinima = 140
 
   const editor = useEditor({
     extensions: EXTENSOES,
-    content: value ?? "",
+    content: prepararHtml(value),
     editorProps: {
       attributes: {
         id,
@@ -59,7 +70,7 @@ export default function Editor({ id, value, onChange, onBlur, alturaMinima = 140
     if (novo === ultimoEmitido.current) return;
 
     ultimoEmitido.current = novo;
-    editor.commands.setContent(novo, { emitUpdate: false });
+    editor.commands.setContent(prepararHtml(novo), { emitUpdate: false });
   }, [editor, value]);
 
   const ativo = useEditorState({
@@ -71,6 +82,7 @@ export default function Editor({ id, value, onChange, onBlur, alturaMinima = 140
       lista: editor?.isActive("bulletList") ?? false,
       numerada: editor?.isActive("orderedList") ?? false,
       link: editor?.isActive("link") ?? false,
+      tabela: editor?.isActive("table") ?? false,
     }),
   });
 
@@ -105,8 +117,24 @@ export default function Editor({ id, value, onChange, onBlur, alturaMinima = 140
         <Botao titulo="Lista numerada" ativo={ativo.numerada} onClick={() => cmd().toggleOrderedList().run()}>1. Lista</Botao>
         <span className="separador" />
         <Botao titulo="Inserir ou editar link" ativo={ativo.link} onClick={editarLink}>Link</Botao>
+        <Botao titulo="Inserir tabela (3 colunas, com linha de cabeçalho)" onClick={() => cmd().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>Tabela</Botao>
         <Botao titulo="Remover a formatação do trecho selecionado" onClick={() => cmd().unsetAllMarks().clearNodes().run()}>Limpar</Botao>
       </div>
+
+      {/* Ferramentas da tabela: só aparecem com o cursor dentro de uma. */}
+      {ativo.tabela &&
+        <div className="barra barra-tabela" role="toolbar" aria-label="Edição da tabela">
+          <span className="rotulo">Tabela</span>
+          <Botao titulo="Inserir linha abaixo" onClick={() => cmd().addRowAfter().run()}>+ Linha</Botao>
+          <Botao titulo="Remover a linha atual" onClick={() => cmd().deleteRow().run()}>− Linha</Botao>
+          <span className="separador" />
+          <Botao titulo="Inserir coluna à direita" onClick={() => cmd().addColumnAfter().run()}>+ Coluna</Botao>
+          <Botao titulo="Remover a coluna atual" onClick={() => cmd().deleteColumn().run()}>− Coluna</Botao>
+          <span className="separador" />
+          <Botao titulo="Transformar a primeira linha em cabeçalho (ou desfazer)" onClick={() => cmd().toggleHeaderRow().run()}>Cabeçalho</Botao>
+          <Botao titulo="Excluir a tabela inteira" onClick={() => cmd().deleteTable().run()}>Excluir tabela</Botao>
+        </div>
+      }
 
       <EditorContent editor={editor} className="area" />
     </div>

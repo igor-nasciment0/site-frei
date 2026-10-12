@@ -194,4 +194,48 @@ $transition: 0.18s;
         text-underline-offset: 3px;
         overflow-wrap: anywhere;
     }
+
+    // Tabelas (ex.: valores de material didático). Tabela antiga com estilo embutido no HTML
+    // continua valendo — o estilo inline prevalece; a que passou pelo editor usa este.
+    // O editor envolve a tabela em .tableWrapper, que rola de lado quando ela não cabe.
+    .tableWrapper {
+        overflow-x: auto;
+        margin: 1em 0;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1em 0;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .tableWrapper table {
+        margin: 0;
+    }
+
+    th,
+    td {
+        padding: 9px 10px;
+        border: 1px solid #a9bfe3;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    th {
+        background: $c-navy;
+        border-color: $c-navy-hover;
+        color: $c-white;
+        font-weight: 700;
+
+        b,
+        strong {
+            color: inherit;
+        }
+    }
+
+    tbody tr:nth-child(even) td {
+        background: #eef3fa;
+    }
 }

@@ -48,6 +48,16 @@
             margin: 0 4px;
             background: t.$c-divider-strong;
         }
+
+        &.barra-tabela {
+            background: t.$c-bg;
+
+            .rotulo {
+                @include t.type-tag;
+                color: t.$c-slate;
+                padding: 0 6px;
+            }
+        }
     }
 
     // .tiptap é o elemento editável criado pela biblioteca.
@@ -59,6 +69,12 @@
         outline: none;
 
         @include t.texto-rico;
+
+        // Célula(s) selecionada(s) ao arrastar dentro da tabela.
+        .selectedCell {
+            outline: 2px solid t.$c-sand;
+            outline-offset: -2px;
+        }
     }
 }
 

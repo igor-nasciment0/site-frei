@@ -11,7 +11,7 @@ Portal de inscrição do vestibular do **Instituto Social Nossa Senhora de Fáti
 - **UI:** React 19 + React Router 7 (`react-router`, modo `BrowserRouter`).
 - **Estilos:** Sass (`sass-embedded`), um arquivo `index.scss` por componente/página. Tailwind 4 (`@tailwindcss/vite`) está nas dependências, mas não é carregado no `vite.config.js` nem usado — toda a estilização é SCSS manual.
 - **Formulários:** `react-hook-form` (`useForm`, `FormProvider`/`useFormContext`, `Controller`) + `react-imask`/`imask` para máscaras de input (telefone, CPF, CEP, valores monetários).
-- **Texto formatado (admin):** TipTap (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/pm`), só no componente `EditorTexto`, carregado sob demanda.
+- **Texto formatado (admin):** TipTap (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-table`, `@tiptap/pm`), só no componente `EditorTexto`, carregado sob demanda.
 - **HTTP:** `axios`, encapsulado em `src/api`.
 - **Estado de sessão:** `local-storage` (pacote npm, wrapper de `window.localStorage`) — chaves `token` e `user`.
 - **UX utilitário:** `react-hot-toast` (toasts), `react-top-loading-bar` (barra de progresso no topo em ações assíncronas), `react-loading-skeleton` (skeletons de carregamento), `date-fns` (formatação de datas), `write-excel-file` (relatórios Excel do painel, carregado sob demanda). `react-day-picker` segue no `package.json`, sem uso desde que o agendamento saiu do fluxo.

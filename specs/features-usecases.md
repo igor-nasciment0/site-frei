@@ -215,7 +215,8 @@ a API confere a mesma flag. As duas são **opcionais** e não cancelam as opçõ
     escolaridade mínima e mensalidade. A **idade** vem em duas linhas — **De** (idade mínima) e
     **Até** (idade máxima) —, cada uma com o complemento do cadastro em letra menor.
   - **Visão geral** e, se houver, **Mercado de trabalho** em bloco destacado. Os dois textos
-    exibem a formatação feita no painel: **negrito**, itálico, sublinhado, listas e links.
+    exibem a formatação feita no painel: **negrito**, itálico, sublinhado, listas, links e
+    **tabelas** (que rolam de lado no celular quando não cabem).
   - **Cartão de inscrição** (azul-tinta, acompanha a rolagem no desktop): os **períodos ativos**,
     um por linha, com o horário, e o botão **"Inscrever-se neste curso"**.
   - **No celular**, uma barra fixa no rodapé mantém o nome do curso, a mensalidade e o botão

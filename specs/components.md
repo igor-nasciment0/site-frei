@@ -89,13 +89,19 @@ quem edita não precisar saber HTML. Recebe e devolve **HTML** (mesmo formato j�
 - **Props:** `value`, `onChange(html)`, `onBlur`, `id`, `alturaMinima` (px, padrão 140), `ariaLabel`.
   Usado com `Controller` do `react-hook-form`.
 - **Barra**: Negrito, Itálico, Sublinhado, lista com marcadores, lista numerada, Link (inserir,
-  editar ou remover, por `prompt`) e Limpar formatação. Atalhos Ctrl+B/I/U. Títulos, citações e
+  editar ou remover, por `prompt`), **Tabela** (insere 3×3 com linha de cabeçalho) e Limpar
+  formatação. Com o cursor dentro de uma tabela aparece uma segunda barra: + Linha, − Linha,
+  + Coluna, − Coluna, Cabeçalho e Excluir tabela. Atalhos Ctrl+B/I/U. Títulos, citações e
   código ficam desligados — só existe o que as telas do candidato sabem exibir.
-- Sobre **TipTap** (`@tiptap/react` + `@tiptap/starter-kit`). `index.jsx` é um invólucro com
+- Sobre **TipTap** (`@tiptap/react` + `@tiptap/starter-kit` + `@tiptap/extension-table`). `index.jsx` é um invólucro com
   `React.lazy`: o editor vai num chunk à parte e só é baixado no painel.
 - **Só grava quando a pessoa edita o campo**: abrir e salvar o registro sem mexer no texto mantém o
-  HTML original intacto. Ao editar, o conteúdo é reescrito no formato do editor — marcação que ele
-  não conhece (tabelas, `<div>`, estilos inline) é descartada nesse momento.
+  HTML original intacto. Ao editar, o conteúdo é reescrito no formato do editor: a **estrutura** é
+  mantida (parágrafos, quebras de linha, negrito, listas, links e tabelas com suas linhas, colunas
+  e cabeçalho), mas **estilos embutidos** (`style="…"`, cores, larguras) e `<div>`/`<span>` são
+  descartados — a aparência passa a vir do mixin `texto-rico`, que dá às tabelas cabeçalho
+  azul-tinta, bordas e linhas zebradas. `prepararHtml` insere um espaço entre `<span>` vizinhos
+  antes de carregar, para "R$" e o valor não colarem.
 - Campo vazio devolve `""` (não `<p></p>`), para o "campo obrigatório" funcionar.
 - **Onde é usado**: curso (descrição, mercado de trabalho, reunião de pais e início das aulas) e
   FAQ (resposta). Ficam como texto simples: "período de matrícula" do curso (entra no meio de uma
