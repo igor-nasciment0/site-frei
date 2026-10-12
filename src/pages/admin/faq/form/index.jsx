@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router";
 import toast from "react-hot-toast";
 import { useLoadingBar } from "react-top-loading-bar";
 import callApi from "../../../../api/callAPI";
+import EditorTexto from "../../../../components/editor_texto";
 import { criarFAQ, atualizarFAQ, getFAQ } from "../../../../api/services/admin/faq";
 import Carregamento from "../../../../components/carregamento";
 import padroesFAQ from "./padroes";
@@ -17,7 +18,7 @@ export default function AdminFAQForm() {
   const navigate = useNavigate();
   const { start, complete } = useLoadingBar({ color: "#C2A46A", height: 3 });
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
+  const { register, control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
     defaultValues: padroesFAQ,
   });
 
@@ -94,9 +95,16 @@ export default function AdminFAQForm() {
             {errors.key && <span className="mensagem-erro">{errors.key.message}</span>}
           </div>
 
-          <div className="campo largo">
-            <label htmlFor="answer">Resposta (aceita HTML)</label>
-            <textarea {...register("answer", { required: "Campo obrigatório" })} rows={6} />
+          <div className={"campo largo" + (errors.answer ? " erro" : "")}>
+            <label htmlFor="answer">Resposta</label>
+            <Controller
+              name="answer"
+              control={control}
+              rules={{ required: "Campo obrigatório" }}
+              render={({ field }) => (
+                <EditorTexto id="answer" value={field.value} onChange={field.onChange} onBlur={field.onBlur} alturaMinima={170} />
+              )}
+            />
             {errors.answer && <span className="mensagem-erro">{errors.answer.message}</span>}
           </div>
 

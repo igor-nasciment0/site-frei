@@ -97,9 +97,18 @@ export default function DetalhesCurso() {
         </div>
         <div className="fato">
           <dt>Idade</dt>
-          <dd>
+          <dd className="faixa-idade">
             {loading ? <Skeleton width={120} /> :
-              <>{idadeMin} <small>{idadeMinSufixo}</small> a {idadeMax} <small>{idadeMaxSufixo}</small></>
+              <>
+                <span className="limite">
+                  <span className="prefixo">De</span>
+                  <span>{idadeMin} {idadeMinSufixo && <small>{idadeMinSufixo.trim()}</small>}</span>
+                </span>
+                <span className="limite">
+                  <span className="prefixo">Até</span>
+                  <span>{idadeMax} {idadeMaxSufixo && <small>{idadeMaxSufixo.trim()}</small>}</span>
+                </span>
+              </>
             }
           </dd>
         </div>

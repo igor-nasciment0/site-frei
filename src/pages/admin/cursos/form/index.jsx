@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { Controller, useForm, useFieldArray } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router";
 import toast from "react-hot-toast";
 import { useLoadingBar } from "react-top-loading-bar";
 import callApi from "../../../../api/callAPI";
 import { criarCurso, atualizarCurso, getCurso } from "../../../../api/services/admin/cursos";
 import Carregamento from "../../../../components/carregamento";
+import EditorTexto from "../../../../components/editor_texto";
 import { formatarParaInputDate } from "../../../../util/date";
 import padroesCurso from "./padroes";
 import CapaCurso from "./capaCurso";
@@ -200,13 +201,25 @@ export default function AdminCursoForm() {
           />
 
           <div className="campo largo">
-            <label htmlFor="description">Descrição (aceita HTML)</label>
-            <textarea {...register("description")} rows={5} />
+            <label htmlFor="description">Descrição</label>
+            <Controller
+              name="description"
+              control={control}
+              render={({ field }) => (
+                <EditorTexto id="description" value={field.value} onChange={field.onChange} onBlur={field.onBlur} alturaMinima={160} />
+              )}
+            />
           </div>
 
           <div className="campo largo">
-            <label htmlFor="jobMarket">Mercado de trabalho (aceita HTML, opcional)</label>
-            <textarea {...register("jobMarket")} rows={4} />
+            <label htmlFor="jobMarket">Mercado de trabalho (opcional)</label>
+            <Controller
+              name="jobMarket"
+              control={control}
+              render={({ field }) => (
+                <EditorTexto id="jobMarket" value={field.value} onChange={field.onChange} onBlur={field.onBlur} alturaMinima={130} />
+              )}
+            />
           </div>
 
           <div className="divisor" />
@@ -221,7 +234,9 @@ export default function AdminCursoForm() {
             </p>
 
             <div className="campo largo">
-              <label htmlFor="enrollmentPeriodDescription">Período de matrícula (aceita HTML)</label>
+              {/* Texto simples de propósito: entra no meio de uma frase do e-mail ("A matrícula
+                  deverá ser realizada presencialmente …"), onde parágrafos e listas quebrariam o layout. */}
+              <label htmlFor="enrollmentPeriodDescription">Período de matrícula (texto simples)</label>
               <textarea
                 {...register("enrollmentPeriodDescription")}
                 rows={2}
@@ -230,12 +245,15 @@ export default function AdminCursoForm() {
             </div>
 
             <div className="campo largo">
-              <label htmlFor="classesStartDescription">Reunião de pais e início das aulas (aceita HTML)</label>
-              <textarea
-                {...register("classesStartDescription")}
-                rows={3}
-                placeholder="Ex.: Reunião de Pais: 16/01/2027 (sábado)... Início das aulas: 26/01/2027 (terça-feira)."
+              <label htmlFor="classesStartDescription">Reunião de pais e início das aulas</label>
+              <Controller
+                name="classesStartDescription"
+                control={control}
+                render={({ field }) => (
+                  <EditorTexto id="classesStartDescription" value={field.value} onChange={field.onChange} onBlur={field.onBlur} alturaMinima={100} />
+                )}
               />
+              <span className="ajuda">Ex.: Reunião de Pais: 16/01/2027 (sábado)... Início das aulas: 26/01/2027 (terça-feira).</span>
             </div>
           </div>
 

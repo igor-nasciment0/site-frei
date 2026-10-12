@@ -137,3 +137,61 @@ $transition: 0.18s;
     font-weight: 500;
     letter-spacing: 0.06em;
 }
+
+// Texto formatado vindo do painel (descrição de curso, resposta do FAQ) e o próprio editor do
+// admin. O reset global zera margens e paddings, então parágrafos, listas e negrito precisam ser
+// declarados aqui para a formatação aparecer.
+@mixin texto-rico {
+    p + p,
+    p + ul,
+    p + ol,
+    ul + p,
+    ol + p {
+        margin-top: 0.9em;
+    }
+
+    b,
+    strong {
+        font-weight: 700;
+        color: $c-navy;
+    }
+
+    i,
+    em {
+        font-style: italic;
+    }
+
+    u {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+
+    ul,
+    ol {
+        padding-left: 1.4em;
+    }
+
+    ul {
+        list-style: disc;
+    }
+
+    ol {
+        list-style: decimal;
+    }
+
+    li + li {
+        margin-top: 0.35em;
+    }
+
+    li::marker {
+        color: $c-sand;
+    }
+
+    a {
+        color: $c-navy;
+        text-decoration: underline;
+        text-decoration-color: $c-sand;
+        text-underline-offset: 3px;
+        overflow-wrap: anywhere;
+    }
+}

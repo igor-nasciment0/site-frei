@@ -101,9 +101,31 @@
             color: t.$c-navy;
 
             small {
+                display: block;
                 font-size: 11.5px;
                 font-weight: 500;
+                line-height: 1.4;
                 color: t.$c-text-muted;
+            }
+        }
+
+        // Idade mínima e máxima em duas linhas: "De" e "Até" alinhados numa coluna própria.
+        .faixa-idade {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+
+            .limite {
+                display: grid;
+                grid-template-columns: 30px 1fr;
+                align-items: baseline;
+                gap: 8px;
+            }
+
+            .prefixo {
+                @include t.type-tag;
+                font-weight: 600;
+                color: t.$c-sand;
             }
         }
     }
@@ -135,6 +157,8 @@
                 color: t.$c-text;
                 max-width: 68ch;
                 text-wrap: pretty;
+
+                @include t.texto-rico;
             }
 
             // Mercado de trabalho: bloco destacado, é o argumento de "por que fazer".

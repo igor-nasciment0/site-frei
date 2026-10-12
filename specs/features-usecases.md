@@ -193,7 +193,8 @@ a API confere a mesma flag. As duas são **opcionais** e não cancelam as opçõ
     orientação e o total de cursos disponíveis em destaque.
   - **Filtro por área** em chips, cada um com a **quantidade de cursos**; os tipos vêm dos próprios
     cursos, mais o filtro especial "Inglês" (pelo nome do curso — e os cursos de inglês ficam fora
-    dos filtros de tipo). Chip que ficaria vazio não aparece; clicar no chip ativo volta para
+    dos filtros de tipo). Se já existir um tipo de curso chamado "Inglês", o chip aparece uma vez
+    só e reúne os dois critérios. Chip que ficaria vazio não aparece; clicar no chip ativo volta para
     "Todos". Ao lado, o total do resultado ("4 cursos em Técnico").
   - **Cards**, na ordem definida pela secretaria (`ordenacao`): foto em 16:10 com o **tipo** em
     etiqueta sobre a imagem, nome, **carga horária** e "Detalhes". O card inteiro é clicável e
@@ -210,9 +211,11 @@ a API confere a mesma flag. As duas são **opcionais** e não cancelam as opçõ
   redesenhada em 2026-10-12, com as mesmas informações:
   - **Capa**: a foto do curso com degradê azul-tinta e, por cima, o tipo e o nome do curso (sem
     foto, bloco azul-tinta). Link "← Todos os cursos" acima.
-  - **Faixa de dados-chave** logo abaixo da capa, em quatro colunas: carga horária, idade
-    (mínima a máxima), escolaridade mínima e mensalidade.
-  - **Visão geral** (HTML) e, se houver, **Mercado de trabalho** em bloco destacado.
+  - **Faixa de dados-chave** logo abaixo da capa, em quatro colunas: carga horária, idade,
+    escolaridade mínima e mensalidade. A **idade** vem em duas linhas — **De** (idade mínima) e
+    **Até** (idade máxima) —, cada uma com o complemento do cadastro em letra menor.
+  - **Visão geral** e, se houver, **Mercado de trabalho** em bloco destacado. Os dois textos
+    exibem a formatação feita no painel: **negrito**, itálico, sublinhado, listas e links.
   - **Cartão de inscrição** (azul-tinta, acompanha a rolagem no desktop): os **períodos ativos**,
     um por linha, com o horário, e o botão **"Inscrever-se neste curso"**.
   - **No celular**, uma barra fixa no rodapé mantém o nome do curso, a mensalidade e o botão
@@ -305,9 +308,9 @@ detalhes de cada regra em `nsf-app-v3/specs/features-usecases.md` (seções 13 a
 | **Inscrições** | Lista paginada com busca (protocolo, nome, CPF, e-mail) e filtro de status, incluindo "Pendente pagamento". Por linha: situação do pagamento, "Verificar pagamento" e prévia do anexo do RG. "Gerar Relatório" exporta o resultado filtrado para Excel, com telefones. |
 | **Detalhe da inscrição** | Dados da inscrição e do candidato (inclusive **indicação** e **cupom aplicado**, visíveis mesmo com as flags da edição desligadas); bloco Pagamento com **cupom, taxa original e desconto** quando houver; editar opções de curso (só Admin — funciona mesmo com inscrição paga); pagamento: remover cobrança, registrar pagamento manual (forma, valor, data), reenviar e-mail de confirmação; resetar senha do candidato; remover a inscrição (irreversível). |
 | **Contas** | Lista de contas (inscritas ou não). O modal mostra os dados cadastrais (com indicação e cupom), as inscrições e os históricos, e permite trocar e-mail, trocar CPF (sem validação de formato) e resetar a senha. |
-| **Cursos** | CRUD com períodos, disciplinas, faixa de nascimento (obrigatória), ordem de exibição, textos do e-mail de confirmação (matrícula, início das aulas, parcelas) e upload da capa. |
+| **Cursos** | Descrição, mercado de trabalho e "reunião de pais e início das aulas" são editados num **editor de texto formatado** (sem HTML à mão); "período de matrícula" continua texto simples, porque entra no meio de uma frase do e-mail. CRUD com períodos, disciplinas, faixa de nascimento (obrigatória), ordem de exibição, textos do e-mail de confirmação (matrícula, início das aulas, parcelas) e upload da capa. |
 | **Compatibilidades** | Matriz 1ª × 2ª opção: obrigatoriedade da 2ª opção por linha, células por perfil (interno/externo) e condições por período. |
-| **Dúvidas frequentes** | CRUD de perguntas, com `key` para link direto. |
+| **Dúvidas frequentes** | CRUD de perguntas, com `key` para link direto. A resposta é escrita no **editor de texto formatado**. |
 | **Vestibular** | Edições: ano, taxa, datas (inscrição, prorrogação, prova, resultado, resultado do externo, e-mail de sala), vídeo, interruptor "Permitir novas inscrições", **"Permite indicação"** e **"Permite cupom"** (ligam as seções da etapa 8; desligados por padrão) e **e-mails de teste**; ativar edição. |
 | **Cupons** (`/admin/cupons`) | CRUD de cupons de desconto da taxa de inscrição: código (único, gravado em maiúsculas), descrição, tipo (percentual ou valor fixo), valor, validade inicial/final e limite de usos opcionais, ativo, contador de usos. "Desativar" é soft-delete. Só Admin. |
 | **Importações** | Upload dos CSVs de **alunos matriculados** e **alunos inadimplentes** (substituem só os anos do arquivo) e de **ex-alunos** (com `id_curso` e `nr_ano` do curso cursado; um registro por CPF — CPF repetido no arquivo vale a última linha; atualiza/insere pelo CPF, não remove ninguém) e, abaixo, os registros importados em três abas — Matrículas, Inadimplentes e Ex-Alunos (nome completo, CPF, e-mail, responsável, endereço, bairro; busca por nome e CPF) — com criação, edição e remoção. |

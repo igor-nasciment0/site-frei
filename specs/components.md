@@ -83,6 +83,27 @@ Wrapper de campo de seleção usado em todos os formulários do app.
 - `SelectItem({ disabled, value, children, className })` repassa para `<option>`.
 - A implementação alternativa em Radix, que ficava comentada no arquivo, foi removida; `@radix-ui/react-select` sobrou só no `package.json`.
 
+### `EditorTexto` (`editor_texto/`)
+Campo de texto formatado dos formulários do admin — substitui os `<textarea>` "aceita HTML", para
+quem edita não precisar saber HTML. Recebe e devolve **HTML** (mesmo formato já gravado no banco).
+- **Props:** `value`, `onChange(html)`, `onBlur`, `id`, `alturaMinima` (px, padrão 140), `ariaLabel`.
+  Usado com `Controller` do `react-hook-form`.
+- **Barra**: Negrito, Itálico, Sublinhado, lista com marcadores, lista numerada, Link (inserir,
+  editar ou remover, por `prompt`) e Limpar formatação. Atalhos Ctrl+B/I/U. Títulos, citações e
+  código ficam desligados — só existe o que as telas do candidato sabem exibir.
+- Sobre **TipTap** (`@tiptap/react` + `@tiptap/starter-kit`). `index.jsx` é um invólucro com
+  `React.lazy`: o editor vai num chunk à parte e só é baixado no painel.
+- **Só grava quando a pessoa edita o campo**: abrir e salvar o registro sem mexer no texto mantém o
+  HTML original intacto. Ao editar, o conteúdo é reescrito no formato do editor — marcação que ele
+  não conhece (tabelas, `<div>`, estilos inline) é descartada nesse momento.
+- Campo vazio devolve `""` (não `<p></p>`), para o "campo obrigatório" funcionar.
+- **Onde é usado**: curso (descrição, mercado de trabalho, reunião de pais e início das aulas) e
+  FAQ (resposta). Ficam como texto simples: "período de matrícula" do curso (entra no meio de uma
+  frase do e-mail) e a descrição da edição do vestibular.
+- O texto dentro do editor usa o mixin `texto-rico` (`styles/_tokens.scss`), o mesmo aplicado onde
+  esse HTML é exibido ao candidato (detalhe do curso e resposta do FAQ) — o reset global zera
+  margens e paddings, então parágrafos, listas e negrito precisam desse mixin para aparecer.
+
 ### `ToasterContainer` (`toaster_container/index.jsx`)
 Wrapper de `react-hot-toast`'s `<Toaster />`. Não é global em `main.jsx` — cada área precisa montá-lo
 pelo menos uma vez na própria árvore, senão `toast.error`/`toast.success` (inclusive os disparados

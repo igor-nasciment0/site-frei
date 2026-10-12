@@ -23,7 +23,8 @@ function ehIngles(curso) {
 // os cursos de inglês ficam fora dos filtros de tipo.
 function filtrarCursos(cursos, filtro) {
   if (!filtro || filtro === FILTRO_TODOS) return cursos;
-  if (filtro === FILTRO_INGLES) return cursos.filter(ehIngles);
+  // Vale também quando "Inglês" é um tipo de curso: entram os do tipo e os que têm inglês no nome.
+  if (filtro === FILTRO_INGLES) return cursos.filter(c => ehIngles(c) || c.type.trim() === FILTRO_INGLES);
   return cursos.filter(c => c.type.trim() === filtro && !ehIngles(c));
 }
 
@@ -44,7 +45,8 @@ export default function Cursos() {
   const filtros = useMemo(() => {
     const tipos = [...new Set(cursos.map(c => c.type.trim()))];
 
-    return [FILTRO_TODOS, ...tipos, FILTRO_INGLES]
+    // Set: se já existe um tipo de curso chamado "Inglês", o filtro especial não se repete.
+    return [...new Set([FILTRO_TODOS, ...tipos, FILTRO_INGLES])]
       .map(nome => ({ nome, total: filtrarCursos(cursos, nome).length }))
       .filter(f => f.nome === FILTRO_TODOS || f.total > 0);
   }, [cursos]);

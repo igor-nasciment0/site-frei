@@ -1,0 +1,67 @@
+@use '../../styles/tokens' as t;
+
+.editor-texto {
+    background: t.$c-input-bg;
+    border: 1px solid t.$c-input-border;
+    transition: border-color t.$transition;
+
+    &:focus-within {
+        border-color: t.$c-navy;
+    }
+
+    &.carregando {
+        opacity: 0.6;
+    }
+
+    .barra {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 6px;
+        background: t.$c-white;
+        border-bottom: 1px solid t.$c-divider-strong;
+
+        button {
+            min-width: 34px;
+            height: 32px;
+            padding: 0 10px;
+            font-size: 13px;
+            color: t.$c-text;
+            border: 1px solid transparent;
+            transition: background t.$transition, border-color t.$transition, color t.$transition;
+
+            &:hover {
+                border-color: t.$c-input-border;
+            }
+
+            &.ativo {
+                background: t.$c-navy;
+                border-color: t.$c-navy;
+                color: t.$c-white;
+            }
+        }
+
+        .separador {
+            width: 1px;
+            height: 20px;
+            margin: 0 4px;
+            background: t.$c-divider-strong;
+        }
+    }
+
+    // .tiptap é o elemento editável criado pela biblioteca.
+    .area .tiptap {
+        padding: 12px 14px;
+        font-size: 15px;
+        line-height: 1.7;
+        color: t.$c-text;
+        outline: none;
+
+        @include t.texto-rico;
+    }
+}
+
+.campo.erro .editor-texto {
+    border-color: t.$c-clay;
+}

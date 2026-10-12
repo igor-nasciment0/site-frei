@@ -80,6 +80,8 @@
                 min-height: 0;
                 overflow: hidden;
 
+                @include t.texto-rico;
+
                 display: flex;
                 flex-direction: column;
                 gap: 12px;
