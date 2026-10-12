@@ -348,14 +348,82 @@
             }
         }
 
+        // Linha de item repetível (períodos e disciplinas do curso). As faixas usam
+        // minmax(0, …) e os campos min-width: 0 — sem isso a largura natural dos <input> estoura
+        // a coluna e empurra "Ativo" e "Remover" para fora da linha.
         .linha-repetivel {
             display: grid;
-            grid-template-columns: 1fr 1.4fr 1fr 1fr auto auto;
-            gap: 10px;
+            grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) auto auto;
+            gap: 10px 14px;
             align-items: end;
 
+            .campo {
+                min-width: 0;
+
+                input:not([type="checkbox"]) {
+                    width: 100%;
+                    min-width: 0;
+                }
+            }
+
+            // "Ativo" e "Remover" ocupam a altura de um campo de texto, para alinhar com os
+            // inputs da mesma linha (que têm o rótulo em cima).
+            .campo.checkbox,
+            > .admin-btn-perigo {
+                height: 42px;
+                align-self: end;
+                white-space: nowrap;
+            }
+
+            .campo.checkbox {
+                gap: 8px;
+
+                input {
+                    width: 16px;
+                    height: 16px;
+                    flex-shrink: 0;
+                    accent-color: t.$c-navy;
+                }
+
+                label {
+                    cursor: pointer;
+                }
+            }
+
+            > .admin-btn-perigo {
+                display: inline-flex;
+                align-items: center;
+                justify-self: end;
+                padding: 0 2px;
+            }
+
+            // Disciplina: só código, nome e "Remover".
+            &.disciplina {
+                grid-template-columns: minmax(0, 140px) minmax(0, 1fr) auto;
+            }
+
+            // E-mails de teste (formulário da edição): um campo e "Remover". A regra fica aqui
+            // porque a do arquivo da página perde em especificidade para esta.
+            &.linha-testers {
+                grid-template-columns: minmax(0, 1fr) auto;
+            }
+
             @include t.bp-960 {
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                padding-bottom: 14px;
+                border-bottom: 1px solid t.$c-divider-soft;
+
+                &.disciplina {
+                    grid-template-columns: minmax(0, 110px) minmax(0, 1fr) auto;
+                    padding-bottom: 0;
+                    border-bottom: none;
+                }
+
+                &.linha-testers {
+                    grid-template-columns: minmax(0, 1fr) auto;
+                    padding-bottom: 0;
+                    border-bottom: none;
+                }
             }
         }
     }
