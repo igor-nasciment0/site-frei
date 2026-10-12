@@ -26,3 +26,9 @@ export async function getCursoHorarios(idCurso) {
     const r = await api().get("/courses/" + idCurso + "/periods");
     return r.data;
 }
+
+// URL direta da imagem do curso — o endpoint é anônimo, então dá para usar num <img> comum
+// (com loading="lazy" e cache do navegador), sem baixar como blob.
+export function urlImagemCurso(idImagem) {
+    return idImagem ? `${import.meta.env.VITE_API_URL}/courses/${encodeURIComponent(idImagem)}/image` : null;
+}

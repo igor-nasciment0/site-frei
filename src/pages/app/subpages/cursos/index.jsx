@@ -1,73 +1,55 @@
 import { Outlet, useNavigate, useParams } from "react-router";
 import "./index.scss";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import callApi from "../../../../api/callAPI";
-import { getCursoImagem, getCursos } from "../../../../api/services/cursos";
+import { getCursos, urlImagemCurso } from "../../../../api/services/cursos";
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 
 const URL_EDITAL_BOLSAS = 'https://www.acaonsfatima.org.br/bolsa-educacional';
+const FILTRO_TODOS = "Todos";
+const FILTRO_INGLES = "Inglês";
 
 // Só os cursos técnicos concorrem a bolsa educacional.
 function ehTecnico(curso) {
   return curso?.type?.trim().toLowerCase() === 'técnico';
 }
 
-async function carregarImagem(imageId) {
-  if (!imageId) return null;
+function ehIngles(curso) {
+  return curso.name.toLowerCase().normalize().trim().includes('inglês');
+}
 
-  try {
-    const blob = await callApi(getCursoImagem, false, imageId);
-    const url = URL.createObjectURL(blob);
-
-    // só considera a imagem "pronta" depois que ela de fato decodificou no navegador
-    return await new Promise(resolve => {
-      const img = new Image();
-      img.src = url;
-      img.onload = () => resolve(url);
-      img.onerror = () => resolve(null);
-    });
-  } catch (error) {
-    console.error("Erro ao buscar a imagem do curso:", error);
-    return null;
-  }
+// "Inglês" é um filtro pelo nome do curso; os demais são pelo tipo — e, para não repetir,
+// os cursos de inglês ficam fora dos filtros de tipo.
+function filtrarCursos(cursos, filtro) {
+  if (!filtro || filtro === FILTRO_TODOS) return cursos;
+  if (filtro === FILTRO_INGLES) return cursos.filter(ehIngles);
+  return cursos.filter(c => c.type.trim() === filtro && !ehIngles(c));
 }
 
 export default function Cursos() {
 
   const [cursos, setCursos] = useState([]);
-  const [imagens, setImagens] = useState({});
-  const [filtro, setFiltro] = useState('');
-  const [cursosFiltrados, setCursosFiltrados] = useState([]);
+  const [filtro, setFiltro] = useState(FILTRO_TODOS);
   const [carregando, setCarregando] = useState(true);
-
-  const tiposCurso = [...new Set(["Todos", ...cursos.map(c => c.type.trim()), "Inglês"])];
 
   useEffect(() => {
     (async () => {
-      const lista = (await callApi(getCursos)) ?? [];
-      setCursos(lista);
-
-      // só mostra os cartões quando todas as imagens já estiverem carregadas
-      const entradas = await Promise.all(
-        lista.map(async curso => [curso.imageId, await carregarImagem(curso.imageId)])
-      );
-
-      setImagens(Object.fromEntries(entradas.filter(([, url]) => url)));
+      setCursos((await callApi(getCursos)) ?? []);
       setCarregando(false);
     })();
   }, [])
 
-  useEffect(() => {
-    if (filtro === "Inglês")
-      return setCursosFiltrados(cursos.filter(c => c.name.toLowerCase().normalize().trim().includes('inglês')));
+  // Chips de filtro com a quantidade de cursos em cada um; filtro que ficaria vazio não aparece.
+  const filtros = useMemo(() => {
+    const tipos = [...new Set(cursos.map(c => c.type.trim()))];
 
-    if (filtro && filtro !== "Todos") {
-      setCursosFiltrados(cursos.filter(c => c.type.trim() === filtro.trim() && !c.name.toLowerCase().trim().includes('inglês')));
-    } else {
-      setCursosFiltrados(cursos);
-    }
-  }, [filtro, cursos])
+    return [FILTRO_TODOS, ...tipos, FILTRO_INGLES]
+      .map(nome => ({ nome, total: filtrarCursos(cursos, nome).length }))
+      .filter(f => f.nome === FILTRO_TODOS || f.total > 0);
+  }, [cursos]);
+
+  const cursosFiltrados = useMemo(() => filtrarCursos(cursos, filtro), [cursos, filtro]);
 
   const { id: idCurso } = useParams();
 
@@ -76,65 +58,111 @@ export default function Cursos() {
 
   return (
     <section className="cursos">
-      <div className="cabecalho">
-        <div>
+      <header className="vitrine">
+        <div className="vitrine-texto">
           <p className="eyebrow">Turmas 2027</p>
           <h1>Nossos cursos</h1>
+          <p className="chamada">Escolha uma área, compare as opções e veja os detalhes de cada curso antes de se inscrever.</p>
         </div>
 
-        <div className="filtro">
+        <div className="vitrine-numero" aria-hidden={carregando}>
+          <span className="numero">{carregando ? "—" : cursos.length}</span>
+          <span className="rotulo">{cursos.length === 1 ? "curso disponível" : "cursos disponíveis"}</span>
+        </div>
+      </header>
+
+      <div className="barra-filtro">
+        <div className="filtro" role="group" aria-label="Filtrar cursos por área">
           {carregando ?
             Array.from({ length: 4 }).map((_, i) =>
-              <Skeleton key={i} width={i === 0 ? 70 : 100} height={35} />
+              <Skeleton key={i} width={i === 0 ? 84 : 116} height={42} />
             )
             :
-            tiposCurso.map((tipo, index) => (
+            filtros.map(f => (
               <button
-                key={index}
-                className={(filtro === tipo || (tipo === "Todos" && !filtro)) ? 'ativo' : ''}
-                onClick={() => setFiltro(tipo === "Todos" ? '' : (filtro === tipo ? '' : tipo))}
+                key={f.nome}
+                type="button"
+                aria-pressed={filtro === f.nome}
+                className={filtro === f.nome ? 'ativo' : ''}
+                onClick={() => setFiltro(filtro === f.nome ? FILTRO_TODOS : f.nome)}
               >
-                {tipo}
+                {f.nome}
+                <span className="contagem">{f.total}</span>
               </button>
             ))
           }
         </div>
+
+        {!carregando &&
+          <p className="resultado" aria-live="polite">
+            {cursosFiltrados.length} {cursosFiltrados.length === 1 ? "curso" : "cursos"}
+            {filtro !== FILTRO_TODOS && <> em <strong>{filtro}</strong></>}
+          </p>
+        }
       </div>
 
-      <div className="grid">
+      {/* A key refaz a animação de entrada dos cartões a cada troca de filtro. */}
+      <div className="grid" key={filtro}>
         {carregando ?
           Array.from({ length: 6 }).map((_, i) => <CardCursoEsqueleto key={i} />)
           :
           cursosFiltrados.map((curso, index) => (
-            <CardCurso infoCurso={curso} imageUrl={imagens[curso.imageId]} key={'curso' + index} />
+            <CardCurso infoCurso={curso} ordem={index} key={curso.id} />
           ))
         }
       </div>
+
+      {!carregando && cursosFiltrados.length === 0 &&
+        <div className="vazio">
+          <p>Nenhum curso nesta área no momento.</p>
+          <button type="button" onClick={() => setFiltro(FILTRO_TODOS)}>Ver todos os cursos</button>
+        </div>
+      }
     </section>
   );
 }
 
-function CardCurso({ infoCurso, imageUrl }) {
+function CardCurso({ infoCurso, ordem }) {
 
   const navigate = useNavigate();
+  const [imagemFalhou, setImagemFalhou] = useState(false);
+  const [imagemPronta, setImagemPronta] = useState(false);
+
+  const urlImagem = urlImagemCurso(infoCurso.imageId);
+  const abrir = () => navigate('/cursos/' + infoCurso.id);
 
   return (
-    <div className="card" onClick={() => navigate('/cursos/' + infoCurso.id)}>
-      {imageUrl ?
-        <div className="card-imagem" style={{ backgroundImage: `url(${imageUrl})` }} />
-        :
-        <div className="card-imagem placeholder">
-          <span>foto do curso</span>
-        </div>
-      }
+    <article
+      className="card"
+      style={{ '--ordem': Math.min(ordem, 8) }}
+      role="link"
+      tabIndex={0}
+      aria-label={`${infoCurso.name} — ver detalhes do curso`}
+      onClick={abrir}
+      onKeyDown={e => { if (e.key === 'Enter') abrir(); }}
+    >
+      <div className={"card-imagem" + (!urlImagem || imagemFalhou ? " placeholder" : "")}>
+        {urlImagem && !imagemFalhou &&
+          <img
+            src={urlImagem}
+            alt=""
+            loading="lazy"
+            className={imagemPronta ? "pronta" : ""}
+            onLoad={() => setImagemPronta(true)}
+            onError={() => setImagemFalhou(true)}
+          />
+        }
+
+        <span className="tag-categoria">{infoCurso.type}</span>
+      </div>
 
       <div className="card-conteudo">
         <h3 className="card-titulo">{infoCurso.name}</h3>
 
-        <div className="tags">
-          <span className="tag categoria">{infoCurso.type}</span>
-          <span className="tag">{infoCurso.workload}</span>
-        </div>
+        <p className="carga">
+          <IconeRelogio />
+          {infoCurso.workload}
+        </p>
 
         {ehTecnico(infoCurso) &&
           <a
@@ -143,20 +171,20 @@ function CardCurso({ infoCurso, imageUrl }) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
+            onKeyDown={e => e.stopPropagation()}
           >
             Edital de Bolsas
           </a>
         }
 
-        <div className="divisor" />
-
         <div className="rodape">
-          <button className="btn-detalhes" onClick={(e) => { e.stopPropagation(); navigate('/cursos/' + infoCurso.id) }}>
+          <span className="btn-detalhes">
             Detalhes
-          </button>
+            <IconeSeta />
+          </span>
         </div>
       </div>
-    </div>
+    </article>
   )
 }
 
@@ -169,18 +197,29 @@ function CardCursoEsqueleto() {
 
       <div className="card-conteudo">
         <h3 className="card-titulo"><Skeleton width="70%" /></h3>
-
-        <div className="tags">
-          <span className="tag"><Skeleton width={60} height={20} /></span>
-          <span className="tag"><Skeleton width={50} height={20} /></span>
-        </div>
-
-        <div className="divisor" />
+        <p className="carga"><Skeleton width={90} /></p>
 
         <div className="rodape">
-          <Skeleton width={60} />
+          <Skeleton width={70} />
         </div>
       </div>
     </div>
+  )
+}
+
+function IconeRelogio() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M8 4.5V8l2.25 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function IconeSeta() {
+  return (
+    <svg className="seta" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }

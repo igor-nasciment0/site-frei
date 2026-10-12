@@ -2,12 +2,11 @@ import { Link, useNavigate, useOutletContext } from "react-router";
 import "./index.scss";
 import { useEffect, useState } from "react";
 import callApi from "../../../../../api/callAPI";
-import { getCursoId, getCursoImagem } from "../../../../../api/services/cursos";
+import { getCursoId, urlImagemCurso } from "../../../../../api/services/cursos";
 
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 import { get } from "local-storage";
-import { sleep } from "../../../../../util/general";
 import { formatarComoHTML } from "../../../../../util/string";
 
 
@@ -18,45 +17,21 @@ export default function DetalhesCurso() {
 
   const [infoCurso, setInfoCurso] = useState();
   const [loading, setLoading] = useState(true);
-
-  const [imageUrl, setImageUrl] = useState('');
-
-  const fetchImage = async (imageId) => {
-    if (imageId) {
-      try {
-        const blob = await callApi(getCursoImagem, false, imageId);
-        let currentUrl = URL.createObjectURL(blob);
-        return currentUrl;
-      } catch (error) {
-        console.error("Erro ao buscar a imagem do curso:", error);
-      }
-    }
-  };
-
-  useEffect(() => {
-    (async () => {
-      if (!infoCurso?.image) return;
-      const url = await fetchImage(infoCurso.image);
-      const img = new Image();
-      img.src = url;
-      img.onload = () => {
-        setImageUrl(url)
-      };
-    })()
-  }, [infoCurso?.image]);
+  const [naoEncontrado, setNaoEncontrado] = useState(false);
+  const [imagemFalhou, setImagemFalhou] = useState(false);
 
   useEffect(() => {
     (async () => {
       const r = await callApi(getCursoId, false, idCurso);
 
-      if (r) {
-        await sleep(1000);
-        setInfoCurso(r);
-        setLoading(false);
-      }
-    })();
-  }, [])
+      if (r?.id) setInfoCurso(r);
+      else setNaoEncontrado(true);
 
+      setLoading(false);
+    })();
+  }, [idCurso])
+
+  // "16 anos completos até 31/03" → ["16 anos", " completos até 31/03"]
   function separaStringIdade(string) {
     if (!string)
       return ["", ""];
@@ -78,80 +53,120 @@ export default function DetalhesCurso() {
     return horario?.replace(':', 'h');
   }
 
+  // A página é pública: quem não está logado vai para o login (e de lá segue o fluxo normal).
+  function inscrever() {
+    navigate(get("token") ? "/inscricao" : "/login");
+  }
+
+  if (naoEncontrado)
+    return (
+      <section className="curso-detalhes">
+        <Link className="voltar" to="..">← Todos os cursos</Link>
+        <div className="nao-encontrado">
+          <h1>Curso não encontrado</h1>
+          <p>Este curso não está mais disponível. Veja as outras opções.</p>
+          <Link className="btn-primario" to="..">Ver todos os cursos</Link>
+        </div>
+      </section>
+    );
+
+  const urlImagem = urlImagemCurso(infoCurso?.image);
+  const semImagem = !loading && (!urlImagem || imagemFalhou);
+
   return (
     <section className="curso-detalhes">
       <Link className="voltar" to="..">← Todos os cursos</Link>
 
-      {loading ?
-        <Skeleton height={180} style={{ marginBottom: '30px' }} />
-        :
-        (imageUrl ?
-          <div className="hero" style={{ backgroundImage: `url(${imageUrl})` }} />
-          :
-          <div className="hero placeholder">
-            <span>foto do curso · 1600×500</span>
-          </div>
-        )
-      }
+      {/* Capa: a foto do curso com o nome por cima; sem foto, vira um bloco azul-tinta. */}
+      <header className={"capa" + (semImagem ? " sem-imagem" : "")}>
+        {urlImagem && !imagemFalhou &&
+          <img src={urlImagem} alt="" onError={() => setImagemFalhou(true)} />
+        }
 
-      <p className="eyebrow">{loading ? <Skeleton width={80} /> : infoCurso?.type}</p>
-      <h1>{loading ? <Skeleton /> : infoCurso?.name}</h1>
+        <div className="capa-texto">
+          <p className="eyebrow">{loading ? <Skeleton width={80} baseColor="#2c3d5e" highlightColor="#3a4c70" /> : infoCurso?.type}</p>
+          <h1>{loading ? <Skeleton width="60%" baseColor="#2c3d5e" highlightColor="#3a4c70" /> : infoCurso?.name}</h1>
+        </div>
+      </header>
+
+      {/* Os quatro dados que decidem a escolha, lado a lado, antes do texto. */}
+      <dl className="fatos">
+        <div className="fato">
+          <dt>Carga horária</dt>
+          <dd>{loading ? <Skeleton width={90} /> : infoCurso?.workload}</dd>
+        </div>
+        <div className="fato">
+          <dt>Idade</dt>
+          <dd>
+            {loading ? <Skeleton width={120} /> :
+              <>{idadeMin} <small>{idadeMinSufixo}</small> a {idadeMax} <small>{idadeMaxSufixo}</small></>
+            }
+          </dd>
+        </div>
+        <div className="fato">
+          <dt>Escolaridade mínima</dt>
+          <dd>{loading ? <Skeleton width={110} /> : infoCurso?.minSchoolLevel}</dd>
+        </div>
+        <div className="fato">
+          <dt>Mensalidade</dt>
+          <dd>{loading ? <Skeleton width={90} /> : infoCurso?.contribution}</dd>
+        </div>
+      </dl>
 
       <div className="grid-principal">
         <div className="coluna-esquerda">
           <section className="bloco">
-            <p className="rotulo-bloco">Visão geral</p>
-            <p className="texto">{loading ? <Skeleton count={4} /> : formatarComoHTML(infoCurso?.description)}</p>
+            <h2 className="rotulo-bloco">Visão geral</h2>
+            <div className="texto">{loading ? <Skeleton count={5} /> : formatarComoHTML(infoCurso?.description)}</div>
           </section>
 
           {(infoCurso?.jobMarket || loading) &&
-            <>
-              <div className="divisor" />
-              <section className="bloco">
-                <p className="rotulo-bloco">Mercado de trabalho</p>
-                <p className="texto">{loading ? <Skeleton count={3} /> : formatarComoHTML(infoCurso?.jobMarket)}</p>
-              </section>
-            </>
-          }
-
-          {!loading &&
-            // A página é pública: quem não está logado vai para o login (e de lá segue o fluxo normal).
-            <button className="btn-primario" onClick={() => navigate(get("token") ? "/inscricao" : "/login")}>Inscrever-se neste curso</button>
+            <section className="bloco destaque">
+              <h2 className="rotulo-bloco">Mercado de trabalho</h2>
+              <div className="texto">{loading ? <Skeleton count={3} /> : formatarComoHTML(infoCurso?.jobMarket)}</div>
+            </section>
           }
         </div>
 
-        <aside className="card-info">
-          <p className="titulo-card">Informações</p>
+        <aside className="card-inscricao">
+          <p className="titulo-card">Períodos</p>
 
-          {loading ? <Skeleton height={260} /> :
-            <>
-              <div className="item">
-                <p className="rotulo">Carga horária</p>
-                <p className="valor">{infoCurso?.workload}</p>
-              </div>
-              <div className="item">
-                <p className="rotulo">Idade</p>
-                <p className="valor">{idadeMin} <small>{idadeMinSufixo}</small> a {idadeMax} <small>{idadeMaxSufixo}</small></p>
-              </div>
-              <div className="item">
-                <p className="rotulo">Escolaridade mínima</p>
-                <p className="valor">{infoCurso?.minSchoolLevel}</p>
-              </div>
-              <div className="item">
-                <p className="rotulo">Mensalidade</p>
-                <p className="valor">{infoCurso?.contribution}</p>
-              </div>
-              <div className="item">
-                <p className="rotulo">Períodos</p>
-                <p className="valor">{periodosAtivos.map(p => p.name).join(" e ")}</p>
-                <p className="complemento">
-                  {periodosAtivos.map(p => `${formatarHorario(p.entryTime)}–${formatarHorario(p.exitTime)}`).join(" · ")}
-                </p>
-              </div>
-            </>
+          {loading ? <Skeleton height={90} baseColor="#2c3d5e" highlightColor="#3a4c70" /> :
+            <ul className="periodos">
+              {periodosAtivos.length === 0 &&
+                <li className="sem-periodo">Períodos a definir</li>
+              }
+
+              {periodosAtivos.map(p => (
+                <li key={p.code}>
+                  <span className="nome">{p.name}</span>
+                  <span className="horario">{formatarHorario(p.entryTime)}–{formatarHorario(p.exitTime)}</span>
+                </li>
+              ))}
+            </ul>
+          }
+
+          {!loading &&
+            <button className="btn-inscrever" onClick={inscrever}>
+              Inscrever-se neste curso
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           }
         </aside>
       </div>
+
+      {/* No celular o cartão de inscrição fica lá embaixo: a barra fixa mantém o botão à mão. */}
+      {!loading &&
+        <div className="barra-inscricao">
+          <div>
+            <p className="nome">{infoCurso?.name}</p>
+            <p className="info">{infoCurso?.contribution}</p>
+          </div>
+          <button onClick={inscrever}>Inscrever-se</button>
+        </div>
+      }
     </section>
   );
 }

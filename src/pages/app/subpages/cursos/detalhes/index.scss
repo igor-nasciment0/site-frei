@@ -5,149 +5,355 @@
     flex-direction: column;
 
     .voltar {
-        display: inline-block;
-        margin-bottom: 20px;
+        align-self: flex-start;
+        margin-bottom: 18px;
         font-size: 13px;
+        font-weight: 500;
         color: t.$c-slate;
+        transition: color t.$transition;
 
         &:hover {
             color: t.$c-navy;
         }
     }
 
-    .hero {
-        width: 100%;
-        height: clamp(140px, 26vw, 200px);
-        background-size: cover;
-        background-position: center;
-        margin-bottom: 28px;
+    // Capa: foto de fundo, degradê azul-tinta e o nome do curso por cima.
+    .capa {
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+        min-height: clamp(220px, 34vw, 380px);
+        overflow: hidden;
+        background: t.$c-navy;
+        animation: curso-capa 0.5s both;
 
-        &.placeholder {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
-            background-image: repeating-linear-gradient(45deg, #e7e5da, #e7e5da 10px, #f2f1ea 10px, #f2f1ea 20px);
+        &::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(23, 35, 60, 0.92) 0%, rgba(23, 35, 60, 0.55) 42%, rgba(23, 35, 60, 0.08) 100%);
+        }
 
-            span {
-                font-family: t.$font-mono;
-                font-size: 11px;
-                letter-spacing: 0.04em;
-                color: t.$c-text-muted;
-                background: rgba(255, 255, 255, 0.8);
-                padding: 5px 12px;
-            }
+        &.sem-imagem::after {
+            display: none;
+        }
+
+        .capa-texto {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            padding: clamp(22px, 4vw, 40px);
+            border-left: 3px solid t.$c-sand;
+        }
+
+        .eyebrow {
+            @include t.type-eyebrow;
+            color: t.$c-sand;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            @include t.type-h1-login;
+            font-size: clamp(30px, 5vw, 52px);
+            color: t.$c-white;
+            max-width: 22ch;
+            text-wrap: balance;
         }
     }
 
-    .eyebrow {
-        @include t.type-eyebrow;
-        color: t.$c-sand;
-        margin-bottom: 10px;
-    }
+    // Faixa de dados-chave, colada na capa.
+    .fatos {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        background: t.$c-white;
+        border: 1px solid t.$c-border;
+        border-top: none;
+        margin-bottom: 36px;
 
-    > h1 {
-        @include t.type-h1-page;
-        color: t.$c-navy;
-        margin-bottom: 30px;
+        .fato {
+            padding: 20px 24px;
+            border-left: 1px solid t.$c-divider-strong;
+
+            &:first-child {
+                border-left: none;
+            }
+        }
+
+        dt {
+            @include t.type-eyebrow;
+            font-size: 10.5px;
+            color: t.$c-text-muted;
+            margin-bottom: 8px;
+        }
+
+        dd {
+            font-size: 17px;
+            font-weight: 600;
+            line-height: 1.3;
+            color: t.$c-navy;
+
+            small {
+                font-size: 11.5px;
+                font-weight: 500;
+                color: t.$c-text-muted;
+            }
+        }
     }
 
     .grid-principal {
         display: grid;
         grid-template-columns: 1fr 320px;
-        gap: 36px;
+        gap: 40px;
         align-items: start;
     }
 
     .coluna-esquerda {
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+        min-width: 0;
+
         .bloco {
             .rotulo-bloco {
-                font-size: 12px;
-                font-weight: 700;
-                letter-spacing: 0.04em;
-                text-transform: uppercase;
-                color: t.$c-text-muted;
-                margin-bottom: 12px;
+                @include t.type-h3-section;
+                font-size: 24px;
+                color: t.$c-navy;
+                margin-bottom: 14px;
             }
 
             .texto {
-                font-size: 15px;
-                line-height: 1.75;
+                font-size: 15.5px;
+                line-height: 1.8;
                 color: t.$c-text;
+                max-width: 68ch;
                 text-wrap: pretty;
+            }
+
+            // Mercado de trabalho: bloco destacado, é o argumento de "por que fazer".
+            &.destaque {
+                background: t.$c-white;
+                border: 1px solid t.$c-border;
+                border-left: 3px solid t.$c-sand;
+                padding: 26px 30px;
+            }
+        }
+    }
+
+    // Cartão de inscrição: acompanha a rolagem no desktop.
+    .card-inscricao {
+        position: sticky;
+        top: 104px; // abaixo do cabeçalho do portal, que também é sticky
+        background: t.$c-navy;
+        padding: 28px 28px 30px;
+
+        .titulo-card {
+            @include t.type-eyebrow;
+            color: t.$c-sand;
+            margin-bottom: 6px;
+        }
+
+        .periodos {
+            list-style: none;
+            margin: 0 0 24px;
+            padding: 0;
+
+            li {
+                display: flex;
+                align-items: baseline;
+                justify-content: space-between;
+                gap: 16px;
+                padding: 13px 0;
+                border-bottom: 1px solid t.$c-on-navy-border-softer;
+            }
+
+            .nome {
+                font-size: 15px;
+                font-weight: 600;
+                color: t.$c-white;
+            }
+
+            .horario {
+                font-family: t.$font-mono;
+                font-size: 12px;
+                color: t.$c-on-navy-secondary;
+                white-space: nowrap;
+            }
+
+            .sem-periodo {
+                font-size: 13.5px;
+                color: t.$c-on-navy-caption;
             }
         }
 
-        .divisor {
-            height: 1px;
-            background: t.$c-divider-strong;
-            margin: 28px 0;
+        .btn-inscrever {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            min-height: 52px;
+            padding: 14px 20px;
+            background: t.$c-sand;
+            color: t.$c-navy;
+            font-size: 14.5px;
+            font-weight: 700;
+            transition: background t.$transition;
+
+            svg {
+                transition: transform t.$transition;
+            }
+
+            &:hover {
+                background: t.$c-white;
+
+                svg {
+                    transform: translateX(4px);
+                }
+            }
+        }
+    }
+
+    .barra-inscricao {
+        display: none;
+    }
+
+    .nao-encontrado {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 40px;
+        background: t.$c-white;
+        border: 1px solid t.$c-border;
+
+        h1 {
+            @include t.type-h1-page;
+            color: t.$c-navy;
+        }
+
+        p {
+            color: t.$c-text-muted;
         }
 
         .btn-primario {
-            margin-top: 28px;
+            margin-top: 8px;
             background: t.$c-navy;
             color: t.$c-white;
             font-size: 13.5px;
             font-weight: 600;
             padding: 14px 28px;
-            transition: background t.$transition;
-
-            &:hover {
-                background: t.$c-navy-hover;
-            }
-        }
-    }
-
-    .card-info {
-        background: t.$c-white;
-        border: 1px solid t.$c-border;
-        padding: 26px 28px;
-
-        .titulo-card {
-            @include t.type-eyebrow;
-            color: t.$c-text-muted;
-            margin-bottom: 16px;
-        }
-
-        .item {
-            padding: 14px 0;
-            border-bottom: 1px solid t.$c-divider-soft;
-
-            &:last-child {
-                border-bottom: none;
-            }
-
-            .rotulo {
-                font-size: 12px;
-                color: t.$c-text-muted;
-                margin-bottom: 4px;
-            }
-
-            .valor {
-                font-size: 15px;
-                font-weight: 600;
-                color: t.$c-navy;
-
-                small {
-                    font-size: 11px;
-                    font-weight: 500;
-                    color: t.$c-text-muted;
-                }
-            }
-
-            .complemento {
-                font-family: t.$font-mono;
-                font-size: 11px;
-                color: t.$c-text-muted;
-                margin-top: 4px;
-            }
         }
     }
 
     @include t.bp-1150 {
+        .fatos {
+            grid-template-columns: 1fr 1fr;
+
+            .fato:nth-child(odd) {
+                border-left: none;
+            }
+
+            .fato:nth-child(n + 3) {
+                border-top: 1px solid t.$c-divider-strong;
+            }
+        }
+
         .grid-principal {
             grid-template-columns: 1fr;
         }
+
+        .card-inscricao {
+            position: static;
+        }
+    }
+
+    @include t.bp-960 {
+        // Espaço para a barra fixa não cobrir o fim da página.
+        padding-bottom: 76px;
+
+        .barra-inscricao {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 12px 22px;
+            background: t.$c-navy;
+            border-top: 2px solid t.$c-sand;
+
+            .nome {
+                font-size: 13.5px;
+                font-weight: 600;
+                color: t.$c-white;
+                display: -webkit-box;
+                -webkit-line-clamp: 1;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            .info {
+                font-size: 12px;
+                color: t.$c-on-navy-secondary;
+            }
+
+            button {
+                flex-shrink: 0;
+                min-height: 44px;
+                padding: 10px 20px;
+                background: t.$c-sand;
+                color: t.$c-navy;
+                font-size: 14px;
+                font-weight: 700;
+            }
+        }
+    }
+
+    @include t.bp-640 {
+        .fatos {
+            grid-template-columns: 1fr;
+
+            .fato {
+                border-left: none;
+                padding: 16px 20px;
+            }
+
+            .fato + .fato {
+                border-top: 1px solid t.$c-divider-strong;
+            }
+        }
+
+        .coluna-esquerda .bloco.destaque {
+            padding: 22px 20px;
+        }
+    }
+}
+
+@keyframes curso-capa {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .curso-detalhes .capa {
+        animation: none;
     }
 }

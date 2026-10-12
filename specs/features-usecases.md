@@ -188,12 +188,37 @@ a API confere a mesma flag. As duas são **opcionais** e não cancelam as opçõ
   `/login` para quem não está; depois de entrar, o candidato segue o fluxo normal a partir da Início.
 - A tela de Login ganhou o link "Conheça nossos cursos".
 
-- **Listagem** (`/cursos`): grid de cards com imagem (carregada como blob), nome, tipo e carga horária, na ordem definida pela secretaria (`ordenacao`). Os cards só aparecem quando todas as imagens terminaram de carregar.
-  - Filtro por tipo de curso (chips clicáveis, toggle — clicar de novo no filtro ativo o remove), com um filtro adicional especial "Inglês" que busca por nome contendo "inglês" em vez de por `type`.
-  - Cursos com `type === "Técnico"` exibem um selo **"Edital de Bolsas"** que abre
-    `acaonsfatima.org.br/bolsa-educacional` em nova aba (com `stopPropagation`, já que o card inteiro
-    é clicável).
-- **Detalhes** (`/cursos/:id`, renderizado dentro do layout de `Cursos` via outlet aninhado): nome, imagem grande, descrição (HTML), tabela de informações (carga horária, faixa etária mínima/máxima, escolaridade mínima, mensalidade, períodos disponíveis ativos) e, se houver, seção "Mercado de Trabalho". Link "Voltar" para a listagem. Usa skeletons durante o carregamento (inclusive um delay artificial de 1s para suavizar a transição).
+- **Listagem** (`/cursos`) — redesenhada em 2026-10-12, com as mesmas informações:
+  - **Faixa de abertura** azul-tinta: "Turmas 2027", título "Nossos cursos", uma linha de
+    orientação e o total de cursos disponíveis em destaque.
+  - **Filtro por área** em chips, cada um com a **quantidade de cursos**; os tipos vêm dos próprios
+    cursos, mais o filtro especial "Inglês" (pelo nome do curso — e os cursos de inglês ficam fora
+    dos filtros de tipo). Chip que ficaria vazio não aparece; clicar no chip ativo volta para
+    "Todos". Ao lado, o total do resultado ("4 cursos em Técnico").
+  - **Cards**, na ordem definida pela secretaria (`ordenacao`): foto em 16:10 com o **tipo** em
+    etiqueta sobre a imagem, nome, **carga horária** e "Detalhes". O card inteiro é clicável e
+    navegável por teclado (Tab + Enter). No hover: sobe 4px, a foto aproxima, um filete areia
+    corre no topo e a seta avança. Os cards entram em sequência; `prefers-reduced-motion` desliga
+    os movimentos.
+  - As fotos são `<img loading="lazy">` apontando direto para `GET /courses/{id}/image`
+    (anônimo): os cards aparecem assim que a lista chega e cada foto surge quando carrega — antes a
+    página esperava todas as imagens. Sem foto (ou com erro), fica o padrão listrado.
+  - Cursos com `type === "Técnico"` exibem o selo **"Edital de Bolsas"**, que abre
+    `acaonsfatima.org.br/bolsa-educacional` em nova aba (sem acionar o clique do card).
+  - Filtro sem resultado mostra um estado vazio com "Ver todos os cursos".
+- **Detalhes** (`/cursos/:id`, renderizado dentro do layout de `Cursos` via outlet aninhado) —
+  redesenhada em 2026-10-12, com as mesmas informações:
+  - **Capa**: a foto do curso com degradê azul-tinta e, por cima, o tipo e o nome do curso (sem
+    foto, bloco azul-tinta). Link "← Todos os cursos" acima.
+  - **Faixa de dados-chave** logo abaixo da capa, em quatro colunas: carga horária, idade
+    (mínima a máxima), escolaridade mínima e mensalidade.
+  - **Visão geral** (HTML) e, se houver, **Mercado de trabalho** em bloco destacado.
+  - **Cartão de inscrição** (azul-tinta, acompanha a rolagem no desktop): os **períodos ativos**,
+    um por linha, com o horário, e o botão **"Inscrever-se neste curso"**.
+  - **No celular**, uma barra fixa no rodapé mantém o nome do curso, a mensalidade e o botão
+    "Inscrever-se" sempre visíveis.
+  - Skeletons durante o carregamento; o atraso artificial de 1s que existia foi removido. Curso
+    inexistente mostra "Curso não encontrado" com link para a lista.
 
 ## 7. Acompanhamento (`/acompanhamento`)
 
