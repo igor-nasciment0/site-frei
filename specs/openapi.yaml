@@ -420,6 +420,9 @@ paths:
     get:
       tags: [Courses]
       summary: Lista todos os cursos ativos (resumo)
+      description: >
+        **Anônimo**: é o catálogo público do site (`/cursos`), aberto a quem ainda não tem conta.
+      security: []
       responses:
         '200':
           description: Cursos retornados com sucesso
@@ -439,7 +442,7 @@ paths:
       description: >
         **Anônimo de propósito**: o painel institucional das telas públicas (login, cadastro,
         recuperação de senha) exibe esse número e ali não há token. Devolve só a contagem —
-        nenhum dado de curso é exposto. `GET /api/courses` continua exigindo JWT.
+        nenhum dado de curso é exposto.
       security: []
       responses:
         '200':
@@ -453,6 +456,9 @@ paths:
     get:
       tags: [Courses]
       summary: Obtém um curso específico por ID (dados completos)
+      description: >
+        **Anônimo**: página de detalhes do catálogo público.
+      security: []
       parameters:
         - name: id
           in: path

@@ -38,6 +38,11 @@ Sidebar do painel administrativo, com o mesmo comportamento responsivo da `Barra
 - `GrupoLateral` abre sozinho quando a rota atual é de um dos filhos.
 - Rodapé: "Logado como {nome}" e "Sair do painel" (remove `adminToken`/`admin`).
 
+### `CabecalhoPublico` (`cabecalho_publico/index.jsx`)
+Topo do layout de visitante — usado pelo `App` quando não há sessão numa rota pública (hoje, o
+catálogo de cursos). Sem props: marca do Instituto (link para `/cursos`) e os atalhos **Entrar**
+(`/login`) e **Criar cadastro** (`/cadastro`).
+
 ### `Cabecalho` (`cabecalho/index.jsx`)
 Header do layout autenticado.
 - **Props:** `user`, `inscricao`.
@@ -240,7 +245,7 @@ de validação — a mensagem certa chegava do backend, só não tinha onde apar
 
 Não são "componentes reutilizáveis" no sentido estrito, mas compõem a UI de cada tela — documentados com mais detalhe de fluxo/regra de negócio em `features-usecases.md`:
 
-- `App` (`pages/app`) — shell autenticado (sidebar + header + outlet), guarda de sessão, carrega status do vestibular.
+- `App` (`pages/app`) — shell do portal: com sessão, sidebar + header + outlet, carregando o status do vestibular; sem sessão, só nas rotas públicas (`/cursos` e `/cursos/:id`), o layout de visitante (`CabecalhoPublico` + outlet, classe `shell publico`). Fora delas, sem sessão, redireciona para `/login`.
 - `Inicio` (`pages/app/subpages/inicio`) — boas-vindas, alerta "Falta escolher seu curso", card "Vestibular {ano}" com progresso e botão conforme a situação (continuar inscrição / fazer pagamento / ver acompanhamento), card de datas, vídeo de apresentação (pré-requisito da inscrição), "Informações gerais", ações rápidas e as 3 primeiras dúvidas frequentes.
 - `Cursos` (`pages/app/subpages/cursos`) — grade de cursos com filtro por tipo (+ filtro especial "Inglês" baseado no nome), `CardCurso` (interno) carrega a imagem do curso sob demanda como blob.
 - `DetalhesCurso` (`pages/app/subpages/cursos/detalhes`) — ficha completa de um curso (descrição, tabela de informações, mercado de trabalho opcional), com skeletons de carregamento.

@@ -6,6 +6,7 @@ import { getCursoId, getCursoImagem } from "../../../../../api/services/cursos";
 
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
+import { get } from "local-storage";
 import { sleep } from "../../../../../util/general";
 import { formatarComoHTML } from "../../../../../util/string";
 
@@ -114,7 +115,8 @@ export default function DetalhesCurso() {
           }
 
           {!loading &&
-            <button className="btn-primario" onClick={() => navigate("/inscricao")}>Inscrever-se neste curso</button>
+            // A página é pública: quem não está logado vai para o login (e de lá segue o fluxo normal).
+            <button className="btn-primario" onClick={() => navigate(get("token") ? "/inscricao" : "/login")}>Inscrever-se neste curso</button>
           }
         </div>
 

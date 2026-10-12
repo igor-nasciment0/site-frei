@@ -21,6 +21,15 @@
         width: 100%;
     }
 
+    // Visitante (catálogo de cursos sem login): sem sidebar, conteúdo centralizado.
+    &.publico {
+        display: block;
+
+        .pad {
+            margin: 0 auto;
+        }
+    }
+
     @include t.bp-1150 {
         .pad {
             padding: 36px 32px 64px;

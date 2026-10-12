@@ -102,6 +102,10 @@ export default function Login() {
               Não possui conta? <Link to="/cadastro">Criar cadastro</Link>
             </p>
 
+            <p className="link-secundario">
+              Ainda escolhendo? <Link to="/cursos">Conheça nossos cursos</Link>
+            </p>
+
             <div className="divisor" />
 
             <p className="nota">

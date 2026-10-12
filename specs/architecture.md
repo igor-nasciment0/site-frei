@@ -39,7 +39,7 @@ LoadingBarContainer (react-top-loading-bar)
   ""  (index)          → Inicio
   inscricao             → Inscricao
   acompanhamento         → Acompanhamento
-  cursos                 → Cursos
+  cursos                 → Cursos  (pública: abre sem sessão, em layout de visitante)
     :id                    → DetalhesCurso (renderizado via <Outlet> dentro de Cursos)
   faq                     → FAQ
 /cadastro               → Cadastro (página standalone, sem layout App)
@@ -83,7 +83,7 @@ LoadingBarContainer (react-top-loading-bar)
 - **`services/`** — um arquivo por domínio, todos funções `async` finas que só chamam `api()` e retornam `r.data` (padrão consistente):
   - `user.js` — `cadastro`, `login`, `atualizaUsuario` (PUT profile, parcial — usado pelo formulário de inscrição a cada passo e para marcar o vídeo institucional como assistido), `recuperacaoSenha`, `trocaSenha`, `trocaSenhaLogado` (`POST /users/change-password`, da troca obrigatória), `getInfoUsuario`, `enviaDocumentoRG`/`getDocumentoRG` (anexo do RG, em `multipart` — não cabe no JSON do perfil), `aplicaCupom` (`POST /users/coupon` — a API valida; cupom recusado volta `200` com `{ valid: false, message }`, não é erro HTTP), `getCupomAplicado` (`GET /users/coupon` — revalida o cupom gravado; o `204` "sem cupom" vira `{ valid: false, code: null }`) e `removeCupom` (`DELETE /users/coupon`).
   - `vestibular.js` — `getStatusVestibular` → `GET /parameters` (ano da edição, datas de abertura/fechamento de inscrição, fase atual, `allowRegistration`, `allowReferral`/`allowCoupon` — as flags que ligam as seções Indicação e Cupom de desconto da etapa 8 —, vídeo de apresentação, data/URL de resultado). **Exige token**: a chamada feita pela tela de Login, sem sessão, volta `401` e é engolida pelo `callApi`.
-  - `cursos.js` — `getCursos`, `getTotalCursos` (`GET /courses/count`, **anônimo** — usado pelo painel das telas públicas e pela Início), `getCursoId`, `getCursoImagem` (blob), `getCursoHorarios` (períodos/turnos de um curso).
+  - `cursos.js` — `getCursos` e `getCursoId` (**anônimos** desde 2026-10-12 — catálogo público), `getTotalCursos` (`GET /courses/count`, **anônimo** — usado pelo painel das telas públicas e pela Início), `getCursoImagem` (blob), `getCursoHorarios` (períodos/turnos de um curso).
   - `inscricao.js` — `criaInscricao` (POST enrollment com 1ª/2ª opção de curso+horário), `getInscricao` (GET, aceita 404 como resposta válida via `validateStatus` — usado para saber se o usuário ainda não se inscreveu), `getOpcoesPrimeiraOpcao` (`GET /enrollments/first-choice-options` — cursos e períodos que o candidato pode usar como 1ª opção), `getOpcoesSegundaOpcao` (`GET /enrollments/second-choice-options` — obrigatoriedade da 2ª opção e cursos permitidos nela para a 1ª escolhida, segundo a matriz do admin, já filtrados pela idade/escolaridade do candidato), `validaEscolhasCurso` (`POST /enrollments/validate-choices` — roda a mesma validação do backend sem persistir, usada com debounce em `FormularioCursos` pra avisar incompatibilidade de curso antes do submit), `geraCobrancaInscricao` (`POST /enrollments/my-enrollment/payment` — gera ou devolve a cobrança PIX vigente) e `getStatusPagamentoInscricao` (`GET /enrollments/my-enrollment/payment/status` — a API consulta o provedor e devolve a situação atualizada).
   - `agendamento.js` — `getDatasAgendamento`, `getAgendamento`, `criaAgendamento`. **Sem uso**: nenhuma tela importa este serviço desde que a convocação passou a ser definida pela secretaria; os endpoints continuam na API.
   - `faq.js` — `getFAQ` (cada pergunta traz `key`, o slug estável usado nos links diretos `/faq?q=<key>`).
@@ -96,7 +96,7 @@ Convenção: nenhuma tela chama `axios`/`api()` diretamente — sempre `callApi(
 
 - Sessão é 100% client-side: token JWT e objeto `user` guardados em `local-storage` (chaves `"token"`, `"user"`), sem cookies nem refresh. O painel admin usa chaves próprias (`"adminToken"`, `"admin"`), então as duas sessões convivem no mesmo navegador. O token do candidato vale 4 meses; o do painel, 8 horas.
 - Não há um `PrivateRoute`/guard central de rota — a proteção acontece de forma descentralizada:
-  - `App` tenta `getInfoUsuario()`; se a API rejeitar (token ausente/expirado → 401), navega para `/login`.
+  - `App` tenta `getInfoUsuario()`; se a API rejeitar (token ausente/expirado → 401), navega para `/login` — **exceto nas rotas públicas** (`ehRotaPublica`: `/cursos` e `/cursos/:id`), em que entra no modo visitante: renderiza o outlet com `CabecalhoPublico`, sem sidebar, sem `Cabecalho` e sem `statusVestibular` (o contexto do outlet vai nulo). Se o visitante sair das rotas públicas dentro do SPA, é mandado ao login.
   - `Cabecalho` também checa `get("token")` em `useEffect` e redireciona para `/login` se ausente (checagem redundante/defensiva).
   - Logout (`Cabecalho`) remove `token` e `user` do `local-storage` e navega para `/login`.
 - Login (`POST /users/login`) recebe o payload como `FormData` (`generateFormData`) com campos `Email`/`Password`; retorna `{ token, user }`. Com as inscrições desligadas na edição ativa, a API só deixa entrar e-mail de teste — os demais veem o erro por toast. `user.mustChangePassword` leva direto para `/trocar-senha-obrigatoria`.

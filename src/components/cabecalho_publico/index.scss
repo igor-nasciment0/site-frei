@@ -1,0 +1,77 @@
+@use '../../styles/tokens' as t;
+
+.cabecalho-publico {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+
+    background: t.$c-navy;
+    padding: 18px 48px;
+
+    .marca {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        // logo.svg é a marca em traço branco, desenhada para fundo escuro.
+        .logo {
+            width: 34px;
+            height: auto;
+            flex-shrink: 0;
+        }
+
+        .eyebrow {
+            @include t.type-eyebrow;
+            color: t.$c-sand;
+        }
+
+        .sub {
+            font-size: 12px;
+            color: t.$c-on-navy-secondary;
+        }
+    }
+
+    nav {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        a {
+            font-size: 14px;
+            font-weight: 600;
+            padding: 11px 18px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            transition: background t.$transition, color t.$transition, border-color t.$transition;
+        }
+
+        .entrar {
+            color: t.$c-on-navy-body;
+
+            &:hover {
+                color: t.$c-white;
+            }
+        }
+
+        .cadastro {
+            color: t.$c-sand;
+            border: 1px solid t.$c-sand;
+
+            &:hover {
+                background: t.$c-sand;
+                color: t.$c-navy;
+            }
+        }
+    }
+
+    @include t.bp-1150 {
+        padding: 18px 32px;
+    }
+
+    @include t.bp-960 {
+        padding: 16px 22px;
+    }
+}

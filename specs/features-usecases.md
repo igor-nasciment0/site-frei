@@ -178,7 +178,15 @@ a API confere a mesma flag. As duas são **opcionais** e não cancelam as opçõ
 
 ## 6. Cursos (`/cursos` e `/cursos/:id`)
 
-**Ator:** usuário autenticado (navegando livremente, mesmo sem estar no processo de inscrição).
+**Ator:** qualquer pessoa — **página pública desde 2026-10-12**, não exige login.
+
+- **Sem sessão** (visitante, ou token vencido): a lista e os detalhes abrem sem a sidebar e sem o
+  cabeçalho do candidato; no topo fica só a marca do Instituto com os atalhos **Entrar** e **Criar
+  cadastro**. Qualquer outra rota do portal continua levando ao login.
+- **Com sessão**: tudo como antes, dentro do layout do portal.
+- O botão **"Inscrever-se neste curso"** (detalhes) leva a `/inscricao` para quem está logado e a
+  `/login` para quem não está; depois de entrar, o candidato segue o fluxo normal a partir da Início.
+- A tela de Login ganhou o link "Conheça nossos cursos".
 
 - **Listagem** (`/cursos`): grid de cards com imagem (carregada como blob), nome, tipo e carga horária, na ordem definida pela secretaria (`ordenacao`). Os cards só aparecem quando todas as imagens terminaram de carregar.
   - Filtro por tipo de curso (chips clicáveis, toggle — clicar de novo no filtro ativo o remove), com um filtro adicional especial "Inglês" que busca por nome contendo "inglês" em vez de por `type`.
