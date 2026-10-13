@@ -251,8 +251,8 @@ de validação — a mensagem certa chegava do backend, só não tinha onde apar
     incompatibilidade, só o erro real do backend ao salvar). Ao salvar, chama
     `atualizarEscolhasCurso` (`PUT /admin/enrollments/{id}/choices`), que roda a mesma validação do
     formulário do candidato mas funciona mesmo com a inscrição já validada ou paga — ver
-    `nsf-app-v3/specs/features-usecases.md` seção 15. Só o perfil Admin edita (`somenteConsulta`
-    para os demais).
+    `nsf-app-v3/specs/features-usecases.md` seção 15. Admin e Secretaria editam (desde
+    2026-10-13; antes, só Admin); para o Financeiro o bloco fica em `somenteConsulta`.
   - **`Pagamento`** — mostra situação, valor, vencimento, data e forma do pagamento ("Cupom" quando o cupom zerou a taxa) e, quando há cupom na cobrança, **Cupom**, **Taxa original** e **Desconto do cupom**; `couponRejection` (cupom do candidato que não valia mais na emissão) aparece como aviso. No pagamento manual, valor em branco usa a taxa já com o desconto do cupom. Ações:
     **remover as informações de pagamento** (Admin/Secretaria — o candidato recebe uma cobrança
     nova ao reabrir o Acompanhamento), **registrar pagamento manual** (Admin/Financeiro — forma

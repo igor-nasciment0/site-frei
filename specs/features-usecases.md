@@ -300,14 +300,14 @@ detalhes de cada regra em `nsf-app-v3/specs/features-usecases.md` (seções 13 a
 | Perfil | Menu | O que faz |
 |---|---|---|
 | **Admin** | tudo | tudo |
-| **Secretaria** | Inscrições, Contas, Relatórios › Indicações e Cupons | tudo de Inscrições e Contas, exceto trocar curso e inserir pagamento manual; consulta e exporta os dois relatórios |
+| **Secretaria** | Inscrições, Contas, Relatórios › Indicações e Cupons | tudo de Inscrições e Contas — inclusive trocar curso e reenviar o e-mail de confirmação (troca de curso liberada em 2026-10-13) —, exceto inserir pagamento manual; consulta e exporta os dois relatórios |
 | **Financeiro** | Inscrições, Relatórios › Financeiro | consulta inscrições, insere pagamento manual, gera o relatório financeiro |
 
 | Tela | Função |
 |---|---|
 | **Painel** (`/admin`) | Totais da edição ativa: inscritos, pagos, por status, por dia e por curso/período (com alternância Todos/Pagos). |
 | **Inscrições** | Lista paginada com busca (protocolo, nome, CPF, e-mail) e filtro de status, incluindo "Pendente pagamento". Por linha: situação do pagamento, "Verificar pagamento" e prévia do anexo do RG. "Gerar Relatório" exporta o resultado filtrado para Excel, com telefones. |
-| **Detalhe da inscrição** | Dados da inscrição e do candidato (inclusive **indicação** e **cupom aplicado**, visíveis mesmo com as flags da edição desligadas); bloco Pagamento com **cupom, taxa original e desconto** quando houver; editar opções de curso (só Admin — funciona mesmo com inscrição paga); pagamento: remover cobrança, registrar pagamento manual (forma, valor, data), reenviar e-mail de confirmação; resetar senha do candidato; remover a inscrição (irreversível). |
+| **Detalhe da inscrição** | Dados da inscrição e do candidato (inclusive **indicação** e **cupom aplicado**, visíveis mesmo com as flags da edição desligadas); bloco Pagamento com **cupom, taxa original e desconto** quando houver; editar opções de curso (Admin e Secretaria — funciona mesmo com inscrição paga); pagamento: remover cobrança, registrar pagamento manual (forma, valor, data), reenviar e-mail de confirmação; resetar senha do candidato; remover a inscrição (irreversível). |
 | **Contas** | Lista de contas (inscritas ou não). O modal mostra os dados cadastrais (com indicação e cupom), as inscrições e os históricos, e permite trocar e-mail, trocar CPF (sem validação de formato) e resetar a senha. |
 | **Cursos** | Descrição, mercado de trabalho e "reunião de pais e início das aulas" são editados num **editor de texto formatado** (sem HTML à mão); "período de matrícula" continua texto simples, porque entra no meio de uma frase do e-mail. CRUD com períodos, disciplinas, faixa de nascimento (obrigatória), ordem de exibição, textos do e-mail de confirmação (matrícula, início das aulas, parcelas) e upload da capa. |
 | **Compatibilidades** | Matriz 1ª × 2ª opção: obrigatoriedade da 2ª opção por linha, células por perfil (interno/externo) e condições por período. |

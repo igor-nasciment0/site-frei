@@ -16,7 +16,7 @@ export function permissoesAdmin(admin) {
     inserirPagamentoManual: ehAdmin || ehFinanceiro,
     resetarPagamento: ehAdmin || ehSecretaria,
     reenviarEmailConfirmacao: ehAdmin || ehSecretaria,
-    editarCursos: ehAdmin,
+    editarCursos: ehAdmin || ehSecretaria,
     removerInscricao: ehAdmin || ehSecretaria,
   };
 }

@@ -40,8 +40,8 @@ export default function AdminInscricaoDetalhes() {
   const [inscricao, setInscricao] = useState(null);
   const navigate = useNavigate();
   const admin = useOutletContext();
-  // Secretaria: tudo, exceto editar curso e inserir pagamento manual. Financeiro: consulta e
-  // insere pagamento manual. Editar curso é só do Admin.
+  // Secretaria: tudo, exceto inserir pagamento manual. Financeiro: consulta e
+  // insere pagamento manual. Editar curso é do Admin e da Secretaria.
   const pode = permissoesAdmin(admin);
 
   useEffect(() => { carregar(); }, [id]);

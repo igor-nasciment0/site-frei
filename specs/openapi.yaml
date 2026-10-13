@@ -1,6 +1,6 @@
 # CÓPIA — a fonte da verdade é nsf-app-v3/specs/openapi.yaml (repositório da API).
 # Não edite aqui: altere lá e copie de novo (cp nsf-app-v3/specs/openapi.yaml frei/specs/openapi.yaml,
-# mantendo este cabeçalho). Última sincronização: 2026-10-12.
+# mantendo este cabeçalho). Última sincronização: 2026-10-13.
 openapi: 3.0.3
 info:
   title: NSF API v3
@@ -967,7 +967,10 @@ paths:
     get:
       tags: [AdminPanel]
       summary: Lista todos os cursos, incluindo inativos
-      x-roles: [Admin]
+      description: >
+        A Secretaria também lê esta lista — o editor de 1ª/2ª opção do detalhe da inscrição monta
+        os selects com ela. As demais operações de `courses` continuam só do Admin.
+      x-roles: [Admin, Secretaria]
       responses:
         '200':
           description: Cursos retornados com sucesso
@@ -1664,7 +1667,7 @@ paths:
     get:
       tags: [AdminPanel]
       summary: Cursos e períodos que o dono da inscrição pode usar como 1ª opção
-      x-roles: [Admin]
+      x-roles: [Admin, Secretaria]
       parameters:
         - name: id
           in: path
@@ -1687,7 +1690,7 @@ paths:
     get:
       tags: [AdminPanel]
       summary: O que a 1ª opção informada permite como 2ª, para o dono da inscrição
-      x-roles: [Admin]
+      x-roles: [Admin, Secretaria]
       parameters:
         - name: id
           in: path
@@ -1720,7 +1723,7 @@ paths:
       summary: Troca a 1ª/2ª opção de curso e período
       description: >
         Roda o mesmo validador do candidato sobre o dono da inscrição, mas funciona com inscrição já validada ou paga. Em inscrição paga, reenvia o e-mail de confirmação se o curso ou período mudou.
-      x-roles: [Admin]
+      x-roles: [Admin, Secretaria]
       parameters:
         - name: id
           in: path
