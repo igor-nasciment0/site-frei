@@ -199,12 +199,17 @@
             }
 
             .nome {
+                flex: 1 1 0;
+                min-width: 0;
                 font-size: 15px;
                 font-weight: 600;
                 color: t.$c-white;
+                white-space: normal;
+                overflow-wrap: anywhere;
             }
 
             .horario {
+                flex: 0 0 auto;
                 font-family: t.$font-mono;
                 font-size: 12px;
                 color: t.$c-on-navy-secondary;
