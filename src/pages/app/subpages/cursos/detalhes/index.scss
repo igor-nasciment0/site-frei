@@ -199,21 +199,22 @@
             }
 
             .nome {
-                flex: 1 1 0;
-                min-width: 0;
+                flex: 0 0 auto;
                 font-size: 15px;
                 font-weight: 600;
                 color: t.$c-white;
-                white-space: normal;
-                overflow-wrap: anywhere;
+                white-space: nowrap;
             }
 
             .horario {
-                flex: 0 0 auto;
+                flex: 1 1 0;
+                min-width: 0;
                 font-family: t.$font-mono;
                 font-size: 12px;
                 color: t.$c-on-navy-secondary;
-                white-space: nowrap;
+                text-align: right;
+                white-space: normal;
+                overflow-wrap: anywhere;
             }
 
             .sem-periodo {
