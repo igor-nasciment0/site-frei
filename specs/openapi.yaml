@@ -1,6 +1,6 @@
 # CÓPIA — a fonte da verdade é nsf-app-v3/specs/openapi.yaml (repositório da API).
 # Não edite aqui: altere lá e copie de novo (cp nsf-app-v3/specs/openapi.yaml frei/specs/openapi.yaml,
-# mantendo este cabeçalho). Última sincronização: 2026-10-13.
+# mantendo este cabeçalho). Última sincronização: 2026-10-28.
 openapi: 3.0.3
 info:
   title: NSF API v3
@@ -1583,6 +1583,42 @@ paths:
         '502':
           description: Provedor de pagamento indisponível
 
+  /api/admin/enrollments/pending-payments/check:
+    post:
+      tags: [AdminPanel]
+      summary: Inicia a verificação em lote dos pagamentos pendentes
+      description: >
+        Em segundo plano, consulta no provedor todas as inscrições da edição ativa não canceladas,
+        não pagas e com cobrança PIX emitida (todas as páginas da lista), uma a uma, com 0,5s entre
+        as consultas. Cada uma passa pela mesma consulta de `POST /api/admin/enrollments/{id}/payment/refresh`,
+        inclusive o e-mail de confirmação. Um lote por vez para a API inteira: com outro em
+        andamento, não inicia um novo e devolve a situação do atual. Para após 5 falhas seguidas
+        do provedor. O estado fica em memória — reiniciar a API interrompe o lote.
+      x-roles: [Admin, Secretaria]
+      responses:
+        '202':
+          description: Lote iniciado (ou o que já estava em andamento)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPendingPaymentsCheckDto'
+    get:
+      tags: [AdminPanel]
+      summary: Situação da verificação em lote
+      description: >
+        Lote em andamento ou o último concluído desde que a API subiu. A tela consulta até
+        `running` virar `false`.
+      x-roles: [Admin, Secretaria]
+      responses:
+        '200':
+          description: Situação do lote
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPendingPaymentsCheckDto'
+        '204':
+          description: Nenhum lote rodou desde que a API subiu
+
   /api/admin/enrollments/{id}/payment/reset:
     post:
       tags: [AdminPanel]
@@ -2972,6 +3008,9 @@ components:
           type: string
         name:
           type: string
+        formalName:
+          type: string
+          description: Nome formal do curso, exibido em letra menor abaixo do nome. Vazio quando não cadastrado
         workload:
           type: string
         imageId:
@@ -3001,6 +3040,9 @@ components:
           type: string
         name:
           type: string
+        formalName:
+          type: string
+          description: Nome formal do curso, exibido em letra menor abaixo do nome. Vazio quando não cadastrado
         description:
           type: string
         code:
@@ -3548,6 +3590,9 @@ components:
           type: string
         name:
           type: string
+        formalName:
+          type: string
+          description: Nome formal do curso, exibido em letra menor abaixo do nome. Vazio quando não cadastrado
         description:
           type: string
         code:
@@ -3616,6 +3661,10 @@ components:
       properties:
         name:
           type: string
+        formalName:
+          type: string
+          nullable: true
+          description: Opcional; gravado sem espaços nas pontas. Nulo ou ausente grava vazio
         description:
           type: string
         code:
@@ -4043,6 +4092,43 @@ components:
           type: integer
         pageSize:
           type: integer
+
+    AdminPendingPaymentsCheckDto:
+      type: object
+      properties:
+        running:
+          type: boolean
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        startedBy:
+          type: string
+          description: username do admin que iniciou
+        total:
+          type: integer
+          description: Pendentes da edição ativa com cobrança PIX emitida — as que são consultadas
+        processed:
+          type: integer
+        confirmed:
+          type: integer
+          description: Consultas que confirmaram o pagamento
+        failed:
+          type: integer
+        withoutCharge:
+          type: integer
+          description: Pendentes sem cobrança emitida (não consultadas)
+        confirmedProtocols:
+          type: array
+          items:
+            type: string
+        abortedReason:
+          type: string
+          nullable: true
+          description: Motivo quando o lote parou antes do fim (sem edição ativa, 5 falhas seguidas do provedor, erro inesperado)
 
     AdminEnrollmentDetailDto:
       type: object

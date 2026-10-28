@@ -160,6 +160,7 @@ function CardCurso({ infoCurso, ordem }) {
 
       <div className="card-conteudo">
         <h3 className="card-titulo">{infoCurso.name}</h3>
+        {infoCurso.formalName && <p className="card-nome-formal">{infoCurso.formalName}</p>}
 
         <p className="carga">
           <IconeRelogio />

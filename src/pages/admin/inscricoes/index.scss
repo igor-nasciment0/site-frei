@@ -181,6 +181,34 @@
         }
     }
 
+    .situacao-lote {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: -8px;
+
+        p {
+            font-size: 13px;
+            color: t.$c-text-muted;
+        }
+
+        .motivo-lote {
+            color: t.$c-clay;
+        }
+
+        .barra-lote {
+            height: 3px;
+            background: t.$c-border;
+
+            span {
+                display: block;
+                height: 100%;
+                background: t.$c-sand;
+                transition: width t.$transition;
+            }
+        }
+    }
+
     .admin-table {
         td .nome {
             display: block;

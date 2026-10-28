@@ -76,6 +76,22 @@ export async function verificarPagamento(id) {
     return r.data;
 }
 
+// Inicia no backend a verificação em lote de todos os pagamentos pendentes da edição ativa
+// (todas as páginas da lista). Roda em segundo plano, com 0,5s entre as consultas ao provedor;
+// com outro lote em andamento, não inicia um novo e devolve a situação do atual.
+export async function iniciarVerificacaoPendentes() {
+    const r = await adminApi().post('/admin/enrollments/pending-payments/check');
+    return r.data;
+}
+
+// Situação do lote em andamento ou do último concluído. O 204 (nenhum lote desde que a API
+// subiu) vira { running: false, nenhum: true } — o callApi trocaria um retorno vazio por
+// { success: true }.
+export async function getVerificacaoPendentes() {
+    const r = await adminApi().get('/admin/enrollments/pending-payments/check');
+    return r.status === 204 ? { running: false, nenhum: true } : r.data;
+}
+
 // Marca a inscrição como paga manualmente (pagamento recebido fora do PIX), sem gerar QR code.
 export async function inserirPagamentoManual(id, { valor, pagoEm, forma } = {}) {
     const r = await adminApi().post('/admin/enrollments/' + id + '/payment/manual', {

@@ -67,6 +67,14 @@
             max-width: 22ch;
             text-wrap: balance;
         }
+
+        .nome-formal {
+            margin-top: 10px;
+            max-width: 60ch;
+            font-size: 14px;
+            line-height: 1.5;
+            color: t.$c-on-navy-secondary;
+        }
     }
 
     // Faixa de dados-chave, colada na capa.

@@ -86,6 +86,7 @@ export default function DetalhesCurso() {
         <div className="capa-texto">
           <p className="eyebrow">{loading ? <Skeleton width={80} baseColor="#2c3d5e" highlightColor="#3a4c70" /> : infoCurso?.type}</p>
           <h1>{loading ? <Skeleton width="60%" baseColor="#2c3d5e" highlightColor="#3a4c70" /> : infoCurso?.name}</h1>
+          {!loading && infoCurso?.formalName && <p className="nome-formal">{infoCurso.formalName}</p>}
         </div>
       </header>
 

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useOutletContext } from "react-router";
 import callApi from "../../../api/callAPI";
 import toast from "react-hot-toast";
-import { listarInscricoes, getRelatorioInscricoes, getDocumentoRGCandidato, verificarPagamento } from "../../../api/services/admin/inscricoes";
+import { listarInscricoes, getRelatorioInscricoes, getDocumentoRGCandidato, verificarPagamento, iniciarVerificacaoPendentes, getVerificacaoPendentes } from "../../../api/services/admin/inscricoes";
 import { converterDataUTCParaLocalSemMudarDia } from "../../../util/date";
 import { permissoesAdmin } from "../../../util/permissoesAdmin";
 import Carregamento from "../../../components/carregamento";
@@ -14,6 +14,10 @@ const PAGE_SIZE = 20;
 
 // Opção do filtro de status que não é um EnrollmentStatus: vira pendingPayment=true na API.
 const FILTRO_PENDENTE_PAGAMENTO = "PendingPayment";
+
+// Intervalo da consulta à situação da verificação em lote. É só leitura do estado guardado na
+// API — o espaçamento de 0,5s entre as consultas ao provedor PIX é feito pelo backend.
+const INTERVALO_ACOMPANHAMENTO_LOTE = 1000;
 
 // Colunas do relatório Excel — mesmos dados da listagem, mais os telefones do candidato e dos
 // responsáveis. Sem RG, preview, links ou qualquer coisa que não seja texto/data.
@@ -48,6 +52,10 @@ export default function AdminInscricoes() {
   const [fixado, setFixado] = useState(null); // { userId, nome } do preview fixado por clique
   const [verificando, setVerificando] = useState(null); // id da inscrição com verificação de pagamento em curso
   const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
+  const [lote, setLote] = useState(null); // situação da verificação em lote (AdminPendingPaymentsCheckDto)
+  const [iniciandoLote, setIniciandoLote] = useState(false);
+  // Esta tela viu o lote rodando — só então avisa o fim por toast e recarrega a lista.
+  const acompanhandoLote = useRef(false);
   const admin = useOutletContext();
   // Relatório Excel, "Verificar pagamento" e prévia do RG para Admin/Secretaria
   // (Financeiro só consulta e abre os detalhes, onde insere pagamento manual).
@@ -76,6 +84,45 @@ export default function AdminInscricoes() {
   }, [buscaInput]);
 
   useEffect(() => { carregar(); }, [busca, status, pagina]);
+
+  // O lote roda no backend e sobrevive à tela: ao abrir, retoma o acompanhamento de um que esteja
+  // em andamento (iniciado por outra aba ou outro admin) e mostra o resultado do último.
+  useEffect(() => {
+    if (!pode.verificarPagamento) return;
+
+    callApi(getVerificacaoPendentes).then(r => {
+      if (!r || r.nenhum) return;
+      acompanhandoLote.current = r.running;
+      setLote(r);
+    });
+  }, []);
+
+  // Enquanto o lote roda, consulta a situação; cada resposta agenda a próxima. Falha de rede só
+  // repete a consulta.
+  useEffect(() => {
+    if (!lote?.running) return;
+
+    const t = setTimeout(async () => {
+      const r = await callApi(getVerificacaoPendentes);
+      if (!r) {
+        setLote(atual => ({ ...atual }));
+        return;
+      }
+
+      // 204 no meio do lote: a API reiniciou e o lote em memória se perdeu.
+      if (r.nenhum) {
+        acompanhandoLote.current = false;
+        setLote(null);
+        toast.error("A verificação em lote foi interrompida. Tente novamente.");
+        return;
+      }
+
+      setLote(r);
+      if (!r.running) encerrarLote(r);
+    }, INTERVALO_ACOMPANHAMENTO_LOTE);
+
+    return () => clearTimeout(t);
+  }, [lote]);
 
   async function carregar() {
     const pendentePagamento = status === FILTRO_PENDENTE_PAGAMENTO;
@@ -140,6 +187,32 @@ export default function AdminInscricoes() {
       toast(`A inscrição ${item.protocol} ainda não tem cobrança PIX emitida.`);
     else
       toast(`Pagamento da inscrição ${item.protocol} ainda não confirmado pelo provedor.`);
+
+    carregar();
+  }
+
+  async function verificarTodosPendentes() {
+    setIniciandoLote(true);
+    const r = await callApi(iniciarVerificacaoPendentes, true);
+    setIniciandoLote(false);
+    if (!r) return;
+
+    acompanhandoLote.current = true;
+    setLote(r);
+    // Sem edição ativa o lote já volta encerrado.
+    if (!r.running) encerrarLote(r);
+  }
+
+  function encerrarLote(r) {
+    if (!acompanhandoLote.current) return;
+    acompanhandoLote.current = false;
+
+    if (r.abortedReason)
+      toast.error(r.abortedReason, { duration: 5000 });
+    else if (r.total === 0)
+      toast("Nenhuma inscrição pendente com cobrança PIX emitida.");
+    else
+      toast.success(`Verificação concluída: ${plural(r.confirmed, "pagamento confirmado", "pagamentos confirmados")} de ${r.total}.`);
 
     carregar();
   }
@@ -219,12 +292,25 @@ export default function AdminInscricoes() {
           <option value={FILTRO_PENDENTE_PAGAMENTO}>Pendente pagamento</option>
         </select>
 
+        {pode.verificarPagamento &&
+          <button
+            type="button"
+            className="btn-exportar"
+            disabled={iniciandoLote || lote?.running}
+            onClick={verificarTodosPendentes}
+          >
+            {lote?.running ? "Verificando pendentes…" : "Verificar todos os pendentes"}
+          </button>
+        }
+
         {pode.gerarRelatorioInscricoes &&
           <button type="button" className="btn-exportar" disabled={gerandoRelatorio} onClick={gerarRelatorio}>
             {gerandoRelatorio ? "Gerando…" : "Gerar Relatório"}
           </button>
         }
       </div>
+
+      {lote && <SituacaoLote lote={lote} />}
 
       {!resultado && <Carregamento />}
 
@@ -341,6 +427,44 @@ export default function AdminInscricoes() {
       }
     </div>
   );
+}
+
+// Linha de progresso / resultado da verificação em lote, abaixo dos filtros.
+function SituacaoLote({ lote }) {
+  if (lote.running) {
+    const pct = lote.total > 0 ? Math.round((lote.processed / lote.total) * 100) : 0;
+
+    return (
+      <div className="situacao-lote" role="status">
+        <p>
+          Verificando pagamentos pendentes de todas as páginas…
+          {lote.total > 0 && ` ${lote.processed} de ${lote.total} · ${plural(lote.confirmed, "confirmado", "confirmados")}`}
+        </p>
+        <div className="barra-lote"><span style={{ width: `${pct}%` }} /></div>
+      </div>
+    );
+  }
+
+  const partes = [`${plural(lote.confirmed, "confirmado", "confirmados")} de ${plural(lote.total, "consultado", "consultados")}`];
+  if (lote.failed > 0) partes.push(plural(lote.failed, "falha", "falhas"));
+  if (lote.withoutCharge > 0) partes.push(`${lote.withoutCharge} sem cobrança emitida`);
+
+  return (
+    <div className="situacao-lote" role="status">
+      <p>
+        Última verificação em lote: {dataHora(lote.finishedAt)}{lote.startedBy && `, por ${lote.startedBy}`} — {partes.join(" · ")}.
+        {lote.abortedReason && <span className="motivo-lote"> {lote.abortedReason}</span>}
+      </p>
+    </div>
+  );
+}
+
+function plural(n, singular, pluralTexto) {
+  return `${n} ${n === 1 ? singular : pluralTexto}`;
+}
+
+function dataHora(iso) {
+  return iso ? new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "";
 }
 
 // AAAA-MM-DD no fuso local (toISOString viraria o dia depois das 21h em Brasília).

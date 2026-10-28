@@ -253,6 +253,18 @@
                 text-wrap: balance;
             }
 
+            // Nome formal: discreto, colado ao título (o título perde a margem quando ele existe).
+            .card-titulo:has(+ .card-nome-formal) {
+                margin-bottom: 4px;
+            }
+
+            .card-nome-formal {
+                font-size: 12.5px;
+                line-height: 1.45;
+                color: t.$c-text-muted;
+                margin-bottom: 12px;
+            }
+
             .carga {
                 display: inline-flex;
                 align-items: center;

@@ -197,7 +197,8 @@ a API confere a mesma flag. As duas são **opcionais** e não cancelam as opçõ
     só e reúne os dois critérios. Chip que ficaria vazio não aparece; clicar no chip ativo volta para
     "Todos". Ao lado, o total do resultado ("4 cursos em Técnico").
   - **Cards**, na ordem definida pela secretaria (`ordenacao`): foto em 16:10 com o **tipo** em
-    etiqueta sobre a imagem, nome, **carga horária** e "Detalhes". O card inteiro é clicável e
+    etiqueta sobre a imagem, nome, o **nome formal** logo abaixo em letra menor e cinza (só quando
+    cadastrado — desde 2026-10-28), **carga horária** e "Detalhes". O card inteiro é clicável e
     navegável por teclado (Tab + Enter). No hover: sobe 4px, a foto aproxima, um filete areia
     corre no topo e a seta avança. Os cards entram em sequência; `prefers-reduced-motion` desliga
     os movimentos.
@@ -209,8 +210,9 @@ a API confere a mesma flag. As duas são **opcionais** e não cancelam as opçõ
   - Filtro sem resultado mostra um estado vazio com "Ver todos os cursos".
 - **Detalhes** (`/cursos/:id`, renderizado dentro do layout de `Cursos` via outlet aninhado) —
   redesenhada em 2026-10-12, com as mesmas informações:
-  - **Capa**: a foto do curso com degradê azul-tinta e, por cima, o tipo e o nome do curso (sem
-    foto, bloco azul-tinta). Link "← Todos os cursos" acima.
+  - **Capa**: a foto do curso com degradê azul-tinta e, por cima, o tipo, o nome do curso e, logo
+    abaixo do nome, o **nome formal** em letra menor e mais apagada (só quando cadastrado — desde
+    2026-10-28). Sem foto, bloco azul-tinta. Link "← Todos os cursos" acima.
   - **Faixa de dados-chave** logo abaixo da capa, em quatro colunas: carga horária, idade,
     escolaridade mínima e mensalidade. A **idade** vem em duas linhas — **De** (idade mínima) e
     **Até** (idade máxima) —, cada uma com o complemento do cadastro em letra menor.
@@ -306,10 +308,10 @@ detalhes de cada regra em `nsf-app-v3/specs/features-usecases.md` (seções 13 a
 | Tela | Função |
 |---|---|
 | **Painel** (`/admin`) | Totais da edição ativa: inscritos, pagos, por status, por dia e por curso/período (com alternância Todos/Pagos). |
-| **Inscrições** | Lista paginada com busca (protocolo, nome, CPF, e-mail) e filtro de status, incluindo "Pendente pagamento". Por linha: situação do pagamento, "Verificar pagamento" e prévia do anexo do RG. "Gerar Relatório" exporta o resultado filtrado para Excel, com telefones. |
+| **Inscrições** | Lista paginada com busca (protocolo, nome, CPF, e-mail) e filtro de status, incluindo "Pendente pagamento". Por linha: situação do pagamento, "Verificar pagamento" e prévia do anexo do RG. **"Verificar todos os pendentes"** (Admin e Secretaria, desde 2026-10-28) consulta no backend todos os pagamentos pendentes da edição ativa com cobrança emitida — de todas as páginas, sem considerar a busca nem o filtro —, 0,5s entre uma consulta e outra; a tela mostra o progresso e, no fim, um aviso com o total confirmado, e recarrega a lista. "Gerar Relatório" exporta o resultado filtrado para Excel, com telefones. |
 | **Detalhe da inscrição** | Dados da inscrição e do candidato (inclusive **indicação** e **cupom aplicado**, visíveis mesmo com as flags da edição desligadas); bloco Pagamento com **cupom, taxa original e desconto** quando houver; editar opções de curso (Admin e Secretaria — funciona mesmo com inscrição paga); pagamento: remover cobrança, registrar pagamento manual (forma, valor, data), reenviar e-mail de confirmação; resetar senha do candidato; remover a inscrição (irreversível). |
 | **Contas** | Lista de contas (inscritas ou não). O modal mostra os dados cadastrais (com indicação e cupom), as inscrições e os históricos, e permite trocar e-mail, trocar CPF (sem validação de formato) e resetar a senha. |
-| **Cursos** | Descrição, mercado de trabalho e "reunião de pais e início das aulas" são editados num **editor de texto formatado** (sem HTML à mão); "período de matrícula" continua texto simples, porque entra no meio de uma frase do e-mail. CRUD com períodos, disciplinas, faixa de nascimento (obrigatória), ordem de exibição, textos do e-mail de confirmação (matrícula, início das aulas, parcelas) e upload da capa. |
+| **Cursos** | **Nome formal** (opcional, exibido discretamente abaixo do nome no catálogo e nos detalhes). Descrição, mercado de trabalho e "reunião de pais e início das aulas" são editados num **editor de texto formatado** (sem HTML à mão); "período de matrícula" continua texto simples, porque entra no meio de uma frase do e-mail. CRUD com períodos, disciplinas, faixa de nascimento (obrigatória), ordem de exibição, textos do e-mail de confirmação (matrícula, início das aulas, parcelas) e upload da capa. |
 | **Compatibilidades** | Matriz 1ª × 2ª opção: obrigatoriedade da 2ª opção por linha, células por perfil (interno/externo) e condições por período. |
 | **Dúvidas frequentes** | CRUD de perguntas, com `key` para link direto. A resposta é escrita no **editor de texto formatado**. |
 | **Vestibular** | Edições: ano, taxa, datas (inscrição, prorrogação, prova, resultado, resultado do externo, e-mail de sala), vídeo, interruptor "Permitir novas inscrições", **"Permite indicação"** e **"Permite cupom"** (ligam as seções da etapa 8; desligados por padrão) e **e-mails de teste**; ativar edição. |

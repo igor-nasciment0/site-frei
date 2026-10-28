@@ -106,6 +106,12 @@ export default function AdminCursoForm() {
               {errors.name && <span className="mensagem-erro">{errors.name.message}</span>}
             </div>
 
+            <div className="campo">
+              <label htmlFor="formalName">Nome formal</label>
+              <input {...register("formalName")} type="text" maxLength={200} />
+              <span className="ajuda">Opcional. Aparece em letra menor abaixo do nome, no catálogo e nos detalhes do curso.</span>
+            </div>
+
             <div className={"campo " + (errors.code ? "erro" : "")}>
               <label htmlFor="code">Código</label>
               <input {...register("code", { required: "Campo obrigatório" })} type="number" />

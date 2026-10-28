@@ -3,6 +3,8 @@
 // react-hook-form na criação (sem pré-existentes) de um novo curso.
 export default {
   name: "",
+  // Opcional: aparece em letra menor abaixo do nome no catálogo e nos detalhes do curso.
+  formalName: "",
   code: "",
   description: "",
   workload: "",
