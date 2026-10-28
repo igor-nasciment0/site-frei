@@ -31,3 +31,11 @@ export async function enviarImagemCurso(id, arquivo) {
     const r = await adminApi().post('/admin/courses/' + id + '/image', formData);
     return r.data;
 }
+
+// Miniatura do card no catálogo (opcional — sem ela o card usa a capa).
+export async function enviarMiniaturaCurso(id, arquivo) {
+    const formData = new FormData();
+    formData.append('file', arquivo);
+    const r = await adminApi().post('/admin/courses/' + id + '/thumbnail', formData);
+    return r.data;
+}

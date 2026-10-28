@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import toast from "react-hot-toast";
 import { useLoadingBar } from "react-top-loading-bar";
 import callApi from "../../../../api/callAPI";
-import { criarCurso, atualizarCurso, getCurso } from "../../../../api/services/admin/cursos";
+import { criarCurso, atualizarCurso, getCurso, enviarImagemCurso, enviarMiniaturaCurso } from "../../../../api/services/admin/cursos";
 import Carregamento from "../../../../components/carregamento";
 import EditorTexto from "../../../../components/editor_texto";
 import { formatarParaInputDate } from "../../../../util/date";
@@ -188,6 +188,7 @@ export default function AdminCursoForm() {
             </div>
 
             <input type="hidden" {...register("image")} />
+            <input type="hidden" {...register("thumbnailImage")} />
 
             <div className="campo checkbox">
               <input {...register("isActive")} type="checkbox" id="isActive" />
@@ -204,6 +205,38 @@ export default function AdminCursoForm() {
             cursoId={editando ? id : null}
             imagem={watch("image")}
             onAlterado={(novaImagem) => setValue("image", novaImagem, { shouldDirty: true })}
+            enviar={enviarImagemCurso}
+            campo="image"
+            rotulo="Capa do curso"
+            recomendacao="Recomendado 1600×500 (proporção 3.2:1). Aparece no topo dos detalhes do curso."
+            textoVazio="foto do curso"
+            mensagemSucesso="Capa do curso atualizada!"
+          />
+
+          {/* Só fazem efeito com capa: sem foto, o nome sempre aparece no bloco azul. */}
+          <div className="campo opcoes-capa">
+            <div className="campo checkbox">
+              <input {...register("showNameOnCover")} type="checkbox" id="showNameOnCover" />
+              <label htmlFor="showNameOnCover">Mostrar o nome do curso sobre a capa</label>
+            </div>
+            <div className="campo checkbox">
+              <input {...register("showFormalNameOnCover")} type="checkbox" id="showFormalNameOnCover" />
+              <label htmlFor="showFormalNameOnCover">Mostrar o nome formal sobre a capa</label>
+            </div>
+            <span className="ajuda">Desmarque quando a foto da capa já traz o nome escrito. Sem capa, o nome sempre aparece.</span>
+          </div>
+
+          <CapaCurso
+            className="miniatura"
+            cursoId={editando ? id : null}
+            imagem={watch("thumbnailImage")}
+            onAlterado={(novaImagem) => setValue("thumbnailImage", novaImagem, { shouldDirty: true })}
+            enviar={enviarMiniaturaCurso}
+            campo="thumbnailImage"
+            rotulo="Miniatura do card (opcional)"
+            recomendacao="Recomendado 800×500 (proporção 16:10). Aparece no card da listagem de cursos; sem ela, o card usa a capa."
+            textoVazio="usa a capa"
+            mensagemSucesso="Miniatura do curso atualizada!"
           />
 
           <div className="campo largo">

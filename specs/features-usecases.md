@@ -204,7 +204,9 @@ a API confere a mesma flag. As duas são **opcionais** e não cancelam as opçõ
     os movimentos.
   - As fotos são `<img loading="lazy">` apontando direto para `GET /courses/{id}/image`
     (anônimo): os cards aparecem assim que a lista chega e cada foto surge quando carrega — antes a
-    página esperava todas as imagens. Sem foto (ou com erro), fica o padrão listrado.
+    página esperava todas as imagens. A foto é a **miniatura** do curso quando cadastrada e, sem
+    ela, a própria capa (desde 2026-10-28; antes o card usava sempre a capa). Sem foto (ou com
+    erro), fica o padrão listrado.
   - Cursos com `type === "Técnico"` exibem o selo **"Edital de Bolsas"**, que abre
     `acaonsfatima.org.br/bolsa-educacional` em nova aba (sem acionar o clique do card).
   - Filtro sem resultado mostra um estado vazio com "Ver todos os cursos".
@@ -213,6 +215,10 @@ a API confere a mesma flag. As duas são **opcionais** e não cancelam as opçõ
   - **Capa**: a foto do curso com degradê azul-tinta e, por cima, o tipo, o nome do curso e, logo
     abaixo do nome, o **nome formal** em letra menor e mais apagada (só quando cadastrado — desde
     2026-10-28). Sem foto, bloco azul-tinta. Link "← Todos os cursos" acima.
+  - **Nome sobre a capa** (desde 2026-10-28): o cadastro do curso pode esconder o nome e/ou o nome
+    formal da capa, para a foto que já os traz escritos. Escondido, o nome continua na página para
+    leitor de tela; o tipo continua visível. Só vale com foto: sem capa (ou se ela não carregar), o
+    nome e o nome formal sempre aparecem.
   - **Faixa de dados-chave** logo abaixo da capa, em quatro colunas: carga horária, idade,
     escolaridade mínima e mensalidade. A **idade** vem em duas linhas — **De** (idade mínima) e
     **Até** (idade máxima) —, cada uma com o complemento do cadastro em letra menor.
@@ -311,7 +317,7 @@ detalhes de cada regra em `nsf-app-v3/specs/features-usecases.md` (seções 13 a
 | **Inscrições** | Lista paginada com busca (protocolo, nome, CPF, e-mail) e filtro de status, incluindo "Pendente pagamento". Por linha: situação do pagamento, "Verificar pagamento" e prévia do anexo do RG. **"Verificar todos os pendentes"** (Admin e Secretaria, desde 2026-10-28) consulta no backend todos os pagamentos pendentes da edição ativa com cobrança emitida — de todas as páginas, sem considerar a busca nem o filtro —, 0,5s entre uma consulta e outra; a tela mostra o progresso e, no fim, um aviso com o total confirmado, e recarrega a lista. "Gerar Relatório" exporta o resultado filtrado para Excel, com telefones. |
 | **Detalhe da inscrição** | Dados da inscrição e do candidato (inclusive **indicação** e **cupom aplicado**, visíveis mesmo com as flags da edição desligadas); bloco Pagamento com **cupom, taxa original e desconto** quando houver; editar opções de curso (Admin e Secretaria — funciona mesmo com inscrição paga); pagamento: remover cobrança, registrar pagamento manual (forma, valor, data), reenviar e-mail de confirmação; resetar senha do candidato; remover a inscrição (irreversível). |
 | **Contas** | Lista de contas (inscritas ou não). O modal mostra os dados cadastrais (com indicação e cupom), as inscrições e os históricos, e permite trocar e-mail, trocar CPF (sem validação de formato) e resetar a senha. |
-| **Cursos** | **Nome formal** (opcional, exibido discretamente abaixo do nome no catálogo e nos detalhes). Descrição, mercado de trabalho e "reunião de pais e início das aulas" são editados num **editor de texto formatado** (sem HTML à mão); "período de matrícula" continua texto simples, porque entra no meio de uma frase do e-mail. CRUD com períodos, disciplinas, faixa de nascimento (obrigatória), ordem de exibição, textos do e-mail de confirmação (matrícula, início das aulas, parcelas) e upload da capa. |
+| **Cursos** | **Nome formal** (opcional, exibido discretamente abaixo do nome no catálogo e nos detalhes). Descrição, mercado de trabalho e "reunião de pais e início das aulas" são editados num **editor de texto formatado** (sem HTML à mão); "período de matrícula" continua texto simples, porque entra no meio de uma frase do e-mail. CRUD com períodos, disciplinas, faixa de nascimento (obrigatória), ordem de exibição, textos do e-mail de confirmação (matrícula, início das aulas, parcelas) e upload da capa. Desde 2026-10-28, logo abaixo da capa: duas caixas, **"Mostrar o nome do curso sobre a capa"** e **"Mostrar o nome formal sobre a capa"** (marcadas por padrão), e o upload da **miniatura do card** (opcional, 16:10; sem ela o card da listagem usa a capa). Capa e miniatura só podem ser enviadas depois que o curso existe. |
 | **Compatibilidades** | Matriz 1ª × 2ª opção: obrigatoriedade da 2ª opção por linha, células por perfil (interno/externo) e condições por período. |
 | **Dúvidas frequentes** | CRUD de perguntas, com `key` para link direto. A resposta é escrita no **editor de texto formatado**. |
 | **Vestibular** | Edições: ano, taxa, datas (inscrição, prorrogação, prova, resultado, resultado do externo, e-mail de sala), vídeo, interruptor "Permitir novas inscrições", **"Permite indicação"** e **"Permite cupom"** (ligam as seções da etapa 8; desligados por padrão) e **e-mails de teste**; ativar edição. |

@@ -484,7 +484,7 @@ paths:
       description: >
         Imagem servida a partir de arquivo em disco, não do banco de dados. Procura primeiro
         no storage em volume (`Storage:RootPath/course-images`, onde caem as imagens enviadas
-        via `POST /api/admin/courses/{id}/image`) e, se não achar, cai para o arquivo legado
+        via `POST /api/admin/courses/{id}/image` e `/thumbnail`) e, se não achar, cai para o arquivo legado
         colado na imagem Docker em build (`templates/images/{id}`).
       security: []
       parameters:
@@ -1101,6 +1101,44 @@ paths:
       responses:
         '200':
           description: Imagem salva; curso atualizado com o novo identificador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminCourseDto'
+        '400':
+          description: Arquivo ausente, grande demais (limite `Storage:MaxUploadBytes`, 4MB por padrão) ou em formato não aceito (JPG/PNG/WEBP)
+        '404':
+          description: Curso não encontrado
+
+  /api/admin/courses/{id}/thumbnail:
+    post:
+      tags: [AdminPanel]
+      summary: Envia (ou substitui) a miniatura do card do curso
+      x-roles: [Admin]
+      description: >
+        Desde 2026-10-28. Miniatura opcional usada no card do catálogo no lugar da capa (sem ela, o
+        card usa `image`). Mesmas regras e mesma pasta da capa (`POST /api/admin/courses/{id}/image`);
+        o arquivo anterior da miniatura é apagado depois que o novo é gravado — nunca o da capa,
+        mesmo que os dois campos apontem para o mesmo nome. Servida por `GET /api/courses/{id}/image`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Imagem salva; curso atualizado com o novo `thumbnailImage`
           content:
             application/json:
               schema:
@@ -3016,6 +3054,11 @@ components:
         imageId:
           type: string
           description: Identificador usado em `GET /api/courses/{id}/image`.
+        thumbnailImageId:
+          type: string
+          description: >
+            Miniatura do card no catálogo, servida pela mesma `GET /api/courses/{id}/image`. Vazia
+            quando o curso não tem miniatura própria — o card usa `imageId`.
         type:
           type: string
           description: Default "Livre" quando nulo na base.
@@ -3081,6 +3124,14 @@ components:
           type: string
         image:
           type: string
+        showNameOnCover:
+          type: boolean
+          description: >
+            Se o nome do curso aparece sobre a capa nos detalhes do catálogo. Só vale com capa — sem
+            foto, o front mostra o nome mesmo desligado. Documento antigo sem o campo devolve `true`.
+        showFormalNameOnCover:
+          type: boolean
+          description: O mesmo que `showNameOnCover`, para o `formalName`.
 
     CoursePeriodDto:
       type: object
@@ -3629,6 +3680,19 @@ components:
           type: string
         image:
           type: string
+        thumbnailImage:
+          type: string
+          description: >
+            Miniatura do card no catálogo (mesmo formato de `image`). Vazia, o card usa a capa.
+            Preenchida por `POST /api/admin/courses/{id}/thumbnail`.
+        showNameOnCover:
+          type: boolean
+          description: >
+            Se o nome do curso aparece sobre a capa nos detalhes do catálogo. Só vale com capa — sem
+            foto, o front mostra o nome mesmo desligado. Documento antigo sem o campo devolve `true`.
+        showFormalNameOnCover:
+          type: boolean
+          description: O mesmo que `showNameOnCover`, para o `formalName`.
         type:
           type: string
           nullable: true
@@ -3700,6 +3764,21 @@ components:
             Identificador usado em `GET /api/courses/{id}/image` (nome do arquivo no storage,
             fora deste payload). Normalmente não deve ser editado à mão aqui — é preenchido
             automaticamente por `POST /api/admin/courses/{id}/image` ao enviar uma imagem.
+        thumbnailImage:
+          type: string
+          nullable: true
+          description: >
+            Miniatura do card no catálogo. Como `image`, é preenchida pelo upload próprio
+            (`POST /api/admin/courses/{id}/thumbnail`) e o painel só devolve o valor que recebeu.
+            Nula ou ausente grava vazio.
+        showNameOnCover:
+          type: boolean
+          default: true
+          description: Mostrar o nome sobre a capa nos detalhes do curso. Ausente, grava `true`.
+        showFormalNameOnCover:
+          type: boolean
+          default: true
+          description: Mostrar o nome formal sobre a capa nos detalhes do curso. Ausente, grava `true`.
         type:
           type: string
           nullable: true

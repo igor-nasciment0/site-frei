@@ -2,19 +2,20 @@ import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import callApi from "../../../../api/callAPI";
 import { getCursoImagem } from "../../../../api/services/cursos";
-import { enviarImagemCurso } from "../../../../api/services/admin/cursos";
 
 const TIPOS_ACEITOS = "image/jpeg,image/jpg,image/png,image/webp";
 const TAMANHO_MAXIMO = 4 * 1024 * 1024;
 
 /**
- * Capa do curso: prévia + upload. O arquivo sobe assim que é escolhido
- * (`POST /admin/courses/{id}/image`), em requisição própria — mesmo padrão
- * do anexo do RG (`inscricao/componentes/anexoRG.jsx`). Só é possível enviar
- * depois que o curso existe (precisa do `id`), então em "Novo curso" o campo
- * fica desabilitado até o primeiro "Criar curso".
+ * Imagem do curso (capa ou miniatura): prévia + upload. O arquivo sobe assim que é
+ * escolhido, em requisição própria (`enviar`: `POST /admin/courses/{id}/image` ou
+ * `/thumbnail`) — mesmo padrão do anexo do RG (`inscricao/componentes/anexoRG.jsx`).
+ * Só é possível enviar depois que o curso existe (precisa do `id`), então em "Novo curso"
+ * o campo fica desabilitado até o primeiro "Criar curso".
+ *
+ * `campo` é a propriedade do AdminCourseDto devolvido que guarda o novo identificador.
  */
-export default function CapaCurso({ cursoId, imagem, onAlterado }) {
+export default function CapaCurso({ cursoId, imagem, onAlterado, enviar, campo, rotulo, recomendacao, textoVazio, mensagemSucesso, className = "" }) {
   const inputRef = useRef(null);
 
   const [previa, setPrevia] = useState(null);
@@ -56,26 +57,26 @@ export default function CapaCurso({ cursoId, imagem, onAlterado }) {
     }
 
     setEnviando(true);
-    const resposta = await callApi(enviarImagemCurso, true, cursoId, arquivo);
+    const resposta = await callApi(enviar, true, cursoId, arquivo);
     setEnviando(false);
     evento.target.value = "";
 
     if (!resposta) return;
 
     setPrevia(URL.createObjectURL(arquivo));
-    onAlterado?.(resposta.image);
-    toast.success("Capa do curso atualizada!");
+    onAlterado?.(resposta[campo]);
+    toast.success(mensagemSucesso);
   }
 
   return (
-    <div className="campo largo capa-curso">
-      <label>Capa do curso</label>
+    <div className={"campo largo capa-curso " + className}>
+      <label>{rotulo}</label>
 
       <div className="capa-curso-corpo">
         {previa
-          ? <img className="previa" src={previa} alt="Prévia da capa do curso" />
+          ? <img className="previa" src={previa} alt={"Prévia — " + rotulo.toLowerCase()} />
           : <div className="previa vazia">
-              <span>foto do curso</span>
+              <span>{textoVazio}</span>
             </div>
         }
 
@@ -99,8 +100,8 @@ export default function CapaCurso({ cursoId, imagem, onAlterado }) {
 
           <p className="ajuda">
             {cursoId
-              ? "JPG, PNG ou WEBP, até 4MB. Recomendado 1600×500 (proporção 3.2:1)."
-              : "Salve o curso primeiro — a capa é enviada depois que ele existe."}
+              ? "JPG, PNG ou WEBP, até 4MB. " + recomendacao
+              : "Salve o curso primeiro — a imagem é enviada depois que ele existe."}
           </p>
         </div>
       </div>

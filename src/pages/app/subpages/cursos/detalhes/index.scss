@@ -75,6 +75,17 @@
             line-height: 1.5;
             color: t.$c-on-navy-secondary;
         }
+
+        // Nome escondido pela flag do cadastro (a foto já o traz escrito): some da tela, mas
+        // continua para leitor de tela.
+        .so-leitor-tela {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
     }
 
     // Faixa de dados-chave, colada na capa.

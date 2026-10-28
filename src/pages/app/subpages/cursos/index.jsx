@@ -130,7 +130,8 @@ function CardCurso({ infoCurso, ordem }) {
   const [imagemFalhou, setImagemFalhou] = useState(false);
   const [imagemPronta, setImagemPronta] = useState(false);
 
-  const urlImagem = urlImagemCurso(infoCurso.imageId);
+  // A miniatura é opcional; sem ela o card usa a capa do curso.
+  const urlImagem = urlImagemCurso(infoCurso.thumbnailImageId || infoCurso.imageId);
   const abrir = () => navigate('/cursos/' + infoCurso.id);
 
   return (

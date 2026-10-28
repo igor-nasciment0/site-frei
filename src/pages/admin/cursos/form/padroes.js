@@ -15,6 +15,11 @@ export default {
   jobMarket: "",
   apresentationVideoUrl: "",
   image: "",
+  // Opcional: sem miniatura, o card do catálogo usa a capa (image).
+  thumbnailImage: "",
+  // Desligar quando a foto da capa já traz o nome escrito.
+  showNameOnCover: true,
+  showFormalNameOnCover: true,
   type: "",
   isActive: true,
   minBirthDate: "",

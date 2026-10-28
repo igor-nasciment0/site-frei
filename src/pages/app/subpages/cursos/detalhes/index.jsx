@@ -73,11 +73,17 @@ export default function DetalhesCurso() {
   const urlImagem = urlImagemCurso(infoCurso?.image);
   const semImagem = !loading && (!urlImagem || imagemFalhou);
 
+  // As flags servem para a foto que já traz o nome escrito; sem foto, o nome sempre aparece.
+  // Escondido, o h1 continua na página para leitor de tela e para o título do documento.
+  const mostrarNome = semImagem || infoCurso?.showNameOnCover !== false;
+  const mostrarNomeFormal = semImagem || infoCurso?.showFormalNameOnCover !== false;
+
   return (
     <section className="curso-detalhes">
       <Link className="voltar" to="..">← Todos os cursos</Link>
 
-      {/* Capa: a foto do curso com o nome por cima; sem foto, vira um bloco azul-tinta. */}
+      {/* Capa: a foto do curso com o nome por cima (cada um pode ser escondido no cadastro);
+          sem foto, vira um bloco azul-tinta. */}
       <header className={"capa" + (semImagem ? " sem-imagem" : "")}>
         {urlImagem && !imagemFalhou &&
           <img src={urlImagem} alt="" onError={() => setImagemFalhou(true)} />
@@ -85,8 +91,10 @@ export default function DetalhesCurso() {
 
         <div className="capa-texto">
           <p className="eyebrow">{loading ? <Skeleton width={80} baseColor="#2c3d5e" highlightColor="#3a4c70" /> : infoCurso?.type}</p>
-          <h1>{loading ? <Skeleton width="60%" baseColor="#2c3d5e" highlightColor="#3a4c70" /> : infoCurso?.name}</h1>
-          {!loading && infoCurso?.formalName && <p className="nome-formal">{infoCurso.formalName}</p>}
+          <h1 className={loading || mostrarNome ? "" : "so-leitor-tela"}>
+            {loading ? <Skeleton width="60%" baseColor="#2c3d5e" highlightColor="#3a4c70" /> : infoCurso?.name}
+          </h1>
+          {!loading && mostrarNomeFormal && infoCurso?.formalName && <p className="nome-formal">{infoCurso.formalName}</p>}
         </div>
       </header>
 
