@@ -1,6 +1,6 @@
 # CÓPIA — a fonte da verdade é nsf-app-v3/specs/openapi.yaml (repositório da API).
 # Não edite aqui: altere lá e copie de novo (cp nsf-app-v3/specs/openapi.yaml frei/specs/openapi.yaml,
-# mantendo este cabeçalho). Última sincronização: 2026-10-28.
+# mantendo este cabeçalho). Última sincronização: 2026-10-29.
 openapi: 3.0.3
 info:
   title: NSF API v3
@@ -4084,13 +4084,25 @@ components:
     AdminEnrollmentCoursePeriodCountDto:
       type: object
       description: >
-        Uma linha por combinação (curso, período); o front-end agrupa por
-        curso e empilha as séries por período para o gráfico.
+        Uma linha por combinação (curso, período) da 1ª opção, agrupada pelos
+        códigos (courseCode + periodCode) — desde 2026-10-29; antes agrupava
+        pelos nomes gravados na inscrição. O front-end agrupa por curso e
+        empilha as séries por período para o gráfico.
       properties:
+        courseCode:
+          type: integer
         courseName:
           type: string
+          description: >
+            Nome atual do curso no cadastro; se o curso não existe mais, o
+            nome gravado na inscrição mais recente do grupo.
+        periodCode:
+          type: integer
         periodName:
           type: string
+          description: >
+            Descrição atual do período no cadastro do curso; se o período não
+            existe mais, a gravada na inscrição mais recente do grupo.
         count:
           type: integer
         paidCount:

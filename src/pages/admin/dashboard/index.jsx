@@ -179,14 +179,17 @@ function GraficoPorCursoPeriodo({ linhas }) {
 
   const periodosVisiveis = todosPeriodos.filter(nome => visiveis.some(l => l.periodName === nome));
 
+  // Barras por código do curso (a API já agrupa por código e manda o nome atual);
+  // a cor do segmento segue o nome do período, igual em todos os cursos.
   const porCurso = new Map();
   for (const l of visiveis) {
-    if (!porCurso.has(l.courseName)) porCurso.set(l.courseName, []);
-    porCurso.get(l.courseName).push(l);
+    if (!porCurso.has(l.courseCode)) porCurso.set(l.courseCode, []);
+    porCurso.get(l.courseCode).push(l);
   }
 
-  const cursos = Array.from(porCurso, ([courseName, periodos]) => ({
-    courseName,
+  const cursos = Array.from(porCurso, ([courseCode, periodos]) => ({
+    courseCode,
+    courseName: periodos[0].courseName,
     periodos,
     total: periodos.reduce((s, p) => s + p.count, 0),
   })).sort((a, b) => b.total - a.total);
@@ -208,13 +211,13 @@ function GraficoPorCursoPeriodo({ linhas }) {
 
       <div className="grafico-barras-h">
         {cursos.map(curso => (
-          <div key={curso.courseName} className="linha-barra-h">
+          <div key={curso.courseCode} className="linha-barra-h">
             <span className="rotulo-y">{curso.courseName}</span>
             <div className="trilha">
               <div className="barra-empilhada" style={{ width: `${(curso.total / maxTotal) * 100}%` }}>
                 {curso.periodos.map(p => (
                   <span
-                    key={p.periodName}
+                    key={p.periodCode}
                     className={"segmento " + corDoPeriodo(p.periodName)}
                     style={{ flex: p.count }}
                     title={`${p.periodName}: ${p.count}`}
