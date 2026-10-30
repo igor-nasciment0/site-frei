@@ -196,7 +196,10 @@
     }
 }
 
-.bloco-escolhas-curso {
+// .bloco-nascimento-escolaridade (seção "Nascimento e escolaridade") reaproveita o layout do
+// editor de opções de curso.
+.bloco-escolhas-curso,
+.bloco-nascimento-escolaridade {
     &:not(.editando) {
         align-items: center;
 
@@ -241,6 +244,32 @@
                 @include t.type-label;
                 font-size: 12px;
                 color: t.$c-slate;
+            }
+
+            input[type="date"] {
+                font-size: 14px;
+                color: t.$c-text;
+                background: t.$c-input-bg;
+                border: 1px solid t.$c-input-border;
+                padding: 10px 12px;
+                font-family: t.$font-sans;
+
+                &:focus {
+                    border-color: t.$c-navy;
+                }
+            }
+        }
+
+        .opcao-cancelar {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13.5px;
+            color: t.$c-text;
+            line-height: 1.5;
+
+            input {
+                margin-top: 3px;
             }
         }
     }

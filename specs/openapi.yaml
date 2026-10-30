@@ -1,6 +1,6 @@
 # CÓPIA — a fonte da verdade é nsf-app-v3/specs/openapi.yaml (repositório da API).
 # Não edite aqui: altere lá e copie de novo (cp nsf-app-v3/specs/openapi.yaml frei/specs/openapi.yaml,
-# mantendo este cabeçalho). Última sincronização: 2026-10-29.
+# mantendo este cabeçalho). Última sincronização: 2026-10-30.
 openapi: 3.0.3
 info:
   title: NSF API v3
@@ -1821,6 +1821,45 @@ paths:
           description: Recusado pelas regras de inscrição (mesmas mensagens do candidato)
         '404':
           description: Inscrição não encontrada
+
+  /api/admin/enrollments/{id}/birth-school:
+    put:
+      tags: [AdminPanel]
+      summary: Altera a data de nascimento e a escolaridade do candidato
+      description: >
+        Altera `birthInfo.date` e `schoolInfo.currentGrade` do dono da inscrição (desde 2026-10-30).
+        Com curso escolhido, os novos dados passam por todas as regras de inscrição
+        (`CreateEnrollmentDtoValidator`) contra os cursos e períodos já escolhidos antes de gravar;
+        se não passarem, nada é alterado (400). `cancelChoicesIfInvalid = true` só tem efeito em
+        inscrição aberta e não paga: grava mesmo assim e cancela as opções de curso. Paga, validada
+        ou cancelada nunca perde as opções. Não reenvia e-mail de confirmação.
+      x-roles: [Admin, Secretaria]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateEnrollmentBirthSchoolDto'
+      responses:
+        '200':
+          description: Dados alterados (com `firstChoice.courseCode = 0` se as opções foram canceladas)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminEnrollmentDetailDto'
+        '400':
+          description: >
+            Data ou escolaridade inválida, sem alteração, ou recusado pelas regras de inscrição
+            (mensagem do candidato precedida de "A alteração não passa na validação das opções de
+            curso desta inscrição:")
+        '404':
+          description: Inscrição ou conta do candidato não encontrada
 
   # ===================== ADMIN — IMPORTAÇÕES =====================
   /api/admin/imports/enrolled-students:
@@ -4295,6 +4334,20 @@ components:
         firstChoicePeriodCode: { type: integer }
         secondChoiceCourseCode: { type: integer, description: "<= 0 = sem 2ª opção" }
         secondChoicePeriodCode: { type: integer }
+
+    AdminUpdateEnrollmentBirthSchoolDto:
+      type: object
+      required: [birthDate, currentGrade]
+      properties:
+        birthDate: { type: string, format: date, description: "Anterior a hoje e no máximo 120 anos atrás" }
+        currentGrade:
+          type: string
+          description: Série atual (`schoolInfo.currentGrade`)
+          enum: ["6° ano", "7° ano", "8° ano", "9° ano", "1° ano EM", "2° ano EM", "3° ano EM", "Ensino Médio Concluído", "Superior"]
+        cancelChoicesIfInvalid:
+          type: boolean
+          default: false
+          description: Só em inscrição aberta e não paga — cancela as opções de curso em vez de recusar
 
     AdminDeleteEnrollmentResultDto:
       type: object

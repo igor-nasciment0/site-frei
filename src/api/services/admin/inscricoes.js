@@ -54,6 +54,19 @@ export async function atualizarEscolhasCurso(id, escolhas) {
     return r.data;
 }
 
+// Altera a data de nascimento ("AAAA-MM-DD") e a série atual do candidato dono da inscrição. Com
+// curso escolhido, a API só grava se as opções de curso continuarem passando em todas as
+// validações da inscrição. cancelarOpcoesSeInvalidas só vale para inscrição aberta e não paga:
+// grava mesmo assim e cancela as opções de curso, como na alteração feita pelo candidato.
+export async function atualizarNascimentoEscolaridade(id, { dataNascimento, serieAtual, cancelarOpcoesSeInvalidas = false }) {
+    const r = await adminApi().put('/admin/enrollments/' + id + '/birth-school', {
+        birthDate: dataNascimento,
+        currentGrade: serieAtual,
+        cancelChoicesIfInvalid: cancelarOpcoesSeInvalidas
+    });
+    return r.data;
+}
+
 export async function resetarSenha(id, novaSenha) {
     const r = await adminApi().post('/admin/enrollments/' + id + '/reset-password', {
         newPassword: novaSenha || null

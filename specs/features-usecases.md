@@ -121,7 +121,7 @@ Regras:
   escolhidas, porque idade e escolaridade mínima dependem delas. Com inscrição aberta e não paga,
   o front pede confirmação antes de salvar e avisa que será preciso escolher os cursos de novo;
   com inscrição validada ou paga, a alteração é recusada (pelo front e pela API) — *"Procure a
-  secretaria"*.
+  secretaria"*. A secretaria altera pelo detalhe da inscrição no painel (seção 10).
 - **Se o período de inscrição terminou** (`statusVestibular.currentPhase >= 3`, fase `Finished` —
   hoje depois de `extensionDate ?? endDate`), todos os campos do wizard ficam desabilitados
   (somente leitura). `currentPhase` é numérico: `0` não iniciado, `1` aberto, `3` encerrado. Uma
@@ -308,14 +308,14 @@ detalhes de cada regra em `nsf-app-v3/specs/features-usecases.md` (seções 13 a
 | Perfil | Menu | O que faz |
 |---|---|---|
 | **Admin** | tudo | tudo |
-| **Secretaria** | Inscrições, Contas, Relatórios › Indicações e Cupons | tudo de Inscrições e Contas — inclusive trocar curso e reenviar o e-mail de confirmação (troca de curso liberada em 2026-10-13) —, exceto inserir pagamento manual; consulta e exporta os dois relatórios |
+| **Secretaria** | Inscrições, Contas, Relatórios › Indicações e Cupons | tudo de Inscrições e Contas — inclusive trocar curso, alterar nascimento e escolaridade e reenviar o e-mail de confirmação (troca de curso liberada em 2026-10-13) —, exceto inserir pagamento manual; consulta e exporta os dois relatórios |
 | **Financeiro** | Inscrições, Relatórios › Financeiro | consulta inscrições, insere pagamento manual, gera o relatório financeiro |
 
 | Tela | Função |
 |---|---|
 | **Painel** (`/admin`) | Totais da edição ativa: inscritos, pagos, por status, por dia e por curso/período (com alternância Todos/Pagos). |
 | **Inscrições** | Lista paginada com busca (protocolo, nome, CPF, e-mail) e filtro de status, incluindo "Pendente pagamento". Por linha: situação do pagamento, "Verificar pagamento" e prévia do anexo do RG. **"Verificar todos os pendentes"** (Admin e Secretaria, desde 2026-10-28) consulta no backend todos os pagamentos pendentes da edição ativa com cobrança emitida — de todas as páginas, sem considerar a busca nem o filtro —, 0,5s entre uma consulta e outra; a tela mostra o progresso e, no fim, um aviso com o total confirmado, e recarrega a lista. "Gerar Relatório" exporta o resultado filtrado para Excel, com telefones. |
-| **Detalhe da inscrição** | Dados da inscrição e do candidato (inclusive **indicação** e **cupom aplicado**, visíveis mesmo com as flags da edição desligadas); bloco Pagamento com **cupom, taxa original e desconto** quando houver; editar opções de curso (Admin e Secretaria — funciona mesmo com inscrição paga); pagamento: remover cobrança, registrar pagamento manual (forma, valor, data), reenviar e-mail de confirmação; resetar senha do candidato; remover a inscrição (irreversível). |
+| **Detalhe da inscrição** | Dados da inscrição e do candidato (inclusive **indicação** e **cupom aplicado**, visíveis mesmo com as flags da edição desligadas); bloco Pagamento com **cupom, taxa original e desconto** quando houver; editar opções de curso (Admin e Secretaria — funciona mesmo com inscrição paga); **editar nascimento e escolaridade** (Admin e Secretaria, desde 2026-10-30 — data de nascimento e série atual; com curso escolhido, só grava se os novos dados passarem em todas as validações da inscrição com os cursos e períodos já escolhidos, inclusive em inscrição paga; em inscrição aberta e não paga, uma caixa permite gravar mesmo assim e cancelar as opções de curso); pagamento: remover cobrança, registrar pagamento manual (forma, valor, data), reenviar e-mail de confirmação; resetar senha do candidato; remover a inscrição (irreversível). |
 | **Contas** | Lista de contas (inscritas ou não). O modal mostra os dados cadastrais (com indicação e cupom), as inscrições e os históricos, e permite trocar e-mail, trocar CPF (sem validação de formato) e resetar a senha. |
 | **Cursos** | **Nome formal** (opcional, exibido discretamente abaixo do nome no catálogo e nos detalhes). Descrição, mercado de trabalho e "reunião de pais e início das aulas" são editados num **editor de texto formatado** (sem HTML à mão); "período de matrícula" continua texto simples, porque entra no meio de uma frase do e-mail. CRUD com períodos, disciplinas, faixa de nascimento (obrigatória), ordem de exibição, textos do e-mail de confirmação (matrícula, início das aulas, parcelas) e upload da capa. Desde 2026-10-28, logo abaixo da capa: duas caixas, **"Mostrar o nome do curso sobre a capa"** e **"Mostrar o nome formal sobre a capa"** (marcadas por padrão), e o upload da **miniatura do card** (opcional, 16:10; sem ela o card da listagem usa a capa). Capa e miniatura só podem ser enviadas depois que o curso existe. |
 | **Compatibilidades** | Matriz 1ª × 2ª opção: obrigatoriedade da 2ª opção por linha, células por perfil (interno/externo) e condições por período. |

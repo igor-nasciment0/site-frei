@@ -12,9 +12,11 @@ import {
   getOpcoesPrimeiraOpcaoAdmin,
   getOpcoesSegundaOpcaoAdmin,
   atualizarEscolhasCurso,
+  atualizarNascimentoEscolaridade,
 } from "../../../../api/services/admin/inscricoes";
 import { listarCursos } from "../../../../api/services/admin/cursos";
-import { converterDataUTCParaLocalSemMudarDia } from "../../../../util/date";
+import { converterDataUTCParaLocalSemMudarDia, formatarParaInputDate } from "../../../../util/date";
+import { escolaridades } from "../../../app/subpages/inscricao/selects";
 import { permissoesAdmin } from "../../../../util/permissoesAdmin";
 import Carregamento from "../../../../components/carregamento";
 import { Select, SelectItem } from "../../../../components/select";
@@ -83,6 +85,8 @@ export default function AdminInscricaoDetalhes() {
 
         <EscolhasCurso inscricao={inscricao} aoAtualizar={carregar} somenteConsulta={!pode.editarCursos} />
       </div>
+
+      <NascimentoEscolaridade inscricao={inscricao} aoAtualizar={carregar} somenteConsulta={!pode.editarNascimentoEscolaridade} />
 
       <Pagamento
         inscricao={inscricao}
@@ -381,6 +385,126 @@ function Pagamento({ inscricao, aoAtualizar, podeResetar, podeInserirManual, pod
               </div>
             </div>
           }
+        </div>
+      }
+    </div>
+  );
+}
+
+// Data de nascimento e série atual do candidato, com edição sob demanda. Idade e escolaridade
+// decidem quais cursos ele pode fazer, então, com curso escolhido, o backend roda todas as
+// validações da inscrição sobre os cursos e períodos já escolhidos antes de gravar (ver
+// AdminUpdateEnrollmentBirthSchoolCommandHandler). Se não passar, nada muda — exceto em inscrição
+// aberta e não paga com a caixa marcada, em que as opções de curso são canceladas e o candidato
+// escolhe de novo (a mesma regra de quando ele próprio altera esses dados).
+function NascimentoEscolaridade({ inscricao, aoAtualizar, somenteConsulta }) {
+  const [editando, setEditando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [dataNascimento, setDataNascimento] = useState("");
+  const [serieAtual, setSerieAtual] = useState("");
+  const [cancelarOpcoes, setCancelarOpcoes] = useState(false);
+
+  const student = inscricao.student || {};
+  const temCurso = inscricao.firstChoice?.courseCode > 0;
+  // Mesma condição do backend para poder cancelar as opções em vez de recusar.
+  const podeCancelarOpcoes = temCurso && inscricao.status === "Open" && inscricao.paymentStatus !== "Paid";
+
+  function iniciarEdicao() {
+    setDataNascimento(formatarParaInputDate(student.birthInfo?.date));
+    setSerieAtual(student.schoolInfo?.currentGrade || "");
+    setCancelarOpcoes(false);
+    setEditando(true);
+  }
+
+  async function salvar() {
+    if (!dataNascimento || !serieAtual) {
+      toast.error("Informe a data de nascimento e a escolaridade.");
+      return;
+    }
+
+    if (cancelarOpcoes && !confirm(
+      "Se as opções de curso atuais não aceitarem os novos dados, elas serão canceladas e o candidato precisará escolher os cursos de novo. Continuar?"
+    )) return;
+
+    setSalvando(true);
+    const r = await callApi(atualizarNascimentoEscolaridade, true, inscricao.id, {
+      dataNascimento,
+      serieAtual,
+      cancelarOpcoesSeInvalidas: cancelarOpcoes,
+    });
+    setSalvando(false);
+
+    if (!r) return;
+
+    if (temCurso && !(r.firstChoice?.courseCode > 0))
+      toast.success("Dados alterados. As opções de curso foram canceladas — o candidato precisa escolher os cursos de novo.", { duration: 6000 });
+    else
+      toast.success("Nascimento e escolaridade atualizados.");
+
+    setEditando(false);
+    aoAtualizar();
+  }
+
+  const nascimento = student.birthInfo?.date ? converterDataUTCParaLocalSemMudarDia(student.birthInfo.date) : "—";
+
+  return (
+    <div className="secao-inscricao">
+      <h2>Nascimento e escolaridade</h2>
+
+      {!editando &&
+        <div className="grade-info bloco-nascimento-escolaridade">
+          <Info rotulo="Data de nascimento" valor={nascimento} />
+          <Info rotulo="Idade" valor={student.age != null ? `${student.age} anos` : "—"} />
+          <Info rotulo="Série atual" valor={student.schoolInfo?.currentGrade} />
+          {!somenteConsulta &&
+            <button type="button" className="btn-fantasma" onClick={iniciarEdicao}>Editar nascimento e escolaridade</button>
+          }
+        </div>
+      }
+
+      {editando &&
+        <div className="bloco-nascimento-escolaridade editando">
+          <p className="aviso">
+            {!temCurso
+              ? "A inscrição está sem curso escolhido: a alteração é gravada direto, e os cursos serão validados quando o candidato escolher."
+              : "A alteração só é gravada se passar em todas as validações da inscrição com os cursos e períodos já escolhidos (matriz de compatibilidade, faixa de nascimento e escolaridade mínima de cada curso, RG, mensalidades em aberto, cadastro completo). Se não passar, nada é alterado."}
+            {temCurso && !podeCancelarOpcoes &&
+              " Como a inscrição já está paga ou validada, as opções de curso nunca são canceladas — se precisar, troque o curso antes."}
+          </p>
+
+          <div className="grade">
+            <div className="campo">
+              <label htmlFor="admin-data-nascimento">Data de nascimento</label>
+              <input
+                id="admin-data-nascimento"
+                type="date"
+                value={dataNascimento}
+                max={formatarParaInputDate(new Date().toISOString())}
+                onChange={e => setDataNascimento(e.target.value)}
+              />
+            </div>
+
+            <div className="campo">
+              <label>Série atual</label>
+              <Select placeholder="Selecione a escolaridade..." value={serieAtual} onChange={setSerieAtual}>
+                {escolaridades.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+              </Select>
+            </div>
+          </div>
+
+          {podeCancelarOpcoes &&
+            <label className="opcao-cancelar">
+              <input type="checkbox" checked={cancelarOpcoes} onChange={e => setCancelarOpcoes(e.target.checked)} />
+              Se as opções de curso atuais não aceitarem os novos dados, gravar mesmo assim e cancelar as opções de curso (o candidato escolhe de novo).
+            </label>
+          }
+
+          <div className="acoes-escolhas-curso">
+            <button type="button" className="btn-fantasma" disabled={salvando} onClick={() => setEditando(false)}>Cancelar</button>
+            <button type="button" className="btn-primario" disabled={salvando} onClick={salvar}>
+              {salvando ? "Salvando…" : "Salvar nascimento e escolaridade"}
+            </button>
+          </div>
         </div>
       }
     </div>
