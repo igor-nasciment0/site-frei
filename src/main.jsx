@@ -40,6 +40,7 @@ import AdminCupomForm from './pages/admin/cupons/form';
 import AdminRelatorioFinanceiro from './pages/admin/relatorios/financeiro';
 import AdminRelatorioIndicacoes from './pages/admin/relatorios/indicacoes';
 import AdminRelatorioCupons from './pages/admin/relatorios/cupons';
+import AdminRelatorioInscricoes from './pages/admin/relatorios/inscricoes';
 
 createRoot(document.getElementById('root')).render(
   <LoadingBarContainer>
@@ -84,6 +85,8 @@ createRoot(document.getElementById('root')).render(
               <Route path='relatorios/financeiro' element={<AdminRelatorioFinanceiro />} />
               <Route path='relatorios/indicacoes' element={<AdminRelatorioIndicacoes />} />
               <Route path='relatorios/cupons' element={<AdminRelatorioCupons />} />
+              <Route path='relatorios/inscricoes-validas' element={<AdminRelatorioInscricoes key='validas' tipo='validas' />} />
+              <Route path='relatorios/inscricoes-externas' element={<AdminRelatorioInscricoes key='externas' tipo='externas' />} />
               <Route path='administradores' element={<AdminUsuarios />} />
             </Route>
             <Route path='/admin/trocar-senha' element={<AdminTrocarSenha />} />

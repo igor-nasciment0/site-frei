@@ -1,6 +1,6 @@
 import toast from "react-hot-toast";
 
-// Compartilhado pelos relatórios de indicações e de cupons.
+// Compartilhado pelos relatórios de indicações, de cupons e de inscrições (válidas e externas).
 
 export const STATUS_LABEL = { Open: "Aberta", Validated: "Validada", Canceled: "Cancelada" };
 export const PAGAMENTO_LABEL = { Pending: "Pendente", Paid: "Pago", Expired: "Vencido", Failed: "Recusado", Canceled: "Cancelado" };

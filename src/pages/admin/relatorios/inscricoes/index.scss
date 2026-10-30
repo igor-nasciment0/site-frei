@@ -1,0 +1,14 @@
+@use '../relatorio' as r;
+
+.admin-relatorio-inscricoes {
+    @include r.relatorio-page;
+
+    .admin-table td {
+        white-space: nowrap;
+    }
+}
+
+// Dezesseis colunas: a largura padrão do conteúdo do painel (1120px) não comporta a tabela.
+.pad:has(.admin-relatorio-inscricoes) {
+    max-width: none;
+}

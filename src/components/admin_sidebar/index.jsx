@@ -26,6 +26,8 @@ const GRUPOS = [
       { para: '/admin/relatorios/financeiro', titulo: 'Financeiro', perfis: ['Admin', 'Financeiro'] },
       { para: '/admin/relatorios/indicacoes', titulo: 'Indicações', perfis: ['Admin', 'Secretaria'] },
       { para: '/admin/relatorios/cupons', titulo: 'Cupons', perfis: ['Admin', 'Secretaria'] },
+      { para: '/admin/relatorios/inscricoes-validas', titulo: 'Inscrições válidas', perfis: ['Admin'] },
+      { para: '/admin/relatorios/inscricoes-externas', titulo: 'Inscrições externas', perfis: ['Admin'] },
     ],
   },
 ];

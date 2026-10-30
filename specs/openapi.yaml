@@ -2662,6 +2662,47 @@ paths:
                 items:
                   $ref: '#/components/schemas/AdminCouponReportItemDto'
 
+  /api/admin/reports/paid-enrollments:
+    get:
+      tags: [AdminPanel]
+      summary: Relatório de inscrições válidas — pagas e não canceladas da edição ativa
+      x-roles: [Admin]
+      description: >
+        Desde 2026-10-30. Uma linha por inscrição com `paymentStatus = Paid` e status diferente de
+        `Canceled` da edição ativa, com documentos, nascimento, escolaridade, bairro, como conheceu,
+        contato e as duas opções de curso. Ordenado pela data da inscrição. Sem edição ativa, lista
+        vazia. Sem paginação.
+      responses:
+        '200':
+          description: Inscrições válidas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminPaidEnrollmentReportItemDto'
+
+  /api/admin/reports/external-enrollments:
+    get:
+      tags: [AdminPanel]
+      summary: Relatório de inscrições externas — pagas, em curso de continuidade, sem o pré-requisito
+      x-roles: [Admin]
+      description: >
+        Desde 2026-10-30. Mesmas linhas e campos de `GET /api/admin/reports/paid-enrollments`, só das
+        inscrições em que a 1ª ou a 2ª opção é curso de continuidade de inglês (1018, 1002, 1007,
+        1005) e o candidato não está matriculado, no ano da edição ativa − 1, em nenhum pré-requisito
+        desse curso (`enrolledStudents`, pelo CPF). Sem CPF ou sem registro importado conta como
+        externo. Sem paginação.
+      responses:
+        '200':
+          description: Inscrições externas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminPaidEnrollmentReportItemDto'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -4388,6 +4429,28 @@ components:
         referrerPaymentStatus: { type: string, nullable: true, enum: [Pending, Paid, Expired, Failed, Canceled] }
         referrerEnrolledAt: { type: string, format: date-time, nullable: true }
         referrerPaidAt: { type: string, format: date-time, nullable: true }
+
+    AdminPaidEnrollmentReportItemDto:
+      type: object
+      description: Linha dos relatórios de inscrições válidas e externas.
+      properties:
+        enrollmentId: { type: string }
+        protocol: { type: string }
+        enrolledAt: { type: string, format: date-time }
+        paidAt: { type: string, format: date-time, nullable: true }
+        name: { type: string }
+        cpf: { type: string, description: Como gravado no cadastro (com máscara) }
+        rg: { type: string }
+        birthDate: { type: string, format: date-time, nullable: true }
+        schoolGrade: { type: string, description: "Série atual (`schoolInfo.currentGrade`)" }
+        neighborhood: { type: string }
+        howDidYouKnow: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        firstChoiceCourseName: { type: string }
+        firstChoicePeriodName: { type: string }
+        secondChoiceCourseName: { type: string, description: Vazio sem 2ª opção }
+        secondChoicePeriodName: { type: string }
 
     AdminCouponReportItemDto:
       type: object
