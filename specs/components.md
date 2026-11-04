@@ -249,7 +249,12 @@ de validação — a mensagem certa chegava do backend, só não tinha onde apar
     `availablePeriods` embutido — sem chamada extra de horários), filtra a 1ª opção por
     `getOpcoesPrimeiraOpcaoAdmin` e recalcula a 2ª a cada troca da 1ª via
     `getOpcoesSegundaOpcaoAdmin` (debounce não é necessário aqui — não há aviso antecipado de
-    incompatibilidade, só o erro real do backend ao salvar). Ao salvar, chama
+    incompatibilidade, só o erro real do backend ao salvar). Como no formulário do candidato, a 2ª
+    opção (ou só o período dela) que não entra na lista da 1ª escolhida é limpa, com aviso inline,
+    e sai como "sem 2ª opção" no salvamento — desde 2026-11-04; antes o select mostrava "Sem segunda
+    opção", mas a antiga continuava no estado e o backend recusava a combinação. A regra vale também
+    ao abrir o editor, para a 2ª já salva que o perfil do candidato não atende mais; "Cancelar" e
+    reabrir recarregam o que está gravado. Ao salvar, chama
     `atualizarEscolhasCurso` (`PUT /admin/enrollments/{id}/choices`), que roda a mesma validação do
     formulário do candidato mas funciona mesmo com a inscrição já validada ou paga — ver
     `nsf-app-v3/specs/features-usecases.md` seção 15. Admin e Secretaria editam (desde

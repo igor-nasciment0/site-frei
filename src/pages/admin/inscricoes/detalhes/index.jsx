@@ -586,7 +586,27 @@ function EscolhasCurso({ inscricao, aoAtualizar, somenteConsulta }) {
     return () => { cancelado = true; };
   }, [editando, codigoPrimeiroCurso, codigoPrimeiroHorario]);
 
-  // A 1ª/2ª opção já salva continua na lista mesmo que o perfil do candidato tenha deixado de
+  // 2ª opção (ou só o período dela) que não entra na lista da nova 1ª é limpa — senão o select
+  // mostraria "Sem segunda opção" e o salvamento ainda enviaria a antiga. Só reage à regra nova,
+  // não a cada troca da 2ª.
+  useEffect(() => {
+    if (!regraSegunda || !codigoSegundoCurso) return;
+
+    const opcao = regraSegunda.options?.find(o => o.courseCode == codigoSegundoCurso);
+    if (!opcao) {
+      setCodigoSegundoCurso("");
+      setCodigoSegundoHorario("");
+      setErro("A segunda opção foi removida porque não pode ser combinada com a primeira escolhida.");
+      return;
+    }
+
+    if (codigoSegundoHorario && !opcao.periodCodes.includes(Number(codigoSegundoHorario))) {
+      setCodigoSegundoHorario("");
+      setErro("O período da segunda opção foi removido porque não pode ser combinado com a primeira escolhida.");
+    }
+  }, [regraSegunda]);
+
+  // A 1ª opção já salva continua na lista mesmo que o perfil do candidato tenha deixado de
   // atender os critérios atuais — senão o campo apareceria vazio para uma escolha já feita.
   const salvaPrimeira = inscricao.firstChoice;
   const periodosPrimeira = codigo => {
