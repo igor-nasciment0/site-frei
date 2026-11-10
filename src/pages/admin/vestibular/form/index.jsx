@@ -198,8 +198,8 @@ export default function AdminVestibularForm() {
               <label htmlFor="classesStartDate">Início das aulas</label>
               <input {...register("classesStartDate")} type="date" />
               <span className="ajuda">
-                Base da idade no relatório de inscrições (&quot;Gerar Relatório&quot;). Em branco, a
-                coluna de idade sai vazia.
+                Base da idade nos relatórios de Inscrições válidas e externas. Em branco, a coluna
+                de idade sai vazia.
               </span>
             </div>
 
