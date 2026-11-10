@@ -12,6 +12,7 @@ export default {
   resultPublicationDate: "",
   resultPublicationDateExternal: "",
   roomNoticeEmailDate: "",
+  classesStartDate: "",
   resultUrl: "",
   description: "",
   testDate: "",

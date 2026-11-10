@@ -16,7 +16,7 @@ function paraISODataSimples(valorInputDate) {
 }
 
 const CAMPOS_DATA = ["startDate", "endDate", "extensionDate", "resultPublicationDate",
-  "resultPublicationDateExternal", "roomNoticeEmailDate", "testDate"];
+  "resultPublicationDateExternal", "roomNoticeEmailDate", "testDate", "classesStartDate"];
 
 export default function AdminVestibularForm() {
   const { id } = useParams();
@@ -192,6 +192,15 @@ export default function AdminVestibularForm() {
               <label htmlFor="roomNoticeEmailDate">E-mail com horário e sala</label>
               <input {...register("roomNoticeEmailDate")} type="date" />
               <span className="ajuda">Data informada ao candidato no acompanhamento.</span>
+            </div>
+
+            <div className="campo">
+              <label htmlFor="classesStartDate">Início das aulas</label>
+              <input {...register("classesStartDate")} type="date" />
+              <span className="ajuda">
+                Base da idade no relatório de inscrições (&quot;Gerar Relatório&quot;). Em branco, a
+                coluna de idade sai vazia.
+              </span>
             </div>
 
             <div className="campo">

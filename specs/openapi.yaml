@@ -4055,6 +4055,11 @@ components:
           format: date-time
           nullable: true
           description: Data do e-mail com horário e sala da prova.
+        classesStartDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Desde 2026-11-10. Início das aulas — base da idade no relatório de inscrições. Opcional.
         resultUrl:
           type: string
         nextEnrollmentNumber:
@@ -4133,6 +4138,11 @@ components:
           format: date-time
           nullable: true
           description: Data do e-mail com horário e sala da prova.
+        classesStartDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Desde 2026-11-10. Início das aulas — base da idade no relatório de inscrições. Opcional.
         resultUrl:
           type: string
         description:
@@ -4205,6 +4215,11 @@ components:
           format: date-time
           nullable: true
           description: Data do e-mail com horário e sala da prova.
+        classesStartDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Desde 2026-11-10. Início das aulas — base da idade no relatório de inscrições. Opcional.
         resultUrl:
           type: string
         description:
@@ -4326,10 +4341,36 @@ components:
         studentCpf: { type: string }
         studentEmail: { type: string }
         studentPhone: { type: string }
+        studentBirthDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Desde 2026-11-10. Nulo se o candidato não informou.
+        classesStartDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Desde 2026-11-10. Início das aulas da edição (classesStartDate do cadastro da edição); nulo se não cadastrado.
+        ageAtClassesStart:
+          type: integer
+          nullable: true
+          description: Desde 2026-11-10. Idade em anos completos em classesStartDate; nula sem nascimento ou sem a data.
+        studentSchoolGrade:
+          type: string
+          description: Desde 2026-11-10. Série atual (schoolInfo.currentGrade).
+        studentProfile:
+          type: string
+          enum: [Interno, Externo, N/A]
+          description: >
+            Desde 2026-11-10. Só para quem escolheu curso de continuidade de inglês (1018, 1002,
+            1007, 1005) como 1ª ou 2ª opção: Externo se faltar o pré-requisito de algum deles
+            (enrolledStudents, ano da edição ativa − 1, pelo CPF), senão Interno. Os demais: N/A.
         primaryResponsibleName: { type: string }
+        primaryResponsibleEmail: { type: string, description: Desde 2026-11-10. }
         primaryResponsiblePhone: { type: string }
         primaryResponsiblePhoneSecondary: { type: string }
         secondaryResponsibleName: { type: string }
+        secondaryResponsibleEmail: { type: string, description: Desde 2026-11-10. }
         secondaryResponsiblePhone: { type: string }
         secondaryResponsiblePhoneSecondary: { type: string }
         firstChoiceCourseName: { type: string }

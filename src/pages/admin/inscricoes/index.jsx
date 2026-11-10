@@ -19,18 +19,26 @@ const FILTRO_PENDENTE_PAGAMENTO = "PendingPayment";
 // API — o espaçamento de 0,5s entre as consultas ao provedor PIX é feito pelo backend.
 const INTERVALO_ACOMPANHAMENTO_LOTE = 1000;
 
-// Colunas do relatório Excel — mesmos dados da listagem, mais os telefones do candidato e dos
-// responsáveis. Sem RG, preview, links ou qualquer coisa que não seja texto/data.
+// Colunas do relatório Excel — mesmos dados da listagem, mais telefones e e-mails dos responsáveis,
+// nascimento, início das aulas (da edição) e idade nele, escolaridade e interno/externo. Sem RG,
+// preview, links ou qualquer coisa que não seja texto/data.
 const COLUNAS_RELATORIO = [
   { titulo: "Protocolo", valor: l => l.protocol },
   { titulo: "Candidato", valor: l => l.studentName },
   { titulo: "CPF", valor: l => l.studentCpf },
   { titulo: "E-mail", valor: l => l.studentEmail },
   { titulo: "Telefone do candidato", valor: l => l.studentPhone },
+  { titulo: "Data de nascimento", valor: l => l.studentBirthDate ? converterDataUTCParaLocalSemMudarDia(l.studentBirthDate) : "" },
+  { titulo: "Início das aulas", valor: l => l.classesStartDate ? converterDataUTCParaLocalSemMudarDia(l.classesStartDate) : "" },
+  { titulo: "Idade no início das aulas", valor: l => l.ageAtClassesStart ?? "" },
+  { titulo: "Escolaridade", valor: l => l.studentSchoolGrade },
+  { titulo: "Interno / Externo", valor: l => l.studentProfile },
   { titulo: "Responsável 1 — Nome", valor: l => l.primaryResponsibleName },
+  { titulo: "Responsável 1 — E-mail", valor: l => l.primaryResponsibleEmail },
   { titulo: "Responsável 1 — Telefone", valor: l => l.primaryResponsiblePhone },
   { titulo: "Responsável 1 — Telefone secundário", valor: l => l.primaryResponsiblePhoneSecondary },
   { titulo: "Responsável 2 — Nome", valor: l => l.secondaryResponsibleName },
+  { titulo: "Responsável 2 — E-mail", valor: l => l.secondaryResponsibleEmail },
   { titulo: "Responsável 2 — Telefone", valor: l => l.secondaryResponsiblePhone },
   { titulo: "Responsável 2 — Telefone secundário", valor: l => l.secondaryResponsiblePhoneSecondary },
   { titulo: "1ª opção — Curso", valor: l => l.firstChoiceCourseName },
