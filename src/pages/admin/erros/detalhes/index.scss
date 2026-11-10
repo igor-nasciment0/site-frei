@@ -1,0 +1,96 @@
+@use '../../../../styles/tokens' as t;
+@use '../../../../styles/admin' as admin;
+@use '../status';
+
+// Base de .secao-inscricao, .grade-info e .info: pages/admin/componentes/dadosCandidato.scss.
+.admin-erro-detalhes {
+    max-width: 960px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    @include status.status-erro;
+
+    .voltar {
+        font-size: 13px;
+        color: t.$c-slate;
+        align-self: flex-start;
+
+        &:hover {
+            color: t.$c-navy;
+        }
+    }
+
+    .cabecalho-pagina {
+        @include admin.admin-page-header;
+        margin-bottom: 0;
+        align-items: flex-start;
+
+        > div {
+            flex: 1;
+            min-width: 0;
+        }
+
+        h1 {
+            font-size: clamp(22px, 3vw, 30px);
+            overflow-wrap: anywhere;
+        }
+
+        .btn-fantasma {
+            @include admin.admin-btn-fantasma;
+        }
+    }
+
+    .ajuda {
+        font-size: 13.5px;
+        color: t.$c-text-muted;
+    }
+
+    .relacionados {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid t.$c-divider-soft;
+
+        li + li {
+            border-top: 1px solid t.$c-divider-soft;
+        }
+
+        a {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 14px;
+            align-items: baseline;
+            padding: 12px 14px;
+            font-size: 13.5px;
+            color: t.$c-text;
+            transition: background t.$transition;
+
+            &:hover {
+                background: t.$c-row-hover;
+            }
+
+            .texto {
+                overflow-wrap: anywhere;
+            }
+
+            .origem {
+                font-size: 12px;
+                color: t.$c-text-muted;
+            }
+        }
+    }
+
+    .pilha {
+        font-family: t.$font-mono;
+        font-size: 12px;
+        line-height: 1.6;
+        color: t.$c-text;
+        background: t.$c-input-bg;
+        border: 1px solid t.$c-border;
+        padding: 16px 18px;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        max-height: 520px;
+        overflow: auto;
+    }
+}

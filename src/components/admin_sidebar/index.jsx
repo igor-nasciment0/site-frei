@@ -14,6 +14,7 @@ const LINKS = [
   { para: '/admin/cupons', titulo: 'Cupons' },
   { para: '/admin/importacoes', titulo: 'Importações' },
   { para: '/admin/administradores', titulo: 'Administradores' },
+  { para: '/admin/erros', titulo: 'Log de erros' },
 ];
 
 // Grupos expansíveis no próprio menu; o grupo abre sozinho quando a rota atual é de um dos filhos.

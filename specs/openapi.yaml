@@ -1,6 +1,6 @@
 # CÓPIA — a fonte da verdade é nsf-app-v3/specs/openapi.yaml (repositório da API).
 # Não edite aqui: altere lá e copie de novo (cp nsf-app-v3/specs/openapi.yaml frei/specs/openapi.yaml,
-# mantendo este cabeçalho). Última sincronização: 2026-10-30.
+# mantendo este cabeçalho). Última sincronização: 2026-11-10.
 openapi: 3.0.3
 info:
   title: NSF API v3
@@ -2703,6 +2703,96 @@ paths:
                 items:
                   $ref: '#/components/schemas/AdminPaidEnrollmentReportItemDto'
 
+  /api/admin/error-logs:
+    get:
+      tags: [AdminPanel]
+      summary: Log de erros da API (coleção errorLogs), com busca, filtros e paginação
+      x-roles: [Admin]
+      description: >
+        Desde 2026-11-10. Todo log de nível Error ou Critical da API, gravado com o contexto da
+        requisição. Do mais recente para o mais antigo. Registros expiram em 90 dias.
+      parameters:
+        - name: search
+          in: query
+          required: false
+          description: Trecho (sem diferenciar maiúsculas) da mensagem, da exceção, da rota, do usuário, do e-mail ou do traceId.
+          schema:
+            type: string
+        - name: kind
+          in: query
+          required: false
+          description: "`server` = sem status ou 5xx (falhas internas); `client` = 4xx (recusas); vazio = todos."
+          schema:
+            type: string
+            enum: [server, client]
+        - name: from
+          in: query
+          required: false
+          description: Dia inicial (yyyy-MM-dd, inclusivo, horário de Brasília).
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          description: Dia final (yyyy-MM-dd, inclusivo, horário de Brasília).
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          description: Fora de 1–200 volta para 50.
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+      responses:
+        '200':
+          description: Lista retornada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminErrorLogListResultDto'
+        '400':
+          description: Data final anterior à inicial
+        '401':
+          description: Token inválido ou ausente
+        '403':
+          description: Perfil diferente de Admin
+
+  /api/admin/error-logs/{id}:
+    get:
+      tags: [AdminPanel]
+      summary: Um registro do log de erros, com os demais registros da mesma requisição
+      x-roles: [Admin]
+      description: Desde 2026-11-10. `related` traz os outros registros com o mesmo `traceId`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Registro encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminErrorLogDetailDto'
+        '404':
+          description: Registro não encontrado (ou já expirado)
+        '401':
+          description: Token inválido ou ausente
+        '403':
+          description: Perfil diferente de Admin
+
 components:
   securitySchemes:
     bearerAuth:
@@ -4820,3 +4910,93 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AdminCpfChangeDto'
+
+    AdminErrorLogListItemDto:
+      type: object
+      properties:
+        id:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+        level:
+          type: string
+          enum: [Error, Critical]
+        source:
+          type: string
+          description: Categoria do logger — nome completo da classe que registrou.
+        message:
+          type: string
+          description: Mensagem do log, com os parâmetros preenchidos.
+        exceptionType:
+          type: string
+          nullable: true
+        exceptionMessage:
+          type: string
+          nullable: true
+          description: Mensagem da exceção mais interna (normalmente a causa).
+        statusCode:
+          type: integer
+          nullable: true
+          description: Status HTTP devolvido, quando o log informa (middleware de exceções). Nulo nos erros só registrados.
+        httpMethod:
+          type: string
+          nullable: true
+        path:
+          type: string
+          nullable: true
+        userName:
+          type: string
+          nullable: true
+        userRole:
+          type: string
+          nullable: true
+          description: "`User` (candidato) ou o perfil do admin."
+        traceId:
+          type: string
+          nullable: true
+
+    AdminErrorLogListResultDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminErrorLogListItemDto'
+        total:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+
+    AdminErrorLogDetailDto:
+      allOf:
+        - $ref: '#/components/schemas/AdminErrorLogListItemDto'
+        - type: object
+          properties:
+            exceptionDetail:
+              type: string
+              nullable: true
+              description: Exception.ToString() — tipo, mensagem e pilha, inclusive das exceções internas.
+            queryString:
+              type: string
+              nullable: true
+              description: Com os valores de parâmetros sensíveis (senha, token) mascarados.
+            userId:
+              type: string
+              nullable: true
+            userEmail:
+              type: string
+              nullable: true
+            clientIp:
+              type: string
+              nullable: true
+            userAgent:
+              type: string
+              nullable: true
+            related:
+              type: array
+              description: Outros registros da mesma requisição (mesmo traceId), em ordem de ocorrência.
+              items:
+                $ref: '#/components/schemas/AdminErrorLogListItemDto'

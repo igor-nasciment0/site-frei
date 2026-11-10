@@ -1,0 +1,129 @@
+@use '../../../styles/tokens' as t;
+@use '../../../styles/admin' as admin;
+@use 'status';
+
+.admin-erros {
+    @include admin.admin-lista-page;
+    @include status.status-erro;
+
+    .cabecalho-pagina .btn-fantasma {
+        @include admin.admin-btn-fantasma;
+    }
+
+    .aviso {
+        font-size: 13.5px;
+        color: t.$c-text-muted;
+        max-width: 70ch;
+    }
+
+    .filtros {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+
+        input,
+        select {
+            font-size: 14px;
+            color: t.$c-text;
+            background: t.$c-input-bg;
+            border: 1px solid t.$c-input-border;
+            padding: 10px 12px;
+            font-family: t.$font-sans;
+
+            &:focus {
+                border-color: t.$c-navy;
+            }
+        }
+
+        .busca {
+            flex: 1;
+            min-width: 240px;
+        }
+
+        label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: t.$c-text-muted;
+        }
+    }
+
+    .admin-table {
+        .linha-erro {
+            cursor: pointer;
+
+            &:focus-visible {
+                outline: 2px solid t.$c-navy;
+                outline-offset: -2px;
+            }
+        }
+
+        td {
+            vertical-align: top;
+        }
+
+        .quando {
+            white-space: nowrap;
+            font-family: t.$font-mono;
+            font-size: 12px;
+        }
+
+        .rota {
+            font-family: t.$font-mono;
+            font-size: 12px;
+            word-break: break-all;
+            max-width: 260px;
+
+            .metodo {
+                color: t.$c-text-muted;
+            }
+        }
+
+        .mensagem {
+            .texto {
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+                overflow-wrap: anywhere;
+            }
+
+            .origem {
+                display: block;
+                margin-top: 4px;
+                font-size: 12px;
+                color: t.$c-text-muted;
+            }
+        }
+    }
+
+    .paginacao {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+
+        span {
+            font-size: 13px;
+            color: t.$c-text-muted;
+        }
+
+        button {
+            @include admin.admin-btn-fantasma;
+
+            &:disabled {
+                opacity: 0.5;
+                cursor: default;
+            }
+        }
+    }
+
+    @include t.bp-960 {
+        .admin-table {
+            display: block;
+            overflow-x: auto;
+        }
+    }
+}

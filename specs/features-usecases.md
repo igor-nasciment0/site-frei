@@ -307,7 +307,7 @@ detalhes de cada regra em `nsf-app-v3/specs/features-usecases.md` (seções 13 a
 
 | Perfil | Menu | O que faz |
 |---|---|---|
-| **Admin** | tudo | tudo |
+| **Admin** | tudo (inclusive Log de erros) | tudo |
 | **Secretaria** | Inscrições, Contas, Relatórios › Indicações e Cupons | tudo de Inscrições e Contas — inclusive trocar curso, alterar nascimento e escolaridade e reenviar o e-mail de confirmação (troca de curso liberada em 2026-10-13) —, exceto inserir pagamento manual; consulta e exporta os dois relatórios |
 | **Financeiro** | Inscrições, Relatórios › Financeiro | consulta inscrições, insere pagamento manual, gera o relatório financeiro |
 
@@ -329,6 +329,7 @@ detalhes de cada regra em `nsf-app-v3/specs/features-usecases.md` (seções 13 a
 | **Relatórios › Inscrições válidas** (só Admin, desde 2026-10-30) | Inscrições **pagas** (e não canceladas) da edição ativa, sem paginação, na ordem da inscrição: protocolo (link para o detalhe), inscrito em, pago em, nome, CPF, RG, nascimento, escolaridade (série atual), bairro, como conheceu, e-mail, telefone, 1ª opção e período, 2ª opção e período. Total no topo e exportação para Excel com as mesmas colunas. |
 | **Relatórios › Inscrições externas** (só Admin, desde 2026-10-30) | As mesmas colunas, só das inscrições pagas de quem escolheu (como 1ª ou 2ª opção) um curso de continuidade de inglês sem estar matriculado no curso pré-requisito dele — o cruzamento é pelo CPF com os alunos matriculados importados (ano da edição − 1); sem CPF ou sem registro importado conta como externo. |
 | **Administradores** | Lista, criação com perfil e reset de senha de administradores. |
+| **Log de erros** (`/admin/erros`, só Admin, desde 2026-11-10) | Todo erro registrado pela API (`GET /admin/error-logs`): falhas internas — exceções, **e-mail que não foi enviado**, provedor fora do ar — e recusas devolvidas ao usuário (validação, regra de negócio). Lista paginada (50 por página), do mais recente para o mais antigo: quando, status (`Interno` quando o erro só foi registrado, sem resposta HTTP; 4xx e 5xx), rota, mensagem (a da exceção mais interna, que costuma ser a causa) com a classe de origem e usuário. Busca por mensagem, rota, usuário, e-mail ou traceId (com espera de 400ms), filtro por tipo — Todos, Falhas internas (5xx e sem status) ou Recusas (4xx) — e por período (de/até), e botão Atualizar. Clicar na linha abre o **detalhe** (`/admin/erros/:id`): resumo, requisição (rota com query string mascarada, usuário, e-mail, id, IP, traceId, navegador), **"Na mesma requisição"** (os outros erros da mesma chamada — no reenvio de e-mail, a falha do SMTP de cada destinatário e a mensagem que voltou à tela) e o detalhe técnico (pilha completa), com **Copiar detalhes**. Os registros ficam 90 dias. |
 
 Quem tem a senha resetada (candidato ou admin) é obrigado a trocá-la no próximo acesso.
 

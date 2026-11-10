@@ -1,0 +1,21 @@
+@use '../../../styles/tokens' as t;
+
+// Selo do status HTTP do log de erros — lista e detalhe.
+@mixin status-erro {
+    .status-erro {
+        display: inline-block;
+        @include t.type-mono;
+        padding: 3px 8px;
+        border: 1px solid t.$c-tag-border;
+        white-space: nowrap;
+
+        &.servidor {
+            color: t.$c-clay;
+            border-color: t.$c-alert-border;
+        }
+
+        &.cliente {
+            color: t.$c-slate;
+        }
+    }
+}
