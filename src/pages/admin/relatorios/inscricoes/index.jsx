@@ -18,7 +18,7 @@ const TIPOS = {
   },
   externas: {
     titulo: "Inscrições externas",
-    subtitulo: "Inscrições pagas de quem escolheu um curso de continuidade de inglês sem estar matriculado no curso pré-requisito dele (cruzamento pelo CPF com os alunos matriculados importados).",
+    subtitulo: "Inscrições pagas de quem escolheu um curso de continuidade de inglês sem estar matriculado no curso pré-requisito dele (cruzamento pelo CPF ou pelo RG com os alunos matriculados importados).",
     servico: getRelatorioInscricoesExternas,
     arquivo: "relatorio-inscricoes-externas",
     vazio: "Nenhuma inscrição paga de candidato externo na edição ativa.",
@@ -40,6 +40,7 @@ const COLUNAS = [
   { titulo: "Idade no início das aulas", valor: l => l.ageAtClassesStart ?? "" },
   { titulo: "Escolaridade", valor: l => l.schoolGrade },
   { titulo: "Interno / Externo", valor: l => l.studentProfile },
+  { titulo: "Externo2", valor: l => l.studentProfile2 },
   { titulo: "Bairro", valor: l => l.neighborhood },
   { titulo: "Como conheceu", valor: l => l.howDidYouKnow },
   { titulo: "E-mail", valor: l => l.email },

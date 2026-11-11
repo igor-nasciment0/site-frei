@@ -22,6 +22,13 @@ export async function importarExAlunos(arquivo) {
   return enviarCsv('/admin/imports/former-students', arquivo);
 }
 
+// Baixa a base no mesmo formato da importação. `tipo`: enrolled-students, delinquent-students ou
+// former-students. Volta o blob do CSV; quem chama dispara o download.
+export async function exportarImportacao(tipo) {
+  const r = await adminApi().get(`/admin/imports/${tipo}/export`, { responseType: 'blob' });
+  return r.data;
+}
+
 export async function getStatusImportacoes() {
   const r = await adminApi().get('/admin/imports/status');
   return r.data;

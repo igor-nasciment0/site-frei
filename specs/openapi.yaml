@@ -1868,7 +1868,8 @@ paths:
       summary: Importa alunos matriculados (CSV)
       x-roles: [Admin]
       description: >
-        Colunas: `nr_ano, id_aluno, ds_cpf, ds_rg, id_curso`. Substitui os anos presentes
+        Colunas: `nr_ano, id_aluno, ds_cpf, ds_rg, id_curso` (`nm_aluno` e `dt_nascimento`
+        opcionais desde 2026-11-11, usadas pela coluna Externo2). Substitui os anos presentes
         no arquivo; anos ausentes permanecem intactos. O separador é detectado
         automaticamente e as colunas são lidas pelo nome no cabeçalho.
       security:
@@ -1958,6 +1959,36 @@ paths:
                 $ref: '#/components/schemas/ImportResultDto'
         '400':
           description: Arquivo ausente ou colunas obrigatórias faltando
+
+  /api/admin/imports/{tipo}/export:
+    get:
+      tags: [AdminPanel]
+      summary: Baixa uma base importada em CSV (formato da importação)
+      x-roles: [Admin]
+      description: >
+        Desde 2026-11-11. Todos os registros da coleção, com o cabeçalho completo da importação
+        (inclusive colunas opcionais vazias), separador ";", UTF-8 com BOM, arquivo
+        "{tipo}-{aaaa-mm-dd}.csv". CPF com máscara e RG começado em zero como ="0…", para o Excel
+        não perder o zero à esquerda; a importação lê os dois de volta.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tipo
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [enrolled-students, delinquent-students, former-students]
+      responses:
+        '200':
+          description: Arquivo CSV
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Tipo de importação desconhecido
 
   /api/admin/imports/status:
     get:
@@ -4566,6 +4597,13 @@ components:
             1007, 1005) como 1ª ou 2ª opção: Externo se faltar o pré-requisito de algum deles
             (enrolledStudents, ano da edição ativa − 1, pelo CPF ou pelo RG, só dígitos — desde
             2026-11-11), senão Interno. Os demais: N/A.
+        studentProfile2:
+          type: string
+          enum: [Interno, Externo, N/A]
+          description: >
+            Desde 2026-11-11. Coluna "Externo2": mesma regra de studentProfile, mas o matriculado
+            casa pelo CPF, pelo RG (só dígitos) ou pelo nome (um contém o outro ou, se não, o primeiro
+            nome é igual; sem acento e caixa) com a mesma data de nascimento. O relatório de externas continua filtrado por studentProfile.
         neighborhood: { type: string }
         howDidYouKnow: { type: string }
         email: { type: string }

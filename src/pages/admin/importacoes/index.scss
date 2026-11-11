@@ -93,8 +93,10 @@
             }
         }
 
-        > .btn-primario {
-            align-self: flex-start;
+        > .acoes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .resultado {

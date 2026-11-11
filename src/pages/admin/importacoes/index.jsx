@@ -7,6 +7,7 @@ import {
   importarMatriculados,
   importarInadimplentes,
   importarExAlunos,
+  exportarImportacao,
 } from "../../../api/services/admin/importacoes";
 import Carregamento from "../../../components/carregamento";
 import RegistrosImportados from "./registros";
@@ -16,8 +17,9 @@ const IMPORTACOES = [
   {
     chave: "enrolledStudents",
     titulo: "Alunos matriculados",
-    colunas: "nr_ano, id_aluno, ds_cpf, ds_rg, id_curso",
+    colunas: "nr_ano, id_aluno, ds_cpf, ds_rg, id_curso, nm_aluno, dt_nascimento",
     servico: importarMatriculados,
+    tipo: "enrolled-students",
     descricao:
       "Identifica o aluno interno — quem já cursa inglês e escolheu a continuidade faz nivelamento na própria turma, sem prova do vestibular.",
     efeito: "Substitui apenas os anos presentes no arquivo. Anos anteriores são preservados.",
@@ -27,6 +29,7 @@ const IMPORTACOES = [
     titulo: "Alunos inadimplentes",
     colunas: "nr_ano, id_aluno, ds_cpf, ds_rg, id_curso, nm_curso, qtd_pendentes",
     servico: importarInadimplentes,
+    tipo: "delinquent-students",
     descricao:
       "Bloqueia a inscrição de quem tem 2 ou mais mensalidades pendentes no ano de referência (ano da edição ativa do vestibular menos 1).",
     efeito: "Substitui apenas os anos presentes no arquivo. Anos anteriores são preservados.",
@@ -36,6 +39,7 @@ const IMPORTACOES = [
     titulo: "Ex-Alunos",
     colunas: "nm_aluno, ds_cpf, ds_email, nm_responsavel, ds_endereco, ds_bairro, id_curso, nr_ano",
     servico: importarExAlunos,
+    tipo: "former-students",
     descricao:
       "Base de quem já foi aluno do Instituto. O cupom de desconto da taxa de inscrição vale só para quem nunca foi aluno: o CPF do candidato é conferido nesta base e na de alunos matriculados. Obrigatórias: nm_aluno e ds_cpf; id_curso e nr_ano são o curso e o ano que o ex-aluno cursou.",
     efeito: "Esta base não tem ano: a importação atualiza quem já existe (pelo CPF) e inclui quem é novo. Quem não veio no arquivo continua na base. É um registro por CPF: se o CPF se repetir no arquivo, vale sempre a última linha.",
@@ -95,6 +99,23 @@ function CartaoImportacao({ config, status, aoImportar }) {
   const inputRef = useRef(null);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null);
+  const [baixando, setBaixando] = useState(false);
+
+  // Baixa o que está na base, com todas as colunas da importação, para completar e reenviar.
+  async function baixar() {
+    setBaixando(true);
+    const blob = await callApi(exportarImportacao, true, config.tipo);
+    setBaixando(false);
+
+    if (!(blob instanceof Blob)) return;
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${config.tipo}-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function selecionar(evento) {
     const arquivo = evento.target.files?.[0];
@@ -146,14 +167,25 @@ function CartaoImportacao({ config, status, aoImportar }) {
 
       <input ref={inputRef} type="file" accept=".csv,text/csv" onChange={selecionar} hidden />
 
-      <button
-        type="button"
-        className="btn-primario"
-        disabled={enviando}
-        onClick={() => inputRef.current?.click()}
-      >
-        {enviando ? "Importando…" : "Enviar CSV"}
-      </button>
+      <div className="acoes">
+        <button
+          type="button"
+          className="btn-primario"
+          disabled={enviando}
+          onClick={() => inputRef.current?.click()}
+        >
+          {enviando ? "Importando…" : "Enviar CSV"}
+        </button>
+
+        <button
+          type="button"
+          className="btn-fantasma"
+          disabled={baixando || !status?.totalRecords}
+          onClick={baixar}
+        >
+          {baixando ? "Baixando…" : "Baixar CSV"}
+        </button>
+      </div>
 
       {resultado &&
         <div className="resultado">
