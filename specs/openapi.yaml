@@ -1,6 +1,6 @@
 # CÓPIA — a fonte da verdade é nsf-app-v3/specs/openapi.yaml (repositório da API).
 # Não edite aqui: altere lá e copie de novo (cp nsf-app-v3/specs/openapi.yaml frei/specs/openapi.yaml,
-# mantendo este cabeçalho). Última sincronização: 2026-11-10.
+# mantendo este cabeçalho). Última sincronização: 2026-11-11.
 openapi: 3.0.3
 info:
   title: NSF API v3
@@ -2691,7 +2691,8 @@ paths:
         Desde 2026-10-30. Mesmas linhas e campos de `GET /api/admin/reports/paid-enrollments`, só das
         inscrições em que a 1ª ou a 2ª opção é curso de continuidade de inglês (1018, 1002, 1007,
         1005) e o candidato não está matriculado, no ano da edição ativa − 1, em nenhum pré-requisito
-        desse curso (`enrolledStudents`, pelo CPF). Sem CPF ou sem registro importado conta como
+        desse curso (`enrolledStudents`, pelo CPF **ou** pelo RG, comparados só com dígitos — desde
+        2026-11-11; antes só pelo CPF). Sem CPF e sem RG, ou sem registro importado, conta como
         externo. Sem paginação.
       responses:
         '200':
@@ -4563,7 +4564,8 @@ components:
           description: >
             Desde 2026-11-10. Só para quem escolheu curso de continuidade de inglês (1018, 1002,
             1007, 1005) como 1ª ou 2ª opção: Externo se faltar o pré-requisito de algum deles
-            (enrolledStudents, ano da edição ativa − 1, pelo CPF), senão Interno. Os demais: N/A.
+            (enrolledStudents, ano da edição ativa − 1, pelo CPF ou pelo RG, só dígitos — desde
+            2026-11-11), senão Interno. Os demais: N/A.
         neighborhood: { type: string }
         howDidYouKnow: { type: string }
         email: { type: string }
