@@ -4594,7 +4594,8 @@ components:
           enum: [Interno, Externo, N/A]
           description: >
             Desde 2026-11-10. Só para quem escolheu curso de continuidade de inglês (1018, 1002,
-            1007, 1005) como 1ª ou 2ª opção: Externo se faltar o pré-requisito de algum deles
+            1007, 1005) como 1ª opção — a 2ª não entra desde 2026-11-11: Externo se faltar o
+            pré-requisito dela
             (enrolledStudents, ano da edição ativa − 1, pelo CPF ou pelo RG, só dígitos — desde
             2026-11-11), senão Interno. Os demais: N/A.
         studentProfile2:

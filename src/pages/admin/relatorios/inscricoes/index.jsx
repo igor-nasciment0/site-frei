@@ -18,7 +18,7 @@ const TIPOS = {
   },
   externas: {
     titulo: "Inscrições externas",
-    subtitulo: "Inscrições pagas de quem escolheu um curso de continuidade de inglês sem estar matriculado no curso pré-requisito dele (cruzamento pelo CPF ou pelo RG com os alunos matriculados importados).",
+    subtitulo: "Inscrições pagas de quem escolheu como 1ª opção um curso de continuidade de inglês sem estar matriculado no curso pré-requisito dele (cruzamento pelo CPF ou pelo RG com os alunos matriculados importados).",
     servico: getRelatorioInscricoesExternas,
     arquivo: "relatorio-inscricoes-externas",
     vazio: "Nenhuma inscrição paga de candidato externo na edição ativa.",
