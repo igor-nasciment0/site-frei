@@ -86,6 +86,8 @@ export default function AdminInscricaoDetalhes() {
         <EscolhasCurso inscricao={inscricao} aoAtualizar={carregar} somenteConsulta={!pode.editarCursos} />
       </div>
 
+      <ProvaPresencial alocacao={inscricao.examAllocation} />
+
       <NascimentoEscolaridade inscricao={inscricao} aoAtualizar={carregar} somenteConsulta={!pode.editarNascimentoEscolaridade} />
 
       <Pagamento
@@ -105,6 +107,40 @@ export default function AdminInscricaoDetalhes() {
       {pode.removerInscricao &&
         <RemoverInscricao inscricaoId={inscricao.id} protocolo={inscricao.protocol} nomeCandidato={student.name} />
       }
+    </div>
+  );
+}
+
+const SITUACAO_PROVA = {
+  Allocated: "Alocado",
+  NoExam: "Não faz prova (aluno interno)",
+  NoRoom: "Sem sala — faltou carteira",
+  NoExamType: "Sem tipo de prova para o curso",
+};
+
+// Alocação da prova presencial (menu Prova presencial). Só consulta: a alocação é feita para a
+// edição inteira na tela de Alocação. "Sala/Horário da prova" do bloco acima é o publicado — o que
+// o candidato vê.
+function ProvaPresencial({ alocacao }) {
+  return (
+    <div className="secao-inscricao">
+      <h2>Prova presencial</h2>
+      {!alocacao
+        ? <p className="aviso-secao">Ainda não alocada. A alocação é feita em Prova presencial › Alocação.</p>
+        : (
+          <div className="grade-info">
+            <Info rotulo="Situação" valor={SITUACAO_PROVA[alocacao.status] || alocacao.status} />
+            <Info rotulo="Prova" valor={alocacao.examTypeName
+              ? `${alocacao.examTypeName}${alocacao.basedOnChoice === 2 ? " (pela 2ª opção)" : ""}`
+              : "—"} />
+            <Info rotulo="Período" valor={alocacao.periodName ? `${alocacao.periodName} · ${alocacao.startTime} às ${alocacao.endTime}` : "—"} />
+            <Info rotulo="Sala" valor={alocacao.roomName || "—"} />
+            <Info rotulo="Alocado em" valor={`${new Date(alocacao.allocatedAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}${alocacao.allocatedBy ? ` por ${alocacao.allocatedBy}` : ""}`} />
+            <Info rotulo="Publicado" valor={alocacao.publishedAt
+              ? new Date(alocacao.publishedAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
+              : "Não — o candidato ainda não vê"} />
+          </div>
+        )}
     </div>
   );
 }

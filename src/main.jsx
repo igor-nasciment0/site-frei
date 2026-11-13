@@ -44,6 +44,13 @@ import AdminRelatorioInscricoes from './pages/admin/relatorios/inscricoes';
 import AdminRelatorioCursosPorPeriodo from './pages/admin/relatorios/cursosPorPeriodo';
 import AdminErros from './pages/admin/erros';
 import AdminErroDetalhes from './pages/admin/erros/detalhes';
+import AdminAlocacaoProva from './pages/admin/prova/alocacao';
+import AdminTiposProva from './pages/admin/prova/tipos';
+import AdminTipoProvaForm from './pages/admin/prova/tipos/form';
+import AdminSalasProva from './pages/admin/prova/salas';
+import AdminSalaProvaForm from './pages/admin/prova/salas/form';
+import AdminPeriodosProva from './pages/admin/prova/periodos';
+import AdminPeriodoProvaForm from './pages/admin/prova/periodos/form';
 
 createRoot(document.getElementById('root')).render(
   <LoadingBarContainer>
@@ -94,6 +101,16 @@ createRoot(document.getElementById('root')).render(
               <Route path='administradores' element={<AdminUsuarios />} />
               <Route path='erros' element={<AdminErros />} />
               <Route path='erros/:id' element={<AdminErroDetalhes />} />
+              <Route path='prova/alocacao' element={<AdminAlocacaoProva />} />
+              <Route path='prova/tipos' element={<AdminTiposProva />} />
+              <Route path='prova/tipos/novo' element={<AdminTipoProvaForm />} />
+              <Route path='prova/tipos/:id' element={<AdminTipoProvaForm />} />
+              <Route path='prova/salas' element={<AdminSalasProva />} />
+              <Route path='prova/salas/nova' element={<AdminSalaProvaForm />} />
+              <Route path='prova/salas/:id' element={<AdminSalaProvaForm />} />
+              <Route path='prova/periodos' element={<AdminPeriodosProva />} />
+              <Route path='prova/periodos/novo' element={<AdminPeriodoProvaForm />} />
+              <Route path='prova/periodos/:id' element={<AdminPeriodoProvaForm />} />
             </Route>
             <Route path='/admin/trocar-senha' element={<AdminTrocarSenha />} />
             <Route path='/admin/login' element={<AdminLogin />} />

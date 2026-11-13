@@ -2825,6 +2825,393 @@ paths:
         '403':
           description: Perfil diferente de Admin
 
+  /api/admin/exam-types:
+    get:
+      tags: [AdminPanel]
+      summary: Lista os tipos de prova (maior prioridade primeiro), inclusive inativos
+      x-roles: [Admin]
+      description: Prova presencial (desde 2026-11-13). Cadastro global — vale para todas as edições.
+      responses:
+        '200':
+          description: Lista
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExamTypeDto'
+        '403':
+          description: Perfil diferente de Admin
+    post:
+      tags: [AdminPanel]
+      summary: Cria um tipo de prova
+      x-roles: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateOrUpdateExamTypeDto'
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamTypeDto'
+        '400':
+          description: Nome vazio, com mais de 100 caracteres ou repetido; nenhum curso; curso inexistente; curso que já está em outro tipo ativo.
+
+  /api/admin/exam-types/{id}:
+    get:
+      tags: [AdminPanel]
+      summary: Obtém um tipo de prova por ID, inclusive inativo
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamTypeDto'
+        '404':
+          description: Não encontrado
+    put:
+      tags: [AdminPanel]
+      summary: Atualiza um tipo de prova
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateOrUpdateExamTypeDto'
+      responses:
+        '200':
+          description: Atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamTypeDto'
+        '400':
+          description: Nome vazio, com mais de 100 caracteres ou repetido; nenhum curso; curso inexistente; curso que já está em outro tipo ativo. Desativar pelo `isActive` também é recusado quando está em período ativo.
+        '404':
+          description: Não encontrado
+    delete:
+      tags: [AdminPanel]
+      summary: Desativa um tipo de prova (soft-delete)
+      x-roles: [Admin]
+      description: Recusado (400) se o tipo estiver em algum período ativo.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Desativado
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '400':
+          description: Está em algum período ativo — tire-o do período antes
+        '404':
+          description: Não encontrado
+
+  /api/admin/exam-rooms:
+    get:
+      tags: [AdminPanel]
+      summary: Lista as salas (pela ordem), inclusive inativos
+      x-roles: [Admin]
+      description: Prova presencial (desde 2026-11-13). Cadastro global — vale para todas as edições.
+      responses:
+        '200':
+          description: Lista
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExamRoomDto'
+        '403':
+          description: Perfil diferente de Admin
+    post:
+      tags: [AdminPanel]
+      summary: Cria uma sala
+      x-roles: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateOrUpdateExamRoomDto'
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamRoomDto'
+        '400':
+          description: Nome vazio, longo ou repetido na mesma escola; carteiras fora de 0–1000; escola ou endereço longos.
+
+  /api/admin/exam-rooms/{id}:
+    get:
+      tags: [AdminPanel]
+      summary: Obtém uma sala por ID, inclusive inativo
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamRoomDto'
+        '404':
+          description: Não encontrado
+    put:
+      tags: [AdminPanel]
+      summary: Atualiza uma sala
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateOrUpdateExamRoomDto'
+      responses:
+        '200':
+          description: Atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamRoomDto'
+        '400':
+          description: Nome vazio, longo ou repetido na mesma escola; carteiras fora de 0–1000; escola ou endereço longos. Desativar pelo `isActive` também é recusado quando está em período ativo.
+        '404':
+          description: Não encontrado
+    delete:
+      tags: [AdminPanel]
+      summary: Desativa uma sala (soft-delete)
+      x-roles: [Admin]
+      description: Recusado (400) se a sala estiver em algum período ativo.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Desativado
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '400':
+          description: Está em algum período ativo — tire-o do período antes
+        '404':
+          description: Não encontrado
+
+  /api/admin/exam-periods:
+    get:
+      tags: [AdminPanel]
+      summary: Lista os períodos (pela ordem), inclusive inativos
+      x-roles: [Admin]
+      description: Prova presencial (desde 2026-11-13). Cadastro global — vale para todas as edições.
+      responses:
+        '200':
+          description: Lista
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExamPeriodDto'
+        '403':
+          description: Perfil diferente de Admin
+    post:
+      tags: [AdminPanel]
+      summary: Cria um período
+      x-roles: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateOrUpdateExamPeriodDto'
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamPeriodDto'
+        '400':
+          description: Nome vazio, longo ou repetido; horário fora de HH:mm ou início não anterior ao fim; sala inexistente, inativa ou repetida; sala sem tipo; tipo inexistente ou inativo.
+
+  /api/admin/exam-periods/{id}:
+    get:
+      tags: [AdminPanel]
+      summary: Obtém um período por ID, inclusive inativo
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamPeriodDto'
+        '404':
+          description: Não encontrado
+    put:
+      tags: [AdminPanel]
+      summary: Atualiza um período
+      x-roles: [Admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreateOrUpdateExamPeriodDto'
+      responses:
+        '200':
+          description: Atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamPeriodDto'
+        '400':
+          description: Nome vazio, longo ou repetido; horário fora de HH:mm ou início não anterior ao fim; sala inexistente, inativa ou repetida; sala sem tipo; tipo inexistente ou inativo.
+        '404':
+          description: Não encontrado
+    delete:
+      tags: [AdminPanel]
+      summary: Desativa um período (soft-delete)
+      x-roles: [Admin]
+      description: Alocações já gravadas no período continuam até a próxima rodada.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Desativado
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '404':
+          description: Não encontrado
+
+  /api/admin/exam-allocation:
+    get:
+      tags: [AdminPanel]
+      summary: Situação da alocação da prova presencial da edição ativa, com prévia
+      x-roles: [Admin]
+      description: >
+        Desde 2026-11-13. Inscrições válidas (pagas e não canceladas, com curso) da edição ativa, a
+        alocação gravada de cada uma, a ocupação por período e sala e, por tipo de prova, a prévia de
+        uma rodada "Refazer tudo" feita agora (sem gravar).
+      responses:
+        '200':
+          description: Situação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamAllocationOverviewDto'
+        '400':
+          description: Não há vestibular ativo
+        '403':
+          description: Perfil diferente de Admin
+
+  /api/admin/exam-allocation/run:
+    post:
+      tags: [AdminPanel]
+      summary: Roda a alocação da prova presencial da edição ativa
+      x-roles: [Admin]
+      description: >
+        `mode = all`: redistribui todas as inscrições válidas. `mode = pending`: mantém quem já está
+        alocado (numa sala que ainda existe e aceita o tipo) ou marcado como "não faz prova", desde
+        que a alocação não esteja desatualizada, e distribui o restante nas carteiras que sobraram.
+        Nos dois modos, inscrição que deixou de ser válida perde a alocação. Não muda o que o
+        candidato vê — isso é a publicação.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunExamAllocationDto'
+      responses:
+        '200':
+          description: Situação depois da rodada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamAllocationOverviewDto'
+        '400':
+          description: Modo inválido, ou não há vestibular ativo
+
+  /api/admin/exam-allocation/publish:
+    post:
+      tags: [AdminPanel]
+      summary: Publica a alocação — copia sala e horário para as inscrições
+      x-roles: [Admin]
+      description: >
+        Grava `testRoom` (nome da sala) e `testTime` (início do período) nas inscrições alocadas e
+        válidas da edição ativa, e deixa os dois vazios nas demais que tinham alocação ou sala
+        publicada. Marca `examAllocation.publishedAt` e `examAllocationPublishedAt` da edição.
+        Nenhum e-mail é enviado.
+      responses:
+        '200':
+          description: Situação depois da publicação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamAllocationOverviewDto'
+        '400':
+          description: A alocação ainda não foi rodada nesta edição, ou não há vestibular ativo
+
 components:
   securitySchemes:
     bearerAuth:
@@ -4452,6 +4839,11 @@ components:
           type: string
         testTime:
           type: string
+        examAllocation:
+          allOf:
+            - $ref: '#/components/schemas/ExamAllocationDto'
+          nullable: true
+          description: Alocação da prova presencial (nulo = nunca alocada). Desde 2026-11-13.
         createdAt:
           type: string
           format: date-time
@@ -5074,3 +5466,383 @@ components:
               description: Outros registros da mesma requisição (mesmo traceId), em ordem de ocorrência.
               items:
                 $ref: '#/components/schemas/AdminErrorLogListItemDto'
+
+    ExamTypeDto:
+      type: object
+      description: Tipo de prova presencial (desde 2026-11-13).
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        priority:
+          type: integer
+          description: Maior = alocado primeiro; numa sala compartilhada, ocupa as carteiras antes.
+        courseCodes:
+          type: array
+          items:
+            type: integer
+          description: Cursos (Course.code) que fazem esta prova. Um curso fica em um tipo ativo só.
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        modifiedAt:
+          type: string
+          format: date-time
+
+    AdminCreateOrUpdateExamTypeDto:
+      type: object
+      required: [name, courseCodes]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        priority:
+          type: integer
+        courseCodes:
+          type: array
+          items:
+            type: integer
+        isActive:
+          type: boolean
+          default: true
+
+    ExamRoomDto:
+      type: object
+      description: Sala da prova presencial (desde 2026-11-13).
+      properties:
+        id:
+          type: string
+        schoolName:
+          type: string
+        address:
+          type: string
+        name:
+          type: string
+        seats:
+          type: integer
+          description: Carteiras — capacidade por período. 0 = não recebe ninguém.
+        order:
+          type: integer
+          description: Ordem de preenchimento e de exibição (menor primeiro).
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        modifiedAt:
+          type: string
+          format: date-time
+
+    AdminCreateOrUpdateExamRoomDto:
+      type: object
+      required: [name]
+      properties:
+        schoolName:
+          type: string
+          maxLength: 200
+        address:
+          type: string
+          maxLength: 300
+        name:
+          type: string
+          maxLength: 100
+        seats:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        order:
+          type: integer
+        isActive:
+          type: boolean
+          default: true
+
+    ExamPeriodRoomDto:
+      type: object
+      properties:
+        roomId:
+          type: string
+        examTypeIds:
+          type: array
+          items:
+            type: string
+          description: Tipos de prova que a sala recebe no período (um ou mais).
+
+    ExamPeriodDto:
+      type: object
+      description: Período (horário) da prova presencial (desde 2026-11-13), no dia testDate da edição ativa.
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        startTime:
+          type: string
+          example: "08:00"
+        endTime:
+          type: string
+          example: "10:00"
+        order:
+          type: integer
+        rooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExamPeriodRoomDto'
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        modifiedAt:
+          type: string
+          format: date-time
+
+    AdminCreateOrUpdateExamPeriodDto:
+      type: object
+      required: [name, startTime, endTime]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        startTime:
+          type: string
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+        endTime:
+          type: string
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+        order:
+          type: integer
+        rooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExamPeriodRoomDto'
+        isActive:
+          type: boolean
+          default: true
+
+    RunExamAllocationDto:
+      type: object
+      required: [mode]
+      properties:
+        mode:
+          type: string
+          enum: [all, pending]
+
+    ExamAllocationDto:
+      type: object
+      description: Alocação da prova presencial de uma inscrição (detalhe da inscrição no painel).
+      properties:
+        status:
+          type: string
+          enum: [Allocated, NoExam, NoRoom, NoExamType]
+        basedOnChoice:
+          type: integer
+          description: 1 ou 2 — qual opção definiu a prova; 0 quando não faz prova.
+        courseCode:
+          type: integer
+        examTypeName:
+          type: string
+          nullable: true
+        periodName:
+          type: string
+          nullable: true
+        startTime:
+          type: string
+          nullable: true
+        endTime:
+          type: string
+          nullable: true
+        roomName:
+          type: string
+          nullable: true
+        schoolName:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        isInternalStudent:
+          type: boolean
+        allocatedAt:
+          type: string
+          format: date-time
+        allocatedBy:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ExamAllocationOverviewDto:
+      type: object
+      properties:
+        editionId:
+          type: string
+        year:
+          type: integer
+        testDate:
+          type: string
+          format: date-time
+        allocatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        hasUnpublishedChanges:
+          type: boolean
+          description: Há rodada mais nova que a última publicação (ou rodada sem publicação).
+        summary:
+          $ref: '#/components/schemas/ExamAllocationSummaryDto'
+        examTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExamAllocationTypeDto'
+        slots:
+          type: array
+          description: Salas de cada período ativo, na ordem de preenchimento.
+          items:
+            $ref: '#/components/schemas/ExamAllocationSlotDto'
+        items:
+          type: array
+          description: Inscrições válidas e as que têm alocação gravada, em ordem alfabética.
+          items:
+            $ref: '#/components/schemas/ExamAllocationItemDto'
+
+    ExamAllocationSummaryDto:
+      type: object
+      properties:
+        validEnrollments:
+          type: integer
+        allocated:
+          type: integer
+        noExam:
+          type: integer
+        noRoom:
+          type: integer
+        noExamType:
+          type: integer
+        pending:
+          type: integer
+          description: Válidas sem alocação gravada.
+        outdated:
+          type: integer
+          description: Válidas cuja alocação gravada não bate mais com a regra de hoje.
+        noLongerValid:
+          type: integer
+          description: Inscrições com alocação gravada que deixaram de ser válidas.
+
+    ExamAllocationTypeDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        priority:
+          type: integer
+        demand:
+          type: integer
+          description: Válidas que, pela regra de hoje, fazem esta prova.
+        fromSecondChoice:
+          type: integer
+          description: Quantas delas fazem a prova pela 2ª opção.
+        seats:
+          type: integer
+          description: Carteiras das salas que aceitam o tipo, somadas nos períodos (divididas com outros tipos).
+        previewAllocated:
+          type: integer
+        previewNoRoom:
+          type: integer
+        allocated:
+          type: integer
+        noRoom:
+          type: integer
+
+    ExamAllocationSlotDto:
+      type: object
+      properties:
+        periodId:
+          type: string
+        periodName:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        roomId:
+          type: string
+        roomName:
+          type: string
+        seats:
+          type: integer
+        occupied:
+          type: integer
+          description: Inscrições alocadas aqui na alocação gravada.
+        examTypeNames:
+          type: array
+          items:
+            type: string
+
+    ExamAllocationItemDto:
+      type: object
+      properties:
+        enrollmentId:
+          type: string
+        protocol:
+          type: string
+        name:
+          type: string
+        cpf:
+          type: string
+        rg:
+          type: string
+        firstChoiceCourseName:
+          type: string
+        secondChoiceCourseName:
+          type: string
+        status:
+          type: string
+          enum: [Allocated, NoExam, NoRoom, NoExamType, Pending]
+        examTypeId:
+          type: string
+          nullable: true
+        examTypeName:
+          type: string
+          nullable: true
+        basedOnChoice:
+          type: integer
+        courseCode:
+          type: integer
+        periodId:
+          type: string
+          nullable: true
+        periodName:
+          type: string
+          nullable: true
+        startTime:
+          type: string
+          nullable: true
+        endTime:
+          type: string
+          nullable: true
+        roomId:
+          type: string
+          nullable: true
+        roomName:
+          type: string
+          nullable: true
+        isInternalStudent:
+          type: boolean
+        outdated:
+          type: boolean
+        noLongerValid:
+          type: boolean
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true

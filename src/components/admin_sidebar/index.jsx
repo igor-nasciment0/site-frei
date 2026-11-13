@@ -20,6 +20,17 @@ const LINKS = [
 // Grupos expansíveis no próprio menu; o grupo abre sozinho quando a rota atual é de um dos filhos.
 const GRUPOS = [
   {
+    titulo: 'Prova presencial',
+    base: '/admin/prova',
+    // AdminExamsController (nsf-app-v3): só Admin.
+    links: [
+      { para: '/admin/prova/alocacao', titulo: 'Alocação', perfis: ['Admin'] },
+      { para: '/admin/prova/tipos', titulo: 'Tipos de prova', perfis: ['Admin'] },
+      { para: '/admin/prova/salas', titulo: 'Salas', perfis: ['Admin'] },
+      { para: '/admin/prova/periodos', titulo: 'Períodos', perfis: ['Admin'] },
+    ],
+  },
+  {
     titulo: 'Relatórios',
     base: '/admin/relatorios',
     // Espelho dos [Authorize(Roles)] do AdminReportsController (nsf-app-v3).
@@ -86,14 +97,12 @@ export default function AdminSidebar({ admin }) {
         }
 
         {/* Cada perfil vê só os relatórios que pode abrir. Sessão antiga, sem "role", é de Admin. */}
-        {GRUPOS.map(grupo => (
-          <GrupoLateral
-            key={grupo.base}
-            {...grupo}
-            links={grupo.links.filter(link => link.perfis.includes(admin?.role || 'Admin'))}
-            pathname={location.pathname}
-          />
-        ))}
+        {GRUPOS.map(grupo => {
+          const links = grupo.links.filter(link => link.perfis.includes(admin?.role || 'Admin'));
+          // Grupo sem nenhum link para o perfil (ex.: Prova presencial para a Secretaria) não aparece.
+          return links.length > 0 &&
+            <GrupoLateral key={grupo.base} {...grupo} links={links} pathname={location.pathname} />;
+        })}
       </nav>
 
       <div className="rodape">
