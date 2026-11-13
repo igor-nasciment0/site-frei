@@ -29,6 +29,7 @@ const GRUPOS = [
       { para: '/admin/relatorios/cupons', titulo: 'Cupons', perfis: ['Admin', 'Secretaria'] },
       { para: '/admin/relatorios/inscricoes-validas', titulo: 'Inscrições válidas', perfis: ['Admin'] },
       { para: '/admin/relatorios/inscricoes-externas', titulo: 'Inscrições externas', perfis: ['Admin'] },
+      { para: '/admin/relatorios/cursos-por-periodo', titulo: 'Cursos por período', perfis: ['Admin'] },
     ],
   },
 ];

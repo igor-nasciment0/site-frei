@@ -41,6 +41,7 @@ import AdminRelatorioFinanceiro from './pages/admin/relatorios/financeiro';
 import AdminRelatorioIndicacoes from './pages/admin/relatorios/indicacoes';
 import AdminRelatorioCupons from './pages/admin/relatorios/cupons';
 import AdminRelatorioInscricoes from './pages/admin/relatorios/inscricoes';
+import AdminRelatorioCursosPorPeriodo from './pages/admin/relatorios/cursosPorPeriodo';
 import AdminErros from './pages/admin/erros';
 import AdminErroDetalhes from './pages/admin/erros/detalhes';
 
@@ -89,6 +90,7 @@ createRoot(document.getElementById('root')).render(
               <Route path='relatorios/cupons' element={<AdminRelatorioCupons />} />
               <Route path='relatorios/inscricoes-validas' element={<AdminRelatorioInscricoes key='validas' tipo='validas' />} />
               <Route path='relatorios/inscricoes-externas' element={<AdminRelatorioInscricoes key='externas' tipo='externas' />} />
+              <Route path='relatorios/cursos-por-periodo' element={<AdminRelatorioCursosPorPeriodo />} />
               <Route path='administradores' element={<AdminUsuarios />} />
               <Route path='erros' element={<AdminErros />} />
               <Route path='erros/:id' element={<AdminErroDetalhes />} />
