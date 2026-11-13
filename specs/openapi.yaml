@@ -1,6 +1,6 @@
 # CÓPIA — a fonte da verdade é nsf-app-v3/specs/openapi.yaml (repositório da API).
 # Não edite aqui: altere lá e copie de novo (cp nsf-app-v3/specs/openapi.yaml frei/specs/openapi.yaml,
-# mantendo este cabeçalho). Última sincronização: 2026-11-11.
+# mantendo este cabeçalho). Última sincronização: 2026-11-13.
 openapi: 3.0.3
 info:
   title: NSF API v3
@@ -4611,9 +4611,9 @@ components:
         phone: { type: string }
         primaryResponsibleEmail: { type: string, description: Desde 2026-11-10. }
         secondaryResponsibleEmail: { type: string, description: Desde 2026-11-10. }
-        firstChoiceCourseName: { type: string }
-        firstChoicePeriodName: { type: string }
-        secondChoiceCourseName: { type: string, description: Vazio sem 2ª opção }
+        firstChoiceCourseName: { type: string, description: "Nome atual do cadastro, pelo código gravado na inscrição (desde 2026-11-13); curso que não existe mais usa o nome gravado na inscrição." }
+        firstChoicePeriodName: { type: string, description: "Nome atual do período no cadastro do curso, pelo código (desde 2026-11-13)." }
+        secondChoiceCourseName: { type: string, description: "Vazio sem 2ª opção. Mesma regra de firstChoiceCourseName." }
         secondChoicePeriodName: { type: string }
 
     AdminCouponReportItemDto:
