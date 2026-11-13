@@ -2913,7 +2913,7 @@ paths:
       tags: [AdminPanel]
       summary: Desativa um tipo de prova (soft-delete)
       x-roles: [Admin]
-      description: Recusado (400) se o tipo estiver em algum período ativo.
+      description: Recusado (400) se o tipo estiver em algum período ativo — numa sala ou num limite por grupo.
       parameters:
         - name: id
           in: path
@@ -3074,7 +3074,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ExamPeriodDto'
         '400':
-          description: Nome vazio, longo ou repetido; horário fora de HH:mm ou início não anterior ao fim; sala inexistente, inativa ou repetida; sala sem tipo; tipo inexistente ou inativo.
+          description: Nome vazio, longo ou repetido; horário fora de HH:mm ou início não anterior ao fim; sala inexistente, inativa ou repetida; sala sem tipo; tipo inexistente ou inativo; grupo de limite sem tipo, com tipo inativo ou repetido em outro grupo, nome com mais de 100 caracteres ou máximo fora de 0–10000.
 
   /api/admin/exam-periods/{id}:
     get:
@@ -3120,7 +3120,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ExamPeriodDto'
         '400':
-          description: Nome vazio, longo ou repetido; horário fora de HH:mm ou início não anterior ao fim; sala inexistente, inativa ou repetida; sala sem tipo; tipo inexistente ou inativo.
+          description: Nome vazio, longo ou repetido; horário fora de HH:mm ou início não anterior ao fim; sala inexistente, inativa ou repetida; sala sem tipo; tipo inexistente ou inativo; grupo de limite sem tipo, com tipo inativo ou repetido em outro grupo, nome com mais de 100 caracteres ou máximo fora de 0–10000.
         '404':
           description: Não encontrado
     delete:
@@ -5570,6 +5570,26 @@ components:
             type: string
           description: Tipos de prova que a sala recebe no período (um ou mais).
 
+    ExamTypeGroupLimitDto:
+      type: object
+      description: >
+        Limite de alocados de um grupo de tipos de prova no período inteiro (somando as salas).
+        Um tipo fica em um grupo só do período. 0 = o grupo não faz prova no período.
+      properties:
+        name:
+          type: string
+          nullable: true
+          maxLength: 100
+        examTypeIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        maxAllocations:
+          type: integer
+          minimum: 0
+          maximum: 10000
+
     ExamPeriodDto:
       type: object
       description: Período (horário) da prova presencial (desde 2026-11-13), no dia testDate da edição ativa.
@@ -5590,6 +5610,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ExamPeriodRoomDto'
+        typeGroupLimits:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExamTypeGroupLimitDto'
         isActive:
           type: boolean
         createdAt:
@@ -5618,6 +5642,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ExamPeriodRoomDto'
+        typeGroupLimits:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExamTypeGroupLimitDto'
         isActive:
           type: boolean
           default: true
@@ -5707,6 +5735,11 @@ components:
           description: Salas de cada período ativo, na ordem de preenchimento.
           items:
             $ref: '#/components/schemas/ExamAllocationSlotDto'
+        periodLimits:
+          type: array
+          description: Uso gravado de cada limite por grupo dos períodos ativos.
+          items:
+            $ref: '#/components/schemas/ExamAllocationPeriodLimitDto'
         items:
           type: array
           description: Inscrições válidas e as que têm alocação gravada, em ordem alfabética.
@@ -5787,6 +5820,25 @@ components:
           type: array
           items:
             type: string
+
+    ExamAllocationPeriodLimitDto:
+      type: object
+      properties:
+        periodId:
+          type: string
+        periodName:
+          type: string
+        name:
+          type: string
+        examTypeNames:
+          type: array
+          items:
+            type: string
+        maxAllocations:
+          type: integer
+        occupied:
+          type: integer
+          description: Alocados no período com prova de um dos tipos do grupo — pode passar do máximo (modo "pending").
 
     ExamAllocationItemDto:
       type: object

@@ -21,6 +21,8 @@ export default function AdminPeriodoProvaForm() {
   // roomId → [examTypeIds]; sala fora do mapa = não usada no período
   const [config, setConfig] = useState({});
   const [descartadas, setDescartadas] = useState(0);
+  // Limites por grupo de tipos de prova no período inteiro: [{ name, examTypeIds, maxAllocations }]
+  const [grupos, setGrupos] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -55,6 +57,15 @@ export default function AdminPeriodoProvaForm() {
           mapa[r.roomId] = tiposValidos;
         }
         setConfig(mapa);
+
+        const gruposValidos = [];
+        for (const g of periodo.typeGroupLimits || []) {
+          const tiposValidos = g.examTypeIds.filter(t => idsTipos.has(t));
+          if (tiposValidos.length !== g.examTypeIds.length) fora++;
+          if (tiposValidos.length > 0)
+            gruposValidos.push({ name: g.name || "", examTypeIds: tiposValidos, maxAllocations: g.maxAllocations });
+        }
+        setGrupos(gruposValidos);
         setDescartadas(fora);
       }
       setCarregando(false);
@@ -84,11 +95,25 @@ export default function AdminPeriodoProvaForm() {
     });
   }
 
+  const mudarGrupo = (indice, campo, valor) =>
+    setGrupos(gs => gs.map((g, i) => (i === indice ? { ...g, [campo]: valor } : g)));
+
+  function alternarTipoGrupo(indice, tipoId) {
+    setGrupos(gs => gs.map((g, i) => i !== indice ? g : {
+      ...g,
+      examTypeIds: g.examTypeIds.includes(tipoId) ? g.examTypeIds.filter(t => t !== tipoId) : [...g.examTypeIds, tipoId],
+    }));
+  }
+
   async function salvar(e) {
     e.preventDefault();
     if (!dados.name.trim()) return toast.error("Informe o nome do período.");
     if (!dados.startTime || !dados.endTime || dados.startTime >= dados.endTime)
       return toast.error("O horário de início deve ser anterior ao de fim.");
+    if (grupos.some(g => g.examTypeIds.length === 0))
+      return toast.error("Cada grupo de limite precisa de ao menos um tipo de prova.");
+    if (grupos.some(g => g.maxAllocations === "" || !(Number(g.maxAllocations) >= 0)))
+      return toast.error("Informe o limite de cada grupo (0 ou mais).");
 
     const payload = {
       ...dados,
@@ -96,6 +121,11 @@ export default function AdminPeriodoProvaForm() {
       order: parseInt(dados.order, 10) || 0,
       // na ordem das salas
       rooms: salas.filter(s => config[s.id]).map(s => ({ roomId: s.id, examTypeIds: config[s.id] })),
+      typeGroupLimits: grupos.map(g => ({
+        name: g.name.trim(),
+        examTypeIds: g.examTypeIds,
+        maxAllocations: parseInt(g.maxAllocations, 10) || 0,
+      })),
     };
 
     setSalvando(true);
@@ -213,6 +243,65 @@ export default function AdminPeriodoProvaForm() {
                   </table>
                 </div>
               )}
+          </div>
+
+          <div className="divisor" />
+
+          <div className="subsecao">
+            <div className="titulo-subsecao">
+              <h3>Limites por grupo de provas</h3>
+              <button type="button" className="btn-fantasma" disabled={tipos.length === 0}
+                onClick={() => setGrupos([...grupos, { name: "", examTypeIds: [], maxAllocations: 0 }])}>
+                Adicionar grupo
+              </button>
+            </div>
+            <p className="aviso">
+              Opcional. Limita quantos candidatos dos tipos do grupo, somados, são alocados neste período
+              — em todas as salas juntas. Quem passar do limite vai para o próximo período. Dentro do
+              grupo, o tipo de maior prioridade entra primeiro. Limite 0 = o grupo não faz prova neste
+              período. Os tipos fora dos grupos ficam só com o limite das carteiras. Um tipo fica em um
+              grupo só.
+            </p>
+
+            {grupos.length === 0 && <p className="aviso">Nenhum limite neste período.</p>}
+
+            {grupos.map((grupo, indice) => (
+              <div key={indice} className="grupo-limite">
+                <div className="linha-grupo">
+                  <div className="campo">
+                    <label htmlFor={`grupo-nome-${indice}`}>Nome do grupo (opcional)</label>
+                    <input id={`grupo-nome-${indice}`} type="text" maxLength={100} placeholder="ex.: Inglês avançado"
+                      value={grupo.name} onChange={e => mudarGrupo(indice, "name", e.target.value)} />
+                  </div>
+                  <div className="campo">
+                    <label htmlFor={`grupo-max-${indice}`}>Máximo de alocados</label>
+                    <input id={`grupo-max-${indice}`} type="number" min="0" max="10000" step="1"
+                      value={grupo.maxAllocations} onChange={e => mudarGrupo(indice, "maxAllocations", e.target.value)} />
+                  </div>
+                  <button type="button" className="admin-btn-perigo"
+                    onClick={() => setGrupos(grupos.filter((_, i) => i !== indice))}>
+                    Remover
+                  </button>
+                </div>
+                <div className="lista-opcoes">
+                  {tipos.map(t => {
+                    const outro = grupos.findIndex((g, i) => i !== indice && g.examTypeIds.includes(t.id));
+                    const bloqueado = outro >= 0;
+                    return (
+                      <label key={t.id} className={bloqueado ? "desabilitado" : ""}>
+                        <input type="checkbox" disabled={bloqueado}
+                          checked={grupo.examTypeIds.includes(t.id)}
+                          onChange={() => alternarTipoGrupo(indice, t.id)} />
+                        <span>
+                          {t.name}
+                          {bloqueado && <small>Já está em {grupos[outro].name ? `"${grupos[outro].name}"` : `outro grupo`}</small>}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="rodape-form">

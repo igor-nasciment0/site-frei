@@ -202,6 +202,57 @@
             }
         }
 
+        .limites {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: -4px 0 12px;
+            list-style: none;
+
+            li {
+                display: flex;
+                align-items: baseline;
+                gap: 8px;
+                font-size: 12.5px;
+                color: t.$c-text;
+                background: t.$c-white;
+                border: 1px solid t.$c-tag-border;
+                padding: 6px 10px;
+
+                strong {
+                    color: t.$c-navy;
+                    font-weight: 600;
+                }
+
+                .tipos-limite {
+                    color: t.$c-text-muted;
+                    font-size: 11.5px;
+                }
+
+                .uso {
+                    font-family: t.$font-mono;
+                    color: t.$c-slate;
+                }
+
+                &.cheio {
+                    border-color: t.$c-navy;
+                }
+
+                &.acima {
+                    border-color: t.$c-alert-border;
+
+                    .uso,
+                    .aviso-limite {
+                        color: t.$c-clay;
+                    }
+                }
+
+                .aviso-limite {
+                    font-size: 11.5px;
+                }
+            }
+        }
+
         .salas {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

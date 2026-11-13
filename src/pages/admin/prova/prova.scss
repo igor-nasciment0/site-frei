@@ -109,3 +109,36 @@
         }
     }
 }
+
+// Limites por grupo de provas, no formulário de período.
+.admin-prova-form .grupo-limite {
+    border: 1px solid t.$c-border;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+
+    .linha-grupo {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+        gap: 12px 16px;
+        align-items: end;
+
+        .campo {
+            min-width: 0;
+        }
+
+        .admin-btn-perigo {
+            height: 42px;
+        }
+
+        @include t.bp-640 {
+            grid-template-columns: 1fr;
+        }
+    }
+}
+
+.admin-prova-form .subsecao .titulo-subsecao .btn-fantasma:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

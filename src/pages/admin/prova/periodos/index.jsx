@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import callApi from "../../../../api/callAPI";
 import {
-  listarPeriodosProva, listarSalasProva, desativarPeriodoProva,
+  listarPeriodosProva, listarSalasProva, listarTiposProva, desativarPeriodoProva,
 } from "../../../../api/services/admin/provaPresencial";
 import Carregamento from "../../../../components/carregamento";
 import "../prova.scss";
@@ -10,12 +10,16 @@ import "../prova.scss";
 export default function AdminPeriodosProva() {
   const [periodos, setPeriodos] = useState(null);
   const [salas, setSalas] = useState({});
+  const [tipos, setTipos] = useState({});
 
   useEffect(() => { carregar(); }, []);
 
   async function carregar() {
-    const [p, s] = await Promise.all([callApi(listarPeriodosProva, true), callApi(listarSalasProva, false)]);
+    const [p, s, t] = await Promise.all([
+      callApi(listarPeriodosProva, true), callApi(listarSalasProva, false), callApi(listarTiposProva, false),
+    ]);
     if (Array.isArray(s)) setSalas(Object.fromEntries(s.map(sala => [sala.id, sala])));
+    if (Array.isArray(t)) setTipos(Object.fromEntries(t.map(tipo => [tipo.id, tipo.name])));
     setPeriodos(Array.isArray(p) ? p : []);
   }
 
@@ -58,13 +62,14 @@ export default function AdminPeriodosProva() {
               <th>Horário</th>
               <th className="numero">Salas</th>
               <th className="numero">Carteiras</th>
+              <th>Limites por grupo</th>
               <th>Status</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {periodos.length === 0 &&
-              <tr className="vazio"><td colSpan={7}>Nenhum período cadastrado ainda.</td></tr>
+              <tr className="vazio"><td colSpan={8}>Nenhum período cadastrado ainda.</td></tr>
             }
             {periodos.map(periodo => (
               <tr key={periodo.id}>
@@ -73,6 +78,11 @@ export default function AdminPeriodosProva() {
                 <td>{periodo.startTime} às {periodo.endTime}</td>
                 <td className="numero">{periodo.rooms.length}</td>
                 <td className="numero">{carteiras(periodo)}</td>
+                <td className="cursos">
+                  {(periodo.typeGroupLimits || []).length === 0
+                    ? "—"
+                    : periodo.typeGroupLimits.map(g => `${g.name || g.examTypeIds.map(t => tipos[t] || "?").join(" + ")}: ${g.maxAllocations}`).join(" · ")}
+                </td>
                 <td>
                   <span className={"admin-badge " + (periodo.isActive ? "ativo" : "inativo")}>
                     {periodo.isActive ? "Ativo" : "Inativo"}

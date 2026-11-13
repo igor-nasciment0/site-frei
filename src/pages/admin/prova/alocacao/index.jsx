@@ -210,7 +210,10 @@ function PorSala({ visao }) {
     const grupos = [];
     for (const vaga of visao.slots) {
       let g = grupos.find(x => x.periodId === vaga.periodId);
-      if (!g) grupos.push(g = { periodId: vaga.periodId, nome: vaga.periodName, horario: horario(vaga), vagas: [] });
+      if (!g) grupos.push(g = {
+        periodId: vaga.periodId, nome: vaga.periodName, horario: horario(vaga), vagas: [],
+        limites: (visao.periodLimits || []).filter(l => l.periodId === vaga.periodId),
+      });
       g.vagas.push(vaga);
     }
     return grupos;
@@ -227,6 +230,18 @@ function PorSala({ visao }) {
         return (
           <section key={p.periodId} className="periodo">
             <h2>{p.nome} <span>{p.horario} · {ocupadas}/{total} carteiras</span></h2>
+            {p.limites.length > 0 &&
+              <ul className="limites">
+                {p.limites.map((l, n) => (
+                  <li key={n} className={l.occupied > l.maxAllocations ? "acima" : l.occupied === l.maxAllocations ? "cheio" : ""}>
+                    <strong>{l.name || l.examTypeNames.join(" + ")}</strong>
+                    {l.name && <span className="tipos-limite">{l.examTypeNames.join(" · ")}</span>}
+                    <span className="uso">{l.occupied}/{l.maxAllocations}</span>
+                    {l.occupied > l.maxAllocations && <span className="aviso-limite">acima do limite</span>}
+                  </li>
+                ))}
+              </ul>
+            }
             <div className="salas">
               {p.vagas.map(v => {
                 const chave = `${v.periodId}|${v.roomId}`;
