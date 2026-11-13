@@ -129,10 +129,13 @@ export default function AdminAlocacaoProva() {
 
       <div className="abas" role="tablist">
         <button role="tab" aria-selected={aba === "salas"} className={aba === "salas" ? "ativa" : ""} onClick={() => setAba("salas")}>Por sala</button>
+        <button role="tab" aria-selected={aba === "periodos"} className={aba === "periodos" ? "ativa" : ""} onClick={() => setAba("periodos")}>Por período</button>
         <button role="tab" aria-selected={aba === "lista"} className={aba === "lista" ? "ativa" : ""} onClick={() => setAba("lista")}>Lista</button>
       </div>
 
-      {aba === "salas" ? <PorSala visao={visao} /> : <Lista visao={visao} />}
+      {aba === "salas" && <PorSala visao={visao} />}
+      {aba === "periodos" && <PorPeriodo visao={visao} />}
+      {aba === "lista" && <Lista visao={visao} />}
     </div>
   );
 }
@@ -199,6 +202,82 @@ function TabelaTipos({ tipos }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+// Inscrições alocadas (gravado) por tipo de prova × período. Mesma contagem da ocupação das salas;
+// "Sem sala" é a coluna à parte de quem faz a prova mas não coube.
+function PorPeriodo({ visao }) {
+  const { periodos, linhas, totais } = useMemo(() => {
+    const periodos = [];
+    for (const v of visao.slots)
+      if (!periodos.some(p => p.id === v.periodId))
+        periodos.push({ id: v.periodId, nome: v.periodName, horario: horario(v) });
+
+    const alocados = visao.items.filter(i => i.status === "Allocated");
+    const semSala = visao.items.filter(i => i.status === "NoRoom" && !i.noLongerValid);
+
+    const linhas = visao.examTypes.map(t => {
+      const porPeriodo = Object.fromEntries(periodos.map(p => [
+        p.id, alocados.filter(i => i.examTypeId === t.id && i.periodId === p.id).length,
+      ]));
+      const total = Object.values(porPeriodo).reduce((a, b) => a + b, 0);
+      return { id: t.id, nome: t.name, porPeriodo, total, semSala: semSala.filter(i => i.examTypeId === t.id).length };
+    });
+
+    const totais = {
+      porPeriodo: Object.fromEntries(periodos.map(p => [p.id, linhas.reduce((soma, l) => soma + l.porPeriodo[p.id], 0)])),
+      total: linhas.reduce((soma, l) => soma + l.total, 0),
+      semSala: linhas.reduce((soma, l) => soma + l.semSala, 0),
+    };
+    return { periodos, linhas, totais };
+  }, [visao]);
+
+  if (periodos.length === 0)
+    return <p className="aviso">Nenhum período ativo com salas. <Link to="/admin/prova/periodos">Configurar períodos</Link></p>;
+
+  return (
+    <div className="tabela-rolavel">
+      <table className="admin-table por-periodo">
+        <thead>
+          <tr>
+            <th>Tipo de prova</th>
+            {periodos.map(p => (
+              <th key={p.id} className="numero">{p.nome}<small>{p.horario}</small></th>
+            ))}
+            <th className="numero">Total</th>
+            <th className="numero">Sem sala</th>
+          </tr>
+        </thead>
+        <tbody>
+          {linhas.length === 0 &&
+            <tr className="vazio"><td colSpan={periodos.length + 3}>Nenhum tipo de prova ativo.</td></tr>
+          }
+          {linhas.map(l => (
+            <tr key={l.id}>
+              <td><strong>{l.nome}</strong></td>
+              {periodos.map(p => <td key={p.id} className="numero">{l.porPeriodo[p.id] || "—"}</td>)}
+              <td className="numero"><strong>{l.total}</strong></td>
+              <td className={"numero" + (l.semSala > 0 ? " alerta" : "")}>{l.semSala || "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+        {linhas.length > 0 &&
+          <tfoot>
+            <tr>
+              <td>Total</td>
+              {periodos.map(p => <td key={p.id} className="numero">{totais.porPeriodo[p.id]}</td>)}
+              <td className="numero">{totais.total}</td>
+              <td className={"numero" + (totais.semSala > 0 ? " alerta" : "")}>{totais.semSala}</td>
+            </tr>
+          </tfoot>
+        }
+      </table>
+      <p className="nota-tabela">
+        Inscrições alocadas na última rodada (antes de publicar, o candidato ainda não vê). Quem não faz
+        prova não entra na tabela.
+      </p>
     </div>
   );
 }
