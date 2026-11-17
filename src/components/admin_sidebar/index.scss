@@ -80,9 +80,17 @@
         padding: 0 26px 8px;
     }
 
+    // A barra tem a altura da tela (sticky, 100vh); com o menu do Admin maior que ela, só a
+    // navegação rola — topo com a marca e rodapé com "Sair do painel" ficam sempre visíveis.
     nav {
         display: flex;
         flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: t.$c-on-navy-border transparent;
 
         a {
             position: relative;
@@ -159,9 +167,15 @@
         }
     }
 
+    .rotulo-nav,
+    .topo {
+        flex-shrink: 0;
+    }
+
     .rodape {
+        flex-shrink: 0;
         margin-top: auto;
-        padding: 0 26px;
+        padding: 18px 26px 0;
 
         .divisor {
             height: 1px;

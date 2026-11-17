@@ -1,0 +1,60 @@
+@use '../../../../styles/tokens' as t;
+@use '../relatorio' as r;
+
+.admin-relatorio-alocacao-periodo {
+    @include r.relatorio-page;
+
+    .periodo {
+        margin-top: 28px;
+
+        h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: t.$c-navy;
+            margin-bottom: 10px;
+
+            span {
+                margin-left: 8px;
+                font-family: t.$font-mono;
+                font-size: 12px;
+                font-weight: 400;
+                color: t.$c-text-muted;
+            }
+        }
+    }
+
+    .admin-table {
+        th.tipo {
+            white-space: normal;
+            min-width: 84px;
+        }
+
+        td.sem-dado {
+            color: t.$c-text-muted;
+        }
+
+        // Ocupação acima das carteiras (possível em "Alocar pendentes" depois de reduzir a sala).
+        td.acima {
+            color: t.$c-clay;
+            font-weight: 600;
+        }
+
+        tfoot td {
+            font-weight: 600;
+            color: t.$c-navy;
+            border-top: 1px solid t.$c-border;
+        }
+    }
+
+    .nota,
+    .aviso {
+        margin-top: 16px;
+        font-size: 13px;
+        color: t.$c-text-muted;
+        max-width: 70ch;
+
+        strong {
+            color: t.$c-navy;
+        }
+    }
+}

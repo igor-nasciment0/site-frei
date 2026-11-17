@@ -66,6 +66,7 @@ LoadingBarContainer (react-top-loading-bar)
   relatorios/inscricoes-validas  → AdminRelatorioInscricoes tipo="validas"   (Admin)
   relatorios/inscricoes-externas → AdminRelatorioInscricoes tipo="externas"  (Admin)
   relatorios/cursos-por-periodo  → AdminRelatorioCursosPorPeriodo            (Admin)
+  relatorios/alocacao-por-periodo → AdminRelatorioAlocacaoPorPeriodo        (Admin)
   administradores       → AdminUsuarios
   erros                 → AdminErros  (log de erros da API, só Admin)
   erros/:id             → AdminErroDetalhes
